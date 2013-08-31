@@ -1,0 +1,57 @@
+X-Git-Url: http://www.openldap.org/devel/gitweb.cgi?p=openldap.git;a=blobdiff_plain;f=servers%2Fslapd%2Fback-shell%2Fconfig.c;h=ff0d1cbcb0601427d0197dbdbe4bd5faba24628f;hp=41e1d1c67d97495f2c770d75fe9c4afabb8989fd;hb=6143aa0c18c8e0f73f4855b884b30405adabfc99;hpb=b4d403ea310022ca4ffcbf31fa20ead6c754f28d
+
+diff --git a/servers/slapd/back-shell/config.c b/servers/slapd/back-shell/config.c
+index 41e1d1c..ff0d1cb 100644
+--- a/servers/slapd/back-shell/config.c
++++ b/servers/slapd/back-shell/config.c
+@@ -53,42 +53,42 @@ enum {
+ };
+ 
+ static ConfigTable shellcfg[] = {
+-	{ "bind", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_BIND, shell_cf,
++	{ "bind", "args", 2, 0, 0, ARG_MAGIC|SHELL_BIND, shell_cf,
+ 		"( OLcfgDbAt:10.1 NAME 'olcShellBind' "
+ 			"DESC 'Bind command and arguments' "
+ 			"EQUALITY caseExactMatch "
+ 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
+-	{ "unbind", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_UNBIND, shell_cf,
++	{ "unbind", "args", 2, 0, 0, ARG_MAGIC|SHELL_UNBIND, shell_cf,
+ 		"( OLcfgDbAt:10.2 NAME 'olcShellUnbind' "
+ 			"DESC 'Unbind command and arguments' "
+ 			"EQUALITY caseExactMatch "
+ 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
+-	{ "search", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_SEARCH, shell_cf,
++	{ "search", "args", 2, 0, 0, ARG_MAGIC|SHELL_SEARCH, shell_cf,
+ 		"( OLcfgDbAt:10.3 NAME 'olcShellSearch' "
+ 			"DESC 'Search command and arguments' "
+ 			"EQUALITY caseExactMatch "
+ 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
+-	{ "compare", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_COMPARE, shell_cf,
++	{ "compare", "args", 2, 0, 0, ARG_MAGIC|SHELL_COMPARE, shell_cf,
+ 		"( OLcfgDbAt:10.4 NAME 'olcShellCompare' "
+ 			"DESC 'Compare command and arguments' "
+ 			"EQUALITY caseExactMatch "
+ 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
+-	{ "modify", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_MODIFY, shell_cf,
++	{ "modify", "args", 2, 0, 0, ARG_MAGIC|SHELL_MODIFY, shell_cf,
+ 		"( OLcfgDbAt:10.5 NAME 'olcShellModify' "
+ 			"DESC 'Modify command and arguments' "
+ 			"EQUALITY caseExactMatch "
+ 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
+-	{ "modrdn", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_MODRDN, shell_cf,
++	{ "modrdn", "args", 2, 0, 0, ARG_MAGIC|SHELL_MODRDN, shell_cf,
+ 		"( OLcfgDbAt:10.6 NAME 'olcShellModRDN' "
+ 			"DESC 'ModRDN command and arguments' "
+ 			"EQUALITY caseExactMatch "
+ 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
+-	{ "add", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_ADD, shell_cf,
++	{ "add", "args", 2, 0, 0, ARG_MAGIC|SHELL_ADD, shell_cf,
+ 		"( OLcfgDbAt:10.7 NAME 'olcShellAdd' "
+ 			"DESC 'Add command and arguments' "
+ 			"EQUALITY caseExactMatch "
+ 			"SYNTAX OMsDirectoryString SINGLE-VALUE ) ", NULL, NULL },
+-	{ "delete", "args", 2, 0, 0, ARG_STRING|ARG_MAGIC|SHELL_DELETE, shell_cf,
++	{ "delete", "args", 2, 0, 0, ARG_MAGIC|SHELL_DELETE, shell_cf,
+ 		"( OLcfgDbAt:10.8 NAME 'olcShellDelete' "
+ 			"DESC 'Delete command and arguments' "
+ 			"EQUALITY caseExactMatch "
