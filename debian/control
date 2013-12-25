@@ -1,9 +1,10 @@
 Source: openldap
 Section: net
 Priority: optional
-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Maintainer: Pexip AS <packaging@pexip.com>
+XSBC-Pexip-Original-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian OpenLDAP Maintainers <pkg-openldap-devel@lists.alioth.debian.org>
-Uploaders: Roland Bauerschmidt <rb@debian.org>,
+XSBC-Pexip-Original-Uploaders: Roland Bauerschmidt <rb@debian.org>,
  Stephen Frost <sfrost@debian.org>,
  Steve Langasek <vorlon@debian.org>,
  Torsten Landschoff <torsten@debian.org>,
@@ -22,6 +23,7 @@ Standards-Version: 3.9.1
 Homepage: http://www.openldap.org/
 Vcs-Svn: svn://svn.debian.org/pkg-openldap/openldap/trunk
 Vcs-Browser: http://svn.debian.org/wsvn/pkg-openldap/openldap/trunk
+XS-Pexip-Upstream: http://archive.ubuntu.com/ubuntu/ precise
 
 Package: slapd
 Section: net

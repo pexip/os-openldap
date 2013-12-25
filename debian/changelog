@@ -1,3 +1,9 @@
+openldap (2.4.28-1.1ubuntu4.4pexip1) pexip; urgency=low
+
+  * Prepare Pexip packaging
+
+ -- John-Mark Bell <jmb@pexip.com>  Wed, 25 Dec 2013 00:02:54 +0000
+
 openldap (2.4.28-1.1ubuntu4.4) precise-proposed; urgency=low
 
   * Backport fix for back-mdb, fixes crash when deleting an entry
