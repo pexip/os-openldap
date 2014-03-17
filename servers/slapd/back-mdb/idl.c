@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2011 The OpenLDAP Foundation.
+ * Copyright 2000-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -391,14 +391,16 @@ mdb_idl_fetch_key(
 
 int
 mdb_idl_insert_keys(
+	BackendDB	*be,
 	MDB_cursor	*cursor,
 	struct berval *keys,
 	ID			id )
 {
+	struct mdb_info *mdb = be->be_private;
 	MDB_val key, data;
 	ID lo, hi, *i;
 	char *err;
-	int	rc, k;
+	int	rc = 0, k;
 	unsigned int flag = MDB_NODUPDATA;
 #ifndef	MISALIGNED_OK
 	int kbuf[2];
@@ -413,11 +415,8 @@ mdb_idl_insert_keys(
 
 	assert( id != NOID );
 
-	if ( slapMode & SLAP_TOOL_QUICK )
-		flag |= MDB_APPEND;
-
 #ifndef MISALIGNED_OK
-	if (keys[0].bv_len & 0x03)
+	if (keys[0].bv_len & ALIGNER)
 		kbuf[1] = 0;
 #endif
 	for ( k=0; keys[k].bv_val; k++ ) {
@@ -425,7 +424,7 @@ mdb_idl_insert_keys(
 	 * exists and if it's a range.
 	 */
 #ifndef MISALIGNED_OK
-	if (keys[k].bv_len & 0x03) {
+	if (keys[k].bv_len & ALIGNER) {
 		key.mv_size = sizeof(kbuf);
 		key.mv_data = kbuf;
 		memcpy(key.mv_data, keys[k].bv_val, keys[k].bv_len);
@@ -493,6 +492,8 @@ mdb_idl_insert_keys(
 				}
 			} else {
 			/* There's room, just store it */
+				if (id == mdb->mi_nextid)
+					flag |= MDB_APPENDDUP;
 				goto put1;
 			}
 		} else {
@@ -504,9 +505,17 @@ mdb_idl_insert_keys(
 			if ( id < lo || id > hi ) {
 				/* position on lo */
 				rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
+				if ( rc != 0 ) {
+					err = "c_get lo";
+					goto fail;
+				}
 				if ( id > hi ) {
 					/* position on hi */
 					rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
+					if ( rc != 0 ) {
+						err = "c_get hi";
+						goto fail;
+					}
 				}
 				data.mv_size = sizeof(ID);
 				data.mv_data = &id;
@@ -519,6 +528,7 @@ mdb_idl_insert_keys(
 			}
 		}
 	} else if ( rc == MDB_NOTFOUND ) {
+		flag &= ~MDB_APPENDDUP;
 put1:	data.mv_data = &id;
 		data.mv_size = sizeof(ID);
 		rc = mdb_cursor_put( cursor, &key, &data, flag );
@@ -542,11 +552,12 @@ fail:
 
 int
 mdb_idl_delete_keys(
+	BackendDB	*be,
 	MDB_cursor	*cursor,
 	struct berval *keys,
 	ID			id )
 {
-	int	rc, k;
+	int	rc = 0, k;
 	MDB_val key, data;
 	ID lo, hi, tmp, *i;
 	char *err;
@@ -563,7 +574,7 @@ mdb_idl_delete_keys(
 	assert( id != NOID );
 
 #ifndef MISALIGNED_OK
-	if (keys[0].bv_len & 0x03)
+	if (keys[0].bv_len & ALIGNER)
 		kbuf[1] = 0;
 #endif
 	for ( k=0; keys[k].bv_val; k++) {
@@ -571,7 +582,7 @@ mdb_idl_delete_keys(
 	 * exists and if it's a range.
 	 */
 #ifndef MISALIGNED_OK
-	if (keys[k].bv_len & 0x03) {
+	if (keys[k].bv_len & ALIGNER) {
 		key.mv_size = sizeof(kbuf);
 		key.mv_data = kbuf;
 		memcpy(key.mv_data, keys[k].bv_val, keys[k].bv_len);
@@ -704,8 +715,8 @@ mdb_idl_intersection(
 	 * turn it into a range.
 	 */
 	if ( MDB_IDL_IS_RANGE( b )
-		&& MDB_IDL_RANGE_FIRST( b ) <= MDB_IDL_RANGE_FIRST( a )
-		&& MDB_IDL_RANGE_LAST( b ) >= MDB_IDL_RANGE_LAST( a ) ) {
+		&& MDB_IDL_RANGE_FIRST( b ) <= MDB_IDL_FIRST( a )
+		&& MDB_IDL_RANGE_LAST( b ) >= MDB_IDL_LLAST( a ) ) {
 		if (idmax - idmin + 1 == a[0])
 		{
 			a[0] = NOID;
@@ -1063,7 +1074,7 @@ mdb_idl_sort( ID *ids, ID *tmp )
 			ids[l+1] = ids[j];
 			ids[j] = a;
 			jstack += 2;
-			if (ir-i+1 >= j-1) {
+			if (ir-i+1 >= j-l) {
 				istack[jstack] = ir;
 				istack[jstack-1] = i;
 				ir = j-1;
@@ -1081,7 +1092,7 @@ mdb_idl_sort( ID *ids, ID *tmp )
 /* 8 bit Radix sort + insertion sort
  * 
  * based on code from http://www.cubic.org/docs/radix.htm
- * with improvements by mbackes@symas.com and hyc@symas.com
+ * with improvements by ebackes@symas.com and hyc@symas.com
  *
  * This code is O(n) but has a relatively high constant factor. For lists
  * up to ~50 Quicksort is slightly faster; up to ~100 they are even.

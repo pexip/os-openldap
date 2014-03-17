@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2011 The OpenLDAP Foundation.
+ * Copyright 2001-2014 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -139,7 +139,7 @@ monitor_subsys_thread_init(
 		 */
 		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn,
 			&mt[ i ].rdn,
-			mi->mi_oc_monitoredObject, mi, NULL, NULL );
+			mi->mi_oc_monitoredObject, NULL, NULL );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_thread_init: "

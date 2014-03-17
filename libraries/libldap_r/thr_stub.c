@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -200,6 +200,18 @@ ldap_pvt_thread_pool_destroy (
 	ldap_pvt_thread_pool_t *pool, int run_pending )
 {
 	return(0);
+}
+
+void
+ldap_pvt_thread_pool_idle ( ldap_pvt_thread_pool_t *pool )
+{
+	return;
+}
+
+void
+ldap_pvt_thread_pool_unidle ( ldap_pvt_thread_pool_t *pool )
+{
+	return;
 }
 
 int ldap_pvt_thread_pool_getkey (

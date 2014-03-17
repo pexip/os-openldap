@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,13 @@
 #include "lutil.h"
 
 struct ldapoptions ldap_int_global_options =
-	{ LDAP_UNINITIALIZED, LDAP_DEBUG_NONE LDAP_LDO_MUTEX_NULLARG };  
+	{ LDAP_UNINITIALIZED, LDAP_DEBUG_NONE
+		LDAP_LDO_NULLARG
+		LDAP_LDO_CONNECTIONLESS_NULLARG
+		LDAP_LDO_TLS_NULLARG
+		LDAP_LDO_SASL_NULLARG
+		LDAP_LDO_GSSAPI_NULLARG
+		LDAP_LDO_MUTEX_NULLARG };
 
 #define ATTR_NONE	0
 #define ATTR_BOOL	1
@@ -635,6 +641,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 #endif
 
 #if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+	LDAP_MUTEX_LOCK( &ldap_int_hostname_mutex );
 	{
 		char	*name = ldap_int_hostname;
 
@@ -644,13 +651,14 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 			LDAP_FREE( name );
 		}
 	}
+	LDAP_MUTEX_UNLOCK( &ldap_int_hostname_mutex );
 #endif
 
 #ifndef HAVE_POLL
 	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();
 #endif
 
-	ldap_int_initialize_global_options(gopts, NULL);
+	ldap_int_initialize_global_options(gopts, dbglvl);
 
 	if( getenv("LDAPNOINIT") != NULL ) {
 		return;

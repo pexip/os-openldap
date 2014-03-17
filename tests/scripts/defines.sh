@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2011 The OpenLDAP Foundation.
+## Copyright 1998-2014 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ BACKSQL=${AC_sql-sqlno}
 
 # overlays
 ACCESSLOG=${AC_accesslog-accesslogno}
+CONSTRAINT=${AC_constraint-constraintno}
 DDS=${AC_dds-ddsno}
 DYNLIST=${AC_dynlist-dynlistno}
 MEMBEROF=${AC_memberof-memberofno}
@@ -46,6 +47,7 @@ WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
 ACI=${AC_ACI_ENABLED-acino}
 THREADS=${AC_THREADS-threadsno}
+SLEEP0=${SLEEP0-1}
 SLEEP1=${SLEEP1-7}
 SLEEP2=${SLEEP2-15}
 

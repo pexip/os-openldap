@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -202,6 +202,7 @@ ldap_int_flush_request(
 
 		/* sent -- waiting for a response */
 		ldap_mark_select_read( ld, lc->lconn_sb );
+		ldap_clear_select_write( ld, lc->lconn_sb );
 	}
 	return 0;
 }
@@ -260,7 +261,7 @@ ldap_send_server_request(
 		ber_sockbuf_ctrl( lc->lconn_sb, LBER_SB_OPT_GET_FD, &sd );
 
 		/* poll ... */
-		switch ( ldap_int_poll( ld, sd, &tv ) ) {
+		switch ( ldap_int_poll( ld, sd, &tv, 1 ) ) {
 		case 0:
 			/* go on! */
 			lc->lconn_status = LDAP_CONNST_CONNECTED;
@@ -307,7 +308,7 @@ ldap_send_server_request(
 		ber_rewind( &tmpber );
 		LDAP_MUTEX_LOCK( &ld->ld_options.ldo_mutex );
 		rc = ber_write( &tmpber, ld->ld_options.ldo_peer,
-			sizeof( struct sockaddr ), 0 );
+			sizeof( struct sockaddr_storage ), 0 );
 		LDAP_MUTEX_UNLOCK( &ld->ld_options.ldo_mutex );
 		if ( rc == -1 ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
@@ -366,6 +367,9 @@ ldap_send_server_request(
 	}
 
 	/* Extract requestDN for future reference */
+#ifdef LDAP_CONNECTIONLESS
+	if ( !LDAP_IS_UDP(ld) )
+#endif
 	{
 		BerElement tmpber = *ber;
 		ber_int_t	bint;

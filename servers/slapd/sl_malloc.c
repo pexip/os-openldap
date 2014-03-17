@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2011 The OpenLDAP Foundation.
+ * Copyright 2003-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -222,7 +222,7 @@ slap_sl_mem_create(
 			VGMEMP_CHANGE(sh, base, newptr, size);
 			base = newptr;
 		}
-		VGMEMP_TRIM(sh, sh->sh_base, 0);
+		VGMEMP_TRIM(sh, base, 0);
 	}
 	sh->sh_base = base;
 	sh->sh_end = base + size;
@@ -522,7 +522,8 @@ slap_sl_free(void *ptr, void *ctx)
 				p = (ber_len_t *) ((char *) p - p[-1]);
 			}
 			sh->sh_last = p;
-			VGMEMP_TRIM(sh, sh->sh_base, sh->sh_last - sh->sh_base);
+			VGMEMP_TRIM(sh, sh->sh_base,
+				(char *) sh->sh_last - (char *) sh->sh_base);
 		}
 
 	} else {

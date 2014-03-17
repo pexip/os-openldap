@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2011 The OpenLDAP Foundation.
+ * Copyright 2003-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -186,7 +186,7 @@ ldap_back_exop_passwd(
 		dn.bv_val, isproxy ? " (proxy)" : "", 0 );
 
 retry:
-	rc = ldap_passwd( lc->lc_ld, isproxy ? &dn : NULL,
+	rc = ldap_passwd( lc->lc_ld,  &dn,
 		qpw->rs_old.bv_val ? &qpw->rs_old : NULL,
 		qpw->rs_new.bv_val ? &qpw->rs_new : NULL,
 		op->o_ctrls, NULL, &msgid );
@@ -263,6 +263,10 @@ retry:
 	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
 		ldap_back_quarantine( op, rs );
 	}
+
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_EXTENDED ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 
 	if ( freedn ) {
 		op->o_tmpfree( dn.bv_val, op->o_tmpmemctx );
@@ -376,6 +380,10 @@ retry:
 	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
 		ldap_back_quarantine( op, rs );
 	}
+
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_EXTENDED ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 
 	/* these have to be freed anyway... */
 	if ( rs->sr_matched ) {

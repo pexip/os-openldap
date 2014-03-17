@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2011 The OpenLDAP Foundation.
+ * Copyright 2000-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ enum {
 	MDB_CHKPT = 1,
 	MDB_DIRECTORY,
 	MDB_DBNOSYNC,
+	MDB_ENVFLAGS,
 	MDB_INDEX,
 	MDB_MAXREADERS,
 	MDB_MAXSIZE,
@@ -55,6 +56,11 @@ static ConfigTable mdbcfg[] = {
 		mdb_cf_gen, "( OLcfgDbAt:1.4 NAME 'olcDbNoSync' "
 			"DESC 'Disable synchronous database writes' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "envflags", "flags", 2, 0, 0, ARG_MAGIC|MDB_ENVFLAGS,
+		mdb_cf_gen, "( OLcfgDbAt:12.3 NAME 'olcDbEnvFlags' "
+			"DESC 'Database environment flags' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "index", "attr> <[pres,eq,approx,sub]", 2, 3, 0, ARG_MAGIC|MDB_INDEX,
 		mdb_cf_gen, "( OLcfgDbAt:0.2 NAME 'olcDbIndex' "
 		"DESC 'Attribute index parameters' "
@@ -87,11 +93,20 @@ static ConfigOCs mdbocs[] = {
 		"DESC 'MDB backend configuration' "
 		"SUP olcDatabaseConfig "
 		"MUST olcDbDirectory "
-		"MAY ( olcDbCheckpoint $ "
+		"MAY ( olcDbCheckpoint $ olcDbEnvFlags $ "
 		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxsize $ "
 		"olcDbMode $ olcDbSearchStack ) )",
 		 	Cft_Database, mdbcfg },
 	{ NULL, 0, NULL }
+};
+
+static slap_verbmasks mdb_envflags[] = {
+	{ BER_BVC("nosync"),	MDB_NOSYNC },
+	{ BER_BVC("nometasync"),	MDB_NOMETASYNC },
+	{ BER_BVC("writemap"),	MDB_WRITEMAP },
+	{ BER_BVC("mapasync"),	MDB_MAPASYNC },
+	{ BER_BVC("nordahead"),	MDB_NORDAHEAD },
+	{ BER_BVNULL, 0 }
 };
 
 /* perform periodic syncs */
@@ -101,7 +116,7 @@ mdb_checkpoint( void *ctx, void *arg )
 	struct re_s *rtask = arg;
 	struct mdb_info *mdb = rtask->arg;
 
-	mdb_env_sync( mdb->mi_dbenv, 0 );
+	mdb_env_sync( mdb->mi_dbenv, 1 );
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
@@ -173,12 +188,21 @@ mdb_online_index( void *ctx, void *arg )
 			break;
 		}
 		rc = mdb_index_entry( op, txn, MDB_INDEX_UPDATE_OP, e );
+		mdb_entry_return( op, e );
 		if ( rc == 0 ) {
 			rc = mdb_txn_commit( txn );
 			txn = NULL;
+		} else {
+			mdb_txn_abort( txn );
+			txn = NULL;
 		}
-		if ( rc )
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				LDAP_XSTRING(mdb_online_index) ": database %s: "
+				"txn_commit failed: %s (%d)\n",
+				be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
 			break;
+		}
 		id++;
 		getnext = 1;
 	}
@@ -289,6 +313,13 @@ mdb_cf_gen( ConfigArgs *c )
 				c->value_int = 1;
 			break;
 
+		case MDB_ENVFLAGS:
+			if ( mdb->mi_dbenv_flags ) {
+				mask_to_verbs( mdb_envflags, mdb->mi_dbenv_flags, &c->rvalue_vals );
+			}
+			if ( !c->rvalue_vals ) rc = 1;
+			break;
+
 		case MDB_INDEX:
 			mdb_attr_index_unparse( mdb, &c->rvalue_vals );
 			if ( !c->rvalue_vals ) rc = 1;
@@ -345,7 +376,41 @@ mdb_cf_gen( ConfigArgs *c )
 			break;
 		case MDB_DBNOSYNC:
 			mdb_env_set_flags( mdb->mi_dbenv, MDB_NOSYNC, 0 );
+			mdb->mi_dbenv_flags &= ~MDB_NOSYNC;
 			break;
+
+		case MDB_ENVFLAGS:
+			if ( c->valx == -1 ) {
+				int i;
+				for ( i=0; mdb_envflags[i].mask; i++) {
+					if ( mdb->mi_dbenv_flags & mdb_envflags[i].mask ) {
+						/* not all flags are runtime resettable */
+						rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[i].mask, 0 );
+						if ( rc ) {
+							mdb->mi_flags |= MDB_RE_OPEN;
+							c->cleanup = mdb_cf_cleanup;
+							rc = 0;
+						}
+						mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
+					}
+				}
+			} else {
+				int i = verb_to_mask( c->line, mdb_envflags );
+				if ( mdb_envflags[i].mask & mdb->mi_dbenv_flags ) {
+					rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[i].mask, 0 );
+					if ( rc ) {
+						mdb->mi_flags |= MDB_RE_OPEN;
+						c->cleanup = mdb_cf_cleanup;
+						rc = 0;
+					}
+					mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
+				} else {
+					/* unknown keyword */
+					rc = 1;
+				}
+			}
+			break;
+
 		case MDB_INDEX:
 			if ( c->valx == -1 ) {
 				int i;
@@ -526,6 +591,29 @@ mdb_cf_gen( ConfigArgs *c )
 		}
 		break;
 
+	case MDB_ENVFLAGS: {
+		int i, j;
+		for ( i=1; i<c->argc; i++ ) {
+			j = verb_to_mask( c->argv[i], mdb_envflags );
+			if ( mdb_envflags[j].mask ) {
+				if ( mdb->mi_flags & MDB_IS_OPEN )
+					rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[j].mask, 1 );
+				else
+					rc = 0;
+				if ( rc ) {
+					mdb->mi_flags |= MDB_RE_OPEN;
+					c->cleanup = mdb_cf_cleanup;
+					rc = 0;
+				}
+				mdb->mi_dbenv_flags |= mdb_envflags[j].mask;
+			} else {
+				/* unknown keyword */
+				rc = 1;
+			}
+		}
+		}
+		break;
+
 	case MDB_INDEX:
 		rc = mdb_attr_index_config( mdb, c->fname, c->lineno,
 			c->argc - 1, &c->argv[1], &c->reply);
@@ -563,14 +651,18 @@ mdb_cf_gen( ConfigArgs *c )
 
 	case MDB_MAXREADERS:
 		mdb->mi_readers = c->value_int;
-		if ( mdb->mi_flags & MDB_IS_OPEN )
+		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb->mi_flags |= MDB_RE_OPEN;
+			c->cleanup = mdb_cf_cleanup;
+		}
 		break;
 
 	case MDB_MAXSIZE:
 		mdb->mi_mapsize = c->value_ulong;
-		if ( mdb->mi_flags & MDB_IS_OPEN )
+		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb->mi_flags |= MDB_RE_OPEN;
+			c->cleanup = mdb_cf_cleanup;
+		}
 		break;
 
 	}

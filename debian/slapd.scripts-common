@@ -46,7 +46,7 @@ database_format_changed() {						# {{{
 # Return success if yes.
 # Usage: if database_format_changed; then
 
-	if dpkg --compare-versions "$OLD_VERSION" lt-nl 2.4.25-2; then
+	if dpkg --compare-versions "$OLD_VERSION" lt-nl 2.4.39-1; then
 		return 0
 	else
 		return 1
@@ -156,7 +156,8 @@ olcAccess: {0}to * by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,c
 dump_databases() {							# {{{
 # If the user wants us to dump the databases they are dumped to the 
 # configured directory.
-	local db suffix file dir failed slapcat_opts
+
+	local db suffix file dir failed
 
 	database_dumping_enabled || return 0
 
@@ -274,14 +275,14 @@ get_suffix() {
 			sed -n -e's/^suffix[[:space:]]\+"*\([^"]\+\)"*/\1/p' $f
 		done
 	else
-		grep -h olcSuffix ${SLAPD_CONF}/cn\=config/olcDatabase* | cut -d: -f 2
+		grep -h olcSuffix ${SLAPD_CONF}/cn\=config/olcDatabase*.ldif | cut -d: -f 2
 	fi
 }
 # }}}
 get_directory() {							# {{{
 # Returns the db directory for a given suffix
 	if [ -d "${SLAPD_CONF}" ] && get_suffix | grep -q "$1" ; then
-		grep "olcDbDirectory:" `grep -l "olcSuffix: $1" ${SLAPD_CONF}/cn\=config/olcDatabase*` | cut -d: -f 2 | sed 's/^  *//g'
+		grep "olcDbDirectory:" `grep -l "olcSuffix: $1" ${SLAPD_CONF}/cn\=config/olcDatabase*.ldif` | cut -d: -f 2 | sed 's/^  *//g'
 	elif [ -f "${SLAPD_CONF}" ]; then
 		# Extract the directory for the given suffix ($1)
 		for f in `get_all_slapd_conf_files`; do
@@ -347,12 +348,6 @@ compute_backup_path() {							# {{{
 	id="$OLD_VERSION"
 	[ -n "$id" ] || id=`date +%Y%m%d-%H%M%S`
 	target="/var/backups/$basedn-$id.ldapdb"
-	# Configuration via dpkg-reconfigure. 
-	# The backup directory already exists when reconfigured 
-	# twice or more: append a timestamp.
-	if [ -e "${target}" ] && ([ "$MODE" = reconfigure ] || [ "$DEBCONF_RECONFIGURE" ]); then
-			 target="$target-`date +%Y%m%d-%H%M%S`"
-	fi
 	if [ -e "$target" ] && [ -z "$ok_exists" ]; then
 		echo >&2
 		echo >&2 "  Backup path $target exists. Giving up..."
@@ -567,6 +562,8 @@ EOF
 configure_v2_protocol_support() {					# {{{
 # Adds the "allow bind_v2" directive to the configuration if the user decided
 # he wants to have ldap v2 enabled.
+
+	local new_conf
 
 	db_get slapd/allow_ldap_v2
 	if [ "$RET" != "true" ]; then return 0; fi

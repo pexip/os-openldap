@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2011 The OpenLDAP Foundation.
+ * Copyright 2000-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,9 @@
  * RDNs up to length 32767, but that's fine since full DNs are already
  * restricted to 8192.
  *
+ * Also each child node contains a count of the number of entries in
+ * its subtree, appended after its entryID.
+ *
  * The diskNode is a variable length structure. This definition is not
  * directly usable for in-memory manipulation.
  */
@@ -44,6 +47,7 @@ typedef struct diskNode {
 	char nrdn[1];
 	char rdn[1];                        /* variable placement */
 	unsigned char entryID[sizeof(ID)];  /* variable placement */
+	/* unsigned char nsubs[sizeof(ID)];	in child nodes only */
 } diskNode;
 
 /* Sort function for the sorted duplicate data items of a dn2id key.
@@ -67,67 +71,9 @@ mdb_dup_compare(
 	rc = un->nrdnlen[1] - cn->nrdnlen[1];
 	if ( rc ) return rc;
 
-	nrlen = (un->nrdnlen[0] << 8) | un->nrdnlen[1];
+	nrlen = ((un->nrdnlen[0] & 0x7f) << 8) | un->nrdnlen[1];
 	return strncmp( un->nrdn, cn->nrdn, nrlen );
 }
-
-#if 0
-/* This function constructs a full DN for a given entry.
- */
-int mdb_fix_dn(
-	Entry *e,
-	int checkit )
-{
-	EntryInfo *ei;
-	int rlen = 0, nrlen = 0;
-	char *ptr, *nptr;
-	int max = 0;
-
-	if ( !e->e_id )
-		return 0;
-
-	/* count length of all DN components */
-	for ( ei = BEI(e); ei && ei->bei_id; ei=ei->bei_parent ) {
-		rlen += ei->bei_rdn.bv_len + 1;
-		nrlen += ei->bei_nrdn.bv_len + 1;
-		if (ei->bei_modrdns > max) max = ei->bei_modrdns;
-	}
-
-	/* See if the entry DN was invalidated by a subtree rename */
-	if ( checkit ) {
-		if ( BEI(e)->bei_modrdns >= max ) {
-			return 0;
-		}
-		/* We found a mismatch, tell the caller to lock it */
-		if ( checkit == 1 ) {
-			return 1;
-		}
-		/* checkit == 2. do the fix. */
-		free( e->e_name.bv_val );
-		free( e->e_nname.bv_val );
-	}
-
-	e->e_name.bv_len = rlen - 1;
-	e->e_nname.bv_len = nrlen - 1;
-	e->e_name.bv_val = ch_malloc(rlen);
-	e->e_nname.bv_val = ch_malloc(nrlen);
-	ptr = e->e_name.bv_val;
-	nptr = e->e_nname.bv_val;
-	for ( ei = BEI(e); ei && ei->bei_id; ei=ei->bei_parent ) {
-		ptr = lutil_strcopy(ptr, ei->bei_rdn.bv_val);
-		nptr = lutil_strcopy(nptr, ei->bei_nrdn.bv_val);
-		if ( ei->bei_parent ) {
-			*ptr++ = ',';
-			*nptr++ = ',';
-		}
-	}
-	BEI(e)->bei_modrdns = max;
-	if ( ptr > e->e_name.bv_val ) ptr[-1] = '\0';
-	if ( nptr > e->e_nname.bv_val ) nptr[-1] = '\0';
-
-	return 0;
-}
-#endif
 
 /* We add two elements to the DN2ID database - a data item under the parent's
  * entryID containing the child's RDN and entryID, and an item under the
@@ -139,6 +85,8 @@ mdb_dn2id_add(
 	MDB_cursor	*mcp,
 	MDB_cursor	*mcd,
 	ID pid,
+	ID nsubs,
+	int upsub,
 	Entry		*e )
 {
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
@@ -159,7 +107,7 @@ mdb_dn2id_add(
 		rlen = e->e_name.bv_len;
 	}
 
-	d = op->o_tmpalloc(sizeof(diskNode) + rlen + nrlen, op->o_tmpmemctx);
+	d = op->o_tmpalloc(sizeof(diskNode) + rlen + nrlen + sizeof(ID), op->o_tmpmemctx);
 	d->nrdnlen[1] = nrlen & 0xff;
 	d->nrdnlen[0] = (nrlen >> 8) | 0x80;
 	ptr = lutil_strncopy( d->nrdn, e->e_nname.bv_val, nrlen );
@@ -167,6 +115,8 @@ mdb_dn2id_add(
 	ptr = lutil_strncopy( ptr, e->e_name.bv_val, rlen );
 	*ptr++ = '\0';
 	memcpy( ptr, &e->e_id, sizeof( ID ));
+	ptr += sizeof( ID );
+	memcpy( ptr, &nsubs, sizeof( ID ));
 
 	key.mv_size = sizeof(ID);
 	key.mv_data = &nid;
@@ -185,20 +135,65 @@ mdb_dn2id_add(
 	}
 
 	data.mv_data = d;
-	data.mv_size = sizeof(diskNode) + rlen + nrlen;
+	data.mv_size = sizeof(diskNode) + rlen + nrlen + sizeof( ID );
 
+	/* Add our child node under parent's key */
 	rc = mdb_cursor_put( mcp, &key, &data, MDB_NODUPDATA );
 
+	/* Add our own node */
 	if (rc == 0) {
+		int flag = MDB_NODUPDATA;
 		nid = e->e_id;
+		/* drop subtree count */
+		data.mv_size -= sizeof( ID );
+		ptr -= sizeof( ID );
 		memcpy( ptr, &pid, sizeof( ID ));
 		d->nrdnlen[0] ^= 0x80;
 
-		rc = mdb_cursor_put( mcd, &key, &data, MDB_NODUPDATA|MDB_APPEND );
+		if ((slapMode & SLAP_TOOL_MODE) || (e->e_id == mdb->mi_nextid))
+			flag |= MDB_APPEND;
+		rc = mdb_cursor_put( mcd, &key, &data, flag );
+	}
+	op->o_tmpfree( d, op->o_tmpmemctx );
+
+	/* Add our subtree count to all superiors */
+	if ( rc == 0 && upsub && pid ) {
+		ID subs;
+		nid = pid;
+		do {
+			/* Get parent's RDN */
+			rc = mdb_cursor_get( mcp, &key, &data, MDB_SET );
+			if ( !rc ) {
+				char *p2;
+				ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
+				memcpy( &nid, ptr, sizeof( ID ));
+				/* Get parent's node under grandparent */
+				d = data.mv_data;
+				rlen = ( d->nrdnlen[0] << 8 ) | d->nrdnlen[1];
+				p2 = op->o_tmpalloc( rlen + 2, op->o_tmpmemctx );
+				memcpy( p2, data.mv_data, rlen+2 );
+				*p2 ^= 0x80;
+				data.mv_data = p2;
+				rc = mdb_cursor_get( mcp, &key, &data, MDB_GET_BOTH );
+				op->o_tmpfree( p2, op->o_tmpmemctx );
+				if ( !rc ) {
+					/* Get parent's subtree count */
+					ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
+					memcpy( &subs, ptr, sizeof( ID ));
+					subs += nsubs;
+					p2 = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
+					memcpy( p2, data.mv_data, data.mv_size - sizeof( ID ));
+					memcpy( p2+data.mv_size - sizeof( ID ), &subs, sizeof( ID ));
+					data.mv_data = p2;
+					rc = mdb_cursor_put( mcp, &key, &data, MDB_CURRENT );
+					op->o_tmpfree( p2, op->o_tmpmemctx );
+				}
+			}
+			if ( rc )
+				break;
+		} while ( nid );
 	}
 
-fail:
-	op->o_tmpfree( d, op->o_tmpmemctx );
 	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
 
 	return rc;
@@ -209,8 +204,11 @@ int
 mdb_dn2id_delete(
 	Operation	*op,
 	MDB_cursor *mc,
-	ID id )
+	ID id,
+	ID nsubs )
 {
+	ID nid;
+	char *ptr;
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id_delete 0x%lx\n",
@@ -224,12 +222,58 @@ mdb_dn2id_delete(
 	 * for modrdn, which will add our info back in later.
 	 */
 	if ( rc == 0 ) {
-		MDB_val	key;
+		MDB_val	key, data;
+		if ( nsubs ) {
+			mdb_cursor_get( mc, &key, NULL, MDB_GET_CURRENT );
+			memcpy( &nid, key.mv_data, sizeof( ID ));
+		}
 		key.mv_size = sizeof(ID);
 		key.mv_data = &id;
-		rc = mdb_cursor_get( mc, &key, NULL, MDB_SET );
+		rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
 		if ( rc == 0 )
 			rc = mdb_cursor_del( mc, 0 );
+	}
+
+	/* Delete our subtree count from all superiors */
+	if ( rc == 0 && nsubs && nid ) {
+		MDB_val key, data;
+		ID subs;
+		key.mv_data = &nid;
+		key.mv_size = sizeof( ID );
+		do {
+			rc = mdb_cursor_get( mc, &key, &data, MDB_SET );
+			if ( !rc ) {
+				char *p2;
+				diskNode *d;
+				int rlen;
+				ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
+				memcpy( &nid, ptr, sizeof( ID ));
+				/* Get parent's node under grandparent */
+				d = data.mv_data;
+				rlen = ( d->nrdnlen[0] << 8 ) | d->nrdnlen[1];
+				p2 = op->o_tmpalloc( rlen + 2, op->o_tmpmemctx );
+				memcpy( p2, data.mv_data, rlen+2 );
+				*p2 ^= 0x80;
+				data.mv_data = p2;
+				rc = mdb_cursor_get( mc, &key, &data, MDB_GET_BOTH );
+				op->o_tmpfree( p2, op->o_tmpmemctx );
+				if ( !rc ) {
+					/* Get parent's subtree count */
+					ptr = (char *)data.mv_data + data.mv_size - sizeof( ID );
+					memcpy( &subs, ptr, sizeof( ID ));
+					subs -= nsubs;
+					p2 = op->o_tmpalloc( data.mv_size, op->o_tmpmemctx );
+					memcpy( p2, data.mv_data, data.mv_size - sizeof( ID ));
+					memcpy( p2+data.mv_size - sizeof( ID ), &subs, sizeof( ID ));
+					data.mv_data = p2;
+					rc = mdb_cursor_put( mc, &key, &data, MDB_CURRENT );
+					op->o_tmpfree( p2, op->o_tmpmemctx );
+				}
+
+			}
+			if ( rc )
+				break;
+		} while ( nid );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_delete 0x%lx: %d\n", id, rc, 0 );
@@ -238,7 +282,8 @@ mdb_dn2id_delete(
 
 /* return last found ID in *id if no match
  * If mc is provided, it will be left pointing to the RDN's
- * record under the parent's ID.
+ * record under the parent's ID. If nsubs is provided, return
+ * the number of entries in this entry's subtree.
  */
 int
 mdb_dn2id(
@@ -247,6 +292,7 @@ mdb_dn2id(
 	MDB_cursor	*mc,
 	struct berval	*in,
 	ID	*id,
+	ID	*nsubs,
 	struct berval	*matched,
 	struct berval	*nmatched )
 {
@@ -318,14 +364,14 @@ mdb_dn2id(
 		op->o_tmpfree( d, op->o_tmpmemctx );
 		if ( rc )
 			break;
-		ptr = (char *) data.mv_data + data.mv_size - sizeof(ID);
+		ptr = (char *) data.mv_data + data.mv_size - 2*sizeof(ID);
 		memcpy( &nid, ptr, sizeof(ID));
 
 		/* grab the non-normalized RDN */
 		if ( matched ) {
 			int rlen;
 			d = data.mv_data;
-			rlen = data.mv_size - sizeof(diskNode) - tmp.bv_len;
+			rlen = data.mv_size - sizeof(diskNode) - tmp.bv_len - sizeof(ID);
 			matched->bv_len += rlen;
 			matched->bv_val -= rlen + 1;
 			ptr = lutil_strcopy( matched->bv_val, d->rdn + tmp.bv_len );
@@ -351,6 +397,11 @@ mdb_dn2id(
 		}
 	}
 	*id = nid; 
+	/* return subtree count if requested */
+	if ( !rc && nsubs ) {
+		ptr = (char *)data.mv_data + data.mv_size - sizeof(ID);
+		memcpy( nsubs, ptr, sizeof( ID ));
+	}
 	if ( !mc )
 		mdb_cursor_close( cursor );
 done:
@@ -438,7 +489,7 @@ mdb_dn2sups(
 			mdb_cursor_close( cursor );
 			break;
 		}
-		ptr = (char *) data.mv_data + data.mv_size - sizeof(ID);
+		ptr = (char *) data.mv_data + data.mv_size - 2*sizeof(ID);
 		memcpy( &nid, ptr, sizeof(ID));
 
 		if ( pid )
@@ -465,65 +516,6 @@ done:
 
 	return rc;
 }
-
-#if 0
-int
-mdb_dn2id_parent(
-	Operation *op,
-	DB_TXN *txn,
-	EntryInfo *ei,
-	ID *idp )
-{
-	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
-	DB *db = mdb->bi_dn2id->bdi_db;
-	DBT		key, data;
-	DBC	*cursor;
-	int		rc = 0;
-	diskNode *d;
-	char	*ptr;
-	ID	nid;
-
-	DBTzero(&key);
-	key.size = sizeof(ID);
-	key.data = &nid;
-	key.ulen = sizeof(ID);
-	key.flags = DB_DBT_USERMEM;
-	MDB_ID2DISK( ei->bei_id, &nid );
-
-	DBTzero(&data);
-	data.flags = DB_DBT_USERMEM;
-
-	rc = db->cursor( db, txn, &cursor, mdb->bi_db_opflags );
-	if ( rc ) return rc;
-
-	data.ulen = sizeof(diskNode) + (SLAP_LDAPDN_MAXLEN * 2);
-	d = op->o_tmpalloc( data.ulen, op->o_tmpmemctx );
-	data.data = d;
-
-	rc = cursor->c_get( cursor, &key, &data, DB_SET );
-	if ( rc == 0 ) {
-		if (d->nrdnlen[0] & 0x80) {
-			rc = LDAP_OTHER;
-		} else {
-			db_recno_t dkids;
-			ptr = (char *) data.data + data.size - sizeof(ID);
-			MDB_DISK2ID( ptr, idp );
-			ei->bei_nrdn.bv_len = (d->nrdnlen[0] << 8) | d->nrdnlen[1];
-			ber_str2bv( d->nrdn, ei->bei_nrdn.bv_len, 1, &ei->bei_nrdn );
-			ei->bei_rdn.bv_len = data.size - sizeof(diskNode) -
-				ei->bei_nrdn.bv_len;
-			ptr = d->nrdn + ei->bei_nrdn.bv_len + 1;
-			ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
-			/* How many children does this node have? */
-			cursor->c_count( cursor, &dkids, 0 );
-			ei->bei_dkids = dkids;
-		}
-	}
-	cursor->c_close( cursor );
-	op->o_tmpfree( d, op->o_tmpmemctx );
-	return rc;
-}
-#endif
 
 int
 mdb_dn2id_children(
@@ -638,9 +630,9 @@ mdb_idscope(
 	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
 	MDB_cursor	*cursor;
-	ID ida, id, cid, ci0, idc = 0;
+	ID ida, id, cid = 0, ci0 = 0, idc = 0;
 	char	*ptr;
-	int		rc;
+	int		rc, copy;
 
 	key.mv_size = sizeof(ID);
 
@@ -658,17 +650,14 @@ mdb_idscope(
 	}
 
 	while (ida != NOID) {
+		copy = 1;
 		id = ida;
 		while (id) {
 			key.mv_data = &id;
 			rc = mdb_cursor_get( cursor, &key, &data, MDB_SET );
 			if ( rc ) {
-				/* not found, move on to next */
-				if (idc) {
-					if (ci0 != cid)
-						ids[ci0] = ids[cid];
-					ci0++;
-				}
+				/* not found, drop this from ids */
+				copy = 0;
 				break;
 			}
 			ptr = data.mv_data;
@@ -677,18 +666,19 @@ mdb_idscope(
 			if ( id == base ) {
 				res[0]++;
 				res[res[0]] = ida;
-				if (idc)
-					idc--;
+				copy = 0;
 				break;
-			} else {
-				if (idc) {
-					if (ci0 != cid)
-						ids[ci0] = ids[cid];
-					ci0++;
-				}
 			}
 			if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 				break;
+		}
+		if (idc) {
+			if (copy) {
+				if (ci0 != cid)
+					ids[ci0] = ids[cid];
+				ci0++;
+			} else
+				idc--;
 		}
 		ida = mdb_idl_next( ids, &cid );
 	}
@@ -725,12 +715,20 @@ mdb_idscopes(
 	}
 
 	id = isc->id;
+
+	/* Catch entries from deref'd aliases */
+	x = mdb_id2l_search( isc->scopes, id );
+	if ( x <= isc->scopes[0].mid && isc->scopes[x].mid == id ) {
+		isc->nscope = x;
+		return MDB_SUCCESS;
+	}
+
 	while (id) {
 		if ( !rc ) {
 			key.mv_data = &id;
 			rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
 			if ( rc )
-				break;
+				return rc;
 
 			/* save RDN info */
 		}
@@ -763,335 +761,94 @@ mdb_idscopes(
 		if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 			break;
 	}
-	return MDB_NOTFOUND;
-}
-
-#if 0
-/* mdb_dn2idl:
- * We can't just use mdb_idl_fetch_key because
- * 1 - our data items are longer than just an entry ID
- * 2 - our data items are sorted alphabetically by nrdn, not by ID.
- *
- * We descend the tree recursively, so we define this cookie
- * to hold our necessary state information. The mdb_dn2idl_internal
- * function uses this cookie when calling itself.
- */
-
-struct dn2id_cookie {
-	struct mdb_info *mdb;
-	Operation *op;
-	DB_TXN *txn;
-	EntryInfo *ei;
-	ID *ids;
-	ID *tmp;
-	ID *buf;
-	DB *db;
-	DBC *dbc;
-	DBT key;
-	DBT data;
-	ID dbuf;
-	ID id;
-	ID nid;
-	int rc;
-	int depth;
-	char need_sort;
-	char prefix;
-};
-
-static int
-apply_func(
-	void *data,
-	void *arg )
-{
-	EntryInfo *ei = data;
-	ID *idl = arg;
-
-	mdb_idl_append_one( idl, ei->bei_id );
-	return 0;
-}
-
-static int
-mdb_dn2idl_internal(
-	struct dn2id_cookie *cx
-)
-{
-	MDB_IDL_ZERO( cx->tmp );
-
-	if ( cx->mdb->bi_idl_cache_size ) {
-		char *ptr = ((char *)&cx->id)-1;
-
-		cx->key.data = ptr;
-		cx->key.size = sizeof(ID)+1;
-		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			ID *ids = cx->depth ? cx->tmp : cx->ids;
-			*ptr = cx->prefix;
-			cx->rc = mdb_idl_cache_get(cx->mdb, cx->db, &cx->key, ids);
-			if ( cx->rc == LDAP_SUCCESS ) {
-				if ( cx->depth ) {
-					mdb_idl_append( cx->ids, cx->tmp );
-					cx->need_sort = 1;
-				}
-				return cx->rc;
-			}
-		}
-		*ptr = DN_ONE_PREFIX;
-		cx->rc = mdb_idl_cache_get(cx->mdb, cx->db, &cx->key, cx->tmp);
-		if ( cx->rc == LDAP_SUCCESS ) {
-			goto gotit;
-		}
-		if ( cx->rc == DB_NOTFOUND ) {
-			return cx->rc;
-		}
-	}
-
-	mdb_cache_entryinfo_lock( cx->ei );
-
-	/* If number of kids in the cache differs from on-disk, load
-	 * up all the kids from the database
-	 */
-	if ( cx->ei->bei_ckids+1 != cx->ei->bei_dkids ) {
-		EntryInfo ei;
-		db_recno_t dkids = cx->ei->bei_dkids;
-		ei.bei_parent = cx->ei;
-
-		/* Only one thread should load the cache */
-		while ( cx->ei->bei_state & CACHE_ENTRY_ONELEVEL ) {
-			mdb_cache_entryinfo_unlock( cx->ei );
-			ldap_pvt_thread_yield();
-			mdb_cache_entryinfo_lock( cx->ei );
-			if ( cx->ei->bei_ckids+1 == cx->ei->bei_dkids ) {
-				goto synced;
-			}
-		}
-
-		cx->ei->bei_state |= CACHE_ENTRY_ONELEVEL;
-
-		mdb_cache_entryinfo_unlock( cx->ei );
-
-		cx->rc = cx->db->cursor( cx->db, NULL, &cx->dbc,
-			cx->mdb->bi_db_opflags );
-		if ( cx->rc )
-			goto done_one;
-
-		cx->data.data = &cx->dbuf;
-		cx->data.ulen = sizeof(ID);
-		cx->data.dlen = sizeof(ID);
-		cx->data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
-
-		/* The first item holds the parent ID. Ignore it. */
-		cx->key.data = &cx->nid;
-		cx->key.size = sizeof(ID);
-		cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
-		if ( cx->rc ) {
-			cx->dbc->c_close( cx->dbc );
-			goto done_one;
-		}
-
-		/* If the on-disk count is zero we've never checked it.
-		 * Count it now.
-		 */
-		if ( !dkids ) {
-			cx->dbc->c_count( cx->dbc, &dkids, 0 );
-			cx->ei->bei_dkids = dkids;
-		}
-
-		cx->data.data = cx->buf;
-		cx->data.ulen = MDB_IDL_UM_SIZE * sizeof(ID);
-		cx->data.flags = DB_DBT_USERMEM;
-
-		if ( dkids > 1 ) {
-			/* Fetch the rest of the IDs in a loop... */
-			while ( (cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data,
-				DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
-				uint8_t *j;
-				size_t len;
-				void *ptr;
-				DB_MULTIPLE_INIT( ptr, &cx->data );
-				while (ptr) {
-					DB_MULTIPLE_NEXT( ptr, &cx->data, j, len );
-					if (j) {
-						EntryInfo *ei2;
-						diskNode *d = (diskNode *)j;
-						short nrlen;
-
-						MDB_DISK2ID( j + len - sizeof(ID), &ei.bei_id );
-						nrlen = ((d->nrdnlen[0] ^ 0x80) << 8) | d->nrdnlen[1];
-						ei.bei_nrdn.bv_len = nrlen;
-						/* nrdn/rdn are set in-place.
-						 * mdb_cache_load will copy them as needed
-						 */
-						ei.bei_nrdn.bv_val = d->nrdn;
-						ei.bei_rdn.bv_len = len - sizeof(diskNode)
-							- ei.bei_nrdn.bv_len;
-						ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
-						mdb_idl_append_one( cx->tmp, ei.bei_id );
-						mdb_cache_load( cx->mdb, &ei, &ei2 );
-					}
-				}
-			}
-		}
-
-		cx->rc = cx->dbc->c_close( cx->dbc );
-done_one:
-		mdb_cache_entryinfo_lock( cx->ei );
-		cx->ei->bei_state &= ~CACHE_ENTRY_ONELEVEL;
-		mdb_cache_entryinfo_unlock( cx->ei );
-		if ( cx->rc )
-			return cx->rc;
-
-	} else {
-		/* The in-memory cache is in sync with the on-disk data.
-		 * do we have any kids?
-		 */
-synced:
-		cx->rc = 0;
-		if ( cx->ei->bei_ckids > 0 ) {
-			/* Walk the kids tree; order is irrelevant since mdb_idl_sort
-			 * will sort it later.
-			 */
-			avl_apply( cx->ei->bei_kids, apply_func,
-				cx->tmp, -1, AVL_POSTORDER );
-		}
-		mdb_cache_entryinfo_unlock( cx->ei );
-	}
-
-	if ( !MDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 3 )
-		mdb_idl_sort( cx->tmp, cx->buf );
-	if ( cx->mdb->bi_idl_cache_max_size && !MDB_IDL_IS_ZERO( cx->tmp )) {
-		char *ptr = ((char *)&cx->id)-1;
-		cx->key.data = ptr;
-		cx->key.size = sizeof(ID)+1;
-		*ptr = DN_ONE_PREFIX;
-		mdb_idl_cache_put( cx->mdb, cx->db, &cx->key, cx->tmp, cx->rc );
-	}
-
-gotit:
-	if ( !MDB_IDL_IS_ZERO( cx->tmp )) {
-		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			mdb_idl_append( cx->ids, cx->tmp );
-			cx->need_sort = 1;
-			if ( !(cx->ei->bei_state & CACHE_ENTRY_NO_GRANDKIDS)) {
-				ID *save, idcurs;
-				EntryInfo *ei = cx->ei;
-				int nokids = 1;
-				save = cx->op->o_tmpalloc( MDB_IDL_SIZEOF( cx->tmp ),
-					cx->op->o_tmpmemctx );
-				MDB_IDL_CPY( save, cx->tmp );
-
-				idcurs = 0;
-				cx->depth++;
-				for ( cx->id = mdb_idl_first( save, &idcurs );
-					cx->id != NOID;
-					cx->id = mdb_idl_next( save, &idcurs )) {
-					EntryInfo *ei2;
-					cx->ei = NULL;
-					if ( mdb_cache_find_id( cx->op, cx->txn, cx->id, &cx->ei,
-						ID_NOENTRY, NULL ))
-						continue;
-					if ( cx->ei ) {
-						ei2 = cx->ei;
-						if ( !( ei2->bei_state & CACHE_ENTRY_NO_KIDS )) {
-							MDB_ID2DISK( cx->id, &cx->nid );
-							mdb_dn2idl_internal( cx );
-							if ( !MDB_IDL_IS_ZERO( cx->tmp ))
-								nokids = 0;
-						}
-						mdb_cache_entryinfo_lock( ei2 );
-						ei2->bei_finders--;
-						mdb_cache_entryinfo_unlock( ei2 );
-					}
-				}
-				cx->depth--;
-				cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
-				if ( nokids ) {
-					mdb_cache_entryinfo_lock( ei );
-					ei->bei_state |= CACHE_ENTRY_NO_GRANDKIDS;
-					mdb_cache_entryinfo_unlock( ei );
-				}
-			}
-			/* Make sure caller knows it had kids! */
-			cx->tmp[0]=1;
-
-			cx->rc = 0;
-		} else {
-			MDB_IDL_CPY( cx->ids, cx->tmp );
-		}
-	}
-	return cx->rc;
+	return MDB_SUCCESS;
 }
 
 int
-mdb_dn2idl(
-	Operation	*op,
-	DB_TXN *txn,
-	struct berval *ndn,
-	EntryInfo	*ei,
-	ID *ids,
-	ID *stack )
+mdb_dn2id_walk(
+	Operation *op,
+	IdScopes *isc
+)
 {
-	struct mdb_info *mdb = (struct mdb_info *)op->o_bd->be_private;
-	struct dn2id_cookie cx;
+	MDB_val key, data;
+	diskNode *d;
+	char *ptr;
+	int rc, n;
+	ID nsubs;
 
-	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2idl(\"%s\")\n",
-		ndn->bv_val, 0, 0 );
-
-#ifndef MDB_MULTIPLE_SUFFIXES
-	if ( op->ors_scope != LDAP_SCOPE_ONELEVEL && 
-		( ei->bei_id == 0 ||
-		( ei->bei_parent->bei_id == 0 && op->o_bd->be_suffix[0].bv_len )))
-	{
-		MDB_IDL_ALL( mdb, ids );
-		return 0;
+	if ( !isc->numrdns ) {
+		key.mv_data = &isc->id;
+		key.mv_size = sizeof(ID);
+		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+		isc->scopes[0].mid = isc->id;
+		isc->numrdns++;
+		isc->nscope = 0;
+		/* skip base if not a subtree walk */
+		if ( isc->oscope == LDAP_SCOPE_SUBTREE ||
+			isc->oscope == LDAP_SCOPE_BASE )
+			return rc;
 	}
-#endif
+	if ( isc->oscope == LDAP_SCOPE_BASE )
+		return MDB_NOTFOUND;
 
-	cx.id = ei->bei_id;
-	MDB_ID2DISK( cx.id, &cx.nid );
-	cx.ei = ei;
-	cx.mdb = mdb;
-	cx.db = cx.mdb->bi_dn2id->bdi_db;
-	cx.prefix = (op->ors_scope == LDAP_SCOPE_ONELEVEL) ?
-		DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
-	cx.ids = ids;
-	cx.tmp = stack;
-	cx.buf = stack + MDB_IDL_UM_SIZE;
-	cx.op = op;
-	cx.txn = txn;
-	cx.need_sort = 0;
-	cx.depth = 0;
+	for (;;) {
+		/* Get next sibling */
+		rc = mdb_cursor_get( isc->mc, &key, &data, MDB_NEXT_DUP );
+		if ( !rc ) {
+			ptr = (char *)data.mv_data + data.mv_size - 2*sizeof(ID);
+			d = data.mv_data;
+			memcpy( &isc->id, ptr, sizeof(ID));
 
-	if ( cx.prefix == DN_SUBTREE_PREFIX ) {
-		ids[0] = 1;
-		ids[1] = cx.id;
-	} else {
-		MDB_IDL_ZERO( ids );
+			/* If we're pushing down, see if there's any children to find */
+			if ( isc->nscope ) {
+				ptr += sizeof(ID);
+				memcpy( &nsubs, ptr, sizeof(ID));
+				/* No children, go to next sibling */
+				if ( nsubs < 2 )
+					continue;
+			}
+			n = isc->numrdns;
+			isc->scopes[n].mid = isc->id;
+			n--;
+			isc->nrdns[n].bv_len = ((d->nrdnlen[0] & 0x7f) << 8) | d->nrdnlen[1];
+			isc->nrdns[n].bv_val = d->nrdn;
+			isc->rdns[n].bv_val = d->nrdn+isc->nrdns[n].bv_len+1;
+			isc->rdns[n].bv_len = data.mv_size - sizeof(diskNode) - isc->nrdns[n].bv_len - sizeof(ID);
+			/* return this ID to caller */
+			if ( !isc->nscope )
+				break;
+
+			/* push down to child */
+			key.mv_data = &isc->id;
+			mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+			isc->nscope = 0;
+			isc->numrdns++;
+			continue;
+
+		} else if ( rc == MDB_NOTFOUND ) {
+			if ( !isc->nscope && isc->oscope != LDAP_SCOPE_ONELEVEL ) {
+				/* reset to first dup */
+				mdb_cursor_get( isc->mc, &key, NULL, MDB_GET_CURRENT );
+				mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+				isc->nscope = 1;
+				continue;
+			} else {
+				isc->numrdns--;
+				/* stack is empty? */
+				if ( !isc->numrdns )
+					break;
+				/* pop up to prev node */
+				n = isc->numrdns - 1;
+				key.mv_data = &isc->scopes[n].mid;
+				key.mv_size = sizeof(ID);
+				data.mv_data = isc->nrdns[n].bv_val - 2;
+				data.mv_size = 1;	/* just needs to be non-zero, mdb_dup_compare doesn't care */
+				mdb_cursor_get( isc->mc, &key, &data, MDB_GET_BOTH );
+				continue;
+			}
+		} else {
+			break;
+		}
 	}
-	if ( cx.ei->bei_state & CACHE_ENTRY_NO_KIDS )
-		return LDAP_SUCCESS;
-
-	DBTzero(&cx.key);
-	cx.key.ulen = sizeof(ID);
-	cx.key.size = sizeof(ID);
-	cx.key.flags = DB_DBT_USERMEM;
-
-	DBTzero(&cx.data);
-
-	mdb_dn2idl_internal(&cx);
-	if ( cx.need_sort ) {
-		char *ptr = ((char *)&cx.id)-1;
-		if ( !MDB_IDL_IS_RANGE( cx.ids ) && cx.ids[0] > 3 ) 
-			mdb_idl_sort( cx.ids, cx.tmp );
-		cx.key.data = ptr;
-		cx.key.size = sizeof(ID)+1;
-		*ptr = cx.prefix;
-		cx.id = ei->bei_id;
-		if ( cx.mdb->bi_idl_cache_max_size )
-			mdb_idl_cache_put( cx.mdb, cx.db, &cx.key, cx.ids, cx.rc );
-	}
-
-	if ( cx.rc == DB_NOTFOUND )
-		cx.rc = LDAP_SUCCESS;
-
-	return cx.rc;
+	return rc;
 }
-#endif

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -614,7 +614,7 @@ slap_acl_get(
 		}
 
 		/* Is this ACL only for a specific value? */
-		if ( a->acl_attrval.bv_len ) {
+		if ( a->acl_attrval.bv_val ) {
 			if ( val == NULL ) {
 				continue;
 			}

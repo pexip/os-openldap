@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1259,9 +1259,11 @@ static slap_verbmasks crlkeys[] = {
 
 static slap_verbmasks vfykeys[] = {
 		{ BER_BVC("never"),	LDAP_OPT_X_TLS_NEVER },
-		{ BER_BVC("demand"),	LDAP_OPT_X_TLS_DEMAND },
+		{ BER_BVC("allow"),	LDAP_OPT_X_TLS_ALLOW },
 		{ BER_BVC("try"),	LDAP_OPT_X_TLS_TRY },
+		{ BER_BVC("demand"),	LDAP_OPT_X_TLS_DEMAND },
 		{ BER_BVC("hard"),	LDAP_OPT_X_TLS_HARD },
+		{ BER_BVC("true"),	LDAP_OPT_X_TLS_HARD },
 		{ BER_BVNULL, 0 }
 	};
 #endif
@@ -1281,7 +1283,7 @@ static slap_verbmasks versionkey[] = {
 	{ BER_BVNULL, 0 }
 };
 
-static int 
+int
 slap_keepalive_parse(
 	struct berval *val,
 	void *bc,
@@ -1924,6 +1926,29 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 #endif
 
 /*
+ * set connection keepalive options
+ */
+void
+slap_client_keepalive(LDAP *ld, slap_keepalive *sk)
+{
+	if (!sk) return;
+
+	if ( sk->sk_idle ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_IDLE, &sk->sk_idle );
+	}
+
+	if ( sk->sk_probes ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_PROBES, &sk->sk_probes );
+	}
+
+	if ( sk->sk_interval ) {
+		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_INTERVAL, &sk->sk_interval );
+	}
+
+	return;
+}
+
+/*
  * connect to a client using the bindconf data
  * note: should move "version" into bindconf...
  */
@@ -1961,17 +1986,8 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, &tv );
 	}
 
-	if ( sb->sb_keepalive.sk_idle ) {
-		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_IDLE, &sb->sb_keepalive.sk_idle );
-	}
-
-	if ( sb->sb_keepalive.sk_probes ) {
-		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_PROBES, &sb->sb_keepalive.sk_probes );
-	}
-
-	if ( sb->sb_keepalive.sk_interval ) {
-		ldap_set_option( ld, LDAP_OPT_X_KEEPALIVE_INTERVAL, &sb->sb_keepalive.sk_interval );
-	}
+	/* setting network keepalive options */
+	slap_client_keepalive(ld, &sb->sb_keepalive);
 
 #ifdef HAVE_TLS
 	if ( sb->sb_tls_do_init ) {

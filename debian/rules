@@ -4,9 +4,7 @@
 # want the checks for DFSG-freeness.
 #DFSG_NONFREE = 1
 
-export DEB_BUILD_HARDENING=1
-
-export DEB_CFLAGS_MAINT_APPEND := -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -DLDAP_CONNECTIONLESS
+export DEB_CFLAGS_MAINT_APPEND := -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
 export DEB_BUILD_MAINT_OPTIONS := hardening=+pie,+bindnow
 
 # Workaround for bad glibc behavior when resolving localhost
@@ -28,7 +26,7 @@ MAKEVARS	:= STRIP=
 
 # These variables are used only by get-orig-source, which will normally only
 # be run by maintainers.
-VERSION = 2.4.28
+VERSION = $(shell dpkg-parsechangelog |grep Version| sed 's/.*: //;s/-.*//')
 URL     = http://www.openldap.org/software/download/OpenLDAP/openldap-release/
 
 # Download the upstream source and make changes as required for DFSG reasons.
@@ -55,6 +53,15 @@ get-orig-source:
 %:
 	dh $@ --with quilt,autoreconf --builddirectory=$(builddir)
 
+# Only contrib/ldapc++ uses Automake, so special care is needed to update
+# config.guess and config.sub at the top level.
+autoreconf:
+	autoreconf -f -i . contrib/ldapc++
+	cp -f /usr/share/misc/config.guess /usr/share/misc/config.sub build/
+
+override_dh_autoreconf:
+	dh_autoreconf debian/rules -- autoreconf
+
 override_dh_auto_configure:
 	# Check if we include the RFCs, Internet-Drafts, or upstream schemas
 	# with RFC text (which are non DFSG-free).  You can set DFSG_NONFREE
@@ -80,12 +87,12 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	dh_auto_build -- $(MAKEVARS)
-	$(MAKE) -C contrib/slapd-modules/nssov/ $(MAKEVARS) nssov.la
+	$(MAKE) -C contrib/slapd-modules/smbk5pwd
 	$(MAKE) -C contrib/slapd-modules/autogroup
 
 override_dh_auto_install:
 	dh_auto_install -- $(MAKEVARS)
-	$(MAKE) -C contrib/slapd-modules/nssov install DESTDIR=$(installdir)
+	$(MAKE) -C contrib/slapd-modules/smbk5pwd install DESTDIR=$(installdir)
 	$(MAKE) -C contrib/slapd-modules/autogroup install DESTDIR=$(installdir)
 
 	# Empty the dependency_libs file in the .la files.
@@ -116,15 +123,8 @@ override_dh_auto_install:
 
 override_dh_install:
 	dh_install
+	rm -rf $(CURDIR)/debian/slapd/usr/lib/ldap/smbk5pwd*
 	chmod 0755 $(CURDIR)/debian/slapd/usr/share/slapd/ldiftopasswd
-
-	# install AppArmor profile
-	install -D -m 644 $(CURDIR)/debian/apparmor-profile $(CURDIR)/debian/slapd/etc/apparmor.d/usr.sbin.slapd
-
-	# install ufw profile
-	install -D -m 644 $(CURDIR)/debian/slapd.ufw.profile $(CURDIR)/debian/slapd/etc/ufw/applications.d/slapd
-
-	dh_apparmor -pslapd --profile-name=usr.sbin.slapd
 
 override_dh_installinit:
 	dh_installinit -- "defaults 19 80"
@@ -172,9 +172,11 @@ override_dh_auto_clean:
 	    done; \
 	fi
 
-	rm -f contrib/slapd-modules/nssov/nss-pam-ldapd/config.sub contrib/slapd-modules/nssov/nss-pam-ldapd/config.guess
-
 	# Clean the contrib directory
+	rm -rf contrib/slapd-modules/smbk5pwd/.libs \
+		contrib/slapd-modules/smbk5pwd/smbk5pwd.lo \
+		contrib/slapd-modules/smbk5pwd/smbk5pwd.la \
+		contrib/slapd-modules/smbk5pwd/smbk5pwd.o
 	rm -rf contrib/slapd-modules/autogroup/.libs \
 		contrib/slapd-modules/autogroup/autogroup.lo \
 		contrib/slapd-modules/autogroup/autogroup.la \

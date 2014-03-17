@@ -1,5 +1,5 @@
 .TH SLAPD-MDB 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2011 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 2011-2014 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -9,7 +9,7 @@ slapd\-mdb \- Memory-Mapped DB backend to slapd
 .SH DESCRIPTION
 The \fBmdb\fP backend to
 .BR slapd (8)
-uses OpenLDAP's own Memory-Mapped DB (MDB) library to store data.
+uses OpenLDAP's Lightning Memory-Mapped DB (LMDB) library to store data.
 It relies completely on the underlying operating system for memory
 management and does no caching of its own.
 .LP
@@ -48,11 +48,61 @@ By default, a full data flush/sync is performed when each
 transaction is committed.
 .TP
 .BI directory \ <directory>
-Specify the directory where the MDB files containing this database and
+Specify the directory where the LMDB files containing this database and
 associated indexes live.
 A separate directory must be specified for each database.
 The default is
 .BR LOCALSTATEDIR/openldap\-data .
+.TP
+\fBenvflags \fR{\fBnosync\fR,\fBnometasync\fR,\fBwritemap\fR,\fBmapasync\fR,\fBnordahead\fR}
+Specify flags for finer-grained control of the LMDB library's operation.
+.RS
+.TP
+.B nosync
+This is exactly the same as the
+.I dbnosync
+directive.
+.RE
+.RS
+.TP
+.B nometasync
+Flush the data on a commit, but skip the sync of the meta page. This mode is
+slightly faster than doing a full sync, but can potentially lose the last
+committed transaction if the operating system crashes. If both
+.I nometasync
+and
+.I nosync
+are set, the
+.I nosync
+flag takes precedence.
+.RE
+.RS
+.TP
+.B writemap
+Use a writable memory map instead of just read-only. This speeds up write operations
+but makes the database vulnerable to corruption in case any bugs in slapd
+cause stray writes into the mmap region.
+.RE
+.RS
+.TP
+.B mapasync
+When using a writable memory map and performing flushes on each commit, use an
+asynchronous flush instead of a synchronous flush (the default). This option
+has no effect if
+.I writemap
+has not been set. It also has no effect if
+.I nosync
+is set.
+.RE
+.RS
+.TP
+.B nordahead
+Turn off file readahead. Usually the OS performs readahead on every read
+request. This usually boosts read performance but can be harmful to
+random access read performance if the system's memory is full and the DB
+is larger than RAM. This option is not implemented on Windows.
+.RE
+
 .TP
 \fBindex \fR{\fI<attrlist>\fR|\fBdefault\fR} [\fBpres\fR,\fBeq\fR,\fBapprox\fR,\fBsub\fR,\fI<special>\fR]
 Specify the indexes to maintain for the given attribute (or
@@ -144,7 +194,7 @@ configuration file
 .BR slapadd (8),
 .BR slapcat (8),
 .BR slapindex (8),
-OpenLDAP MDB documentation.
+OpenLDAP LMDB documentation.
 .SH ACKNOWLEDGEMENTS
 .so ../Project
 Written by Howard Chu.

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -259,6 +259,14 @@ ldap_pvt_thread_pool_pausing LDAP_P((
 
 LDAP_F( int )
 ldap_pvt_thread_pool_backload LDAP_P((
+	ldap_pvt_thread_pool_t *pool ));
+
+LDAP_F( void )
+ldap_pvt_thread_pool_idle LDAP_P((
+	ldap_pvt_thread_pool_t *pool ));
+
+LDAP_F( void )
+ldap_pvt_thread_pool_unidle LDAP_P((
 	ldap_pvt_thread_pool_t *pool ));
 
 LDAP_F( int )

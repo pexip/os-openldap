@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2011 The OpenLDAP Foundation.
+ * Copyright 2001-2014 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -151,7 +151,7 @@ monitor_entry_test_flags(
 }
 
 monitor_entry_t *
-monitor_entrypriv_create( void )
+monitor_back_entrypriv_create( void )
 {
 	monitor_entry_t	*mp;
 
@@ -174,17 +174,19 @@ monitor_entry_stub(
 	struct berval *pndn,
 	struct berval *rdn,
 	ObjectClass *oc,
-	monitor_info_t	*mi,
 	struct berval *create,
 	struct berval *modify
 )
 {
+	monitor_info_t *mi;
 	AttributeDescription *nad = NULL;
 	Entry *e;
 	struct berval nat;
 	char *ptr;
 	const char *text;
 	int rc;
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
 
 	nat = *rdn;
 	ptr = strchr( nat.bv_val, '=' );

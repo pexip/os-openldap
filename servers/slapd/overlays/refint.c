@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2011 The OpenLDAP Foundation.
+ * Copyright 2004-2014 The OpenLDAP Foundation.
  * Portions Copyright 2004 Symas Corporation.
  * All rights reserved.
  *
@@ -527,6 +527,7 @@ refint_repair(
 	dependent_data	*dp;
 	SlapReply		rs = {REP_RESULT};
 	Operation		op2;
+	unsigned long	opid;
 	int		rc;
 
 	op->o_callback->sc_response = refint_search_cb;
@@ -565,6 +566,7 @@ refint_repair(
 	 *
 	 */
 
+	opid = op->o_opid;
 	op2 = *op;
 	for ( dp = rq->attrs; dp; dp = dp->next ) {
 		SlapReply	rs2 = {REP_RESULT};
@@ -587,6 +589,7 @@ refint_repair(
 		/* Internal ops, never replicate these */
 		op2.orm_no_opattrs = 1;
 		op2.o_dont_replicate = 1;
+		op2.o_opid = 0;
 
 		/* Set our ModifiersName */
 		if ( SLAP_LASTMOD( op->o_bd ) ) {
@@ -686,6 +689,7 @@ refint_repair(
 			op2.o_tmpfree( m, op2.o_tmpmemctx );
 		}
 	}
+	op2.o_opid = opid;
 
 	return 0;
 }
