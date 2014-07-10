@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -320,23 +320,7 @@ static long send_ldap_ber(
 	while( 1 ) {
 		int err;
 
-		/* lock the connection */ 
-		if ( ldap_pvt_thread_mutex_trylock( &conn->c_mutex )) {
-			if ( !connection_valid(conn)) {
-				ret = 0;
-				break;
-			}
-			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
-			ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
-			if ( conn->c_writers < 0 ) {
-				ret = 0;
-				break;
-			}
-			continue;
-		}
-
 		if ( ber_flush2( conn->c_sb, ber, LBER_FLUSH_FREE_NEVER ) == 0 ) {
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ret = bytes;
 			break;
 		}
@@ -356,6 +340,7 @@ static long send_ldap_ber(
 			conn->c_writers--;
 			conn->c_writing = 0;
 			ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			connection_closing( conn, "connection lost on write" );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -368,10 +353,11 @@ static long send_ldap_ber(
 		slapd_set_write( conn->c_sd, 2 );
 
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		ldap_pvt_thread_pool_idle( &connection_pool );
 		ldap_pvt_thread_cond_wait( &conn->c_write2_cv, &conn->c_write2_mutex );
 		conn->c_writewaiter = 0;
 		ldap_pvt_thread_mutex_unlock( &conn->c_write2_mutex );
+		ldap_pvt_thread_pool_unidle( &connection_pool );
 		ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
 		if ( conn->c_writers < 0 ) {
 			ret = 0;
@@ -943,6 +929,9 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 	}
 }
 
+#define set_ldap_error( rs, err, text ) do { \
+		(rs)->sr_err = err; (rs)->sr_text = text; } while(0)
+
 /*
  * returns:
  *
@@ -1064,7 +1053,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			op->o_connid, 0, 0 );
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-		send_ldap_error( op, rs, LDAP_OTHER, "encoding DN error" );
+		set_ldap_error( rs, LDAP_OTHER, "encoding DN error" );
 		rc = rs->sr_err;
 		goto error_return;
 	}
@@ -1094,7 +1083,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					op->o_connid, 0, 0 );
 				ber_free( ber, 1 );
 	
-				send_ldap_error( op, rs, LDAP_OTHER, "out of memory" );
+				set_ldap_error( rs, LDAP_OTHER, "out of memory" );
 				goto error_return;
 			}
 			a_flags = (char *)(e_flags + i);
@@ -1111,7 +1100,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					"conn %lu matched values filtering failed\n",
 					op->o_connid, 0, 0 );
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-				send_ldap_error( op, rs, LDAP_OTHER,
+				set_ldap_error( rs, LDAP_OTHER,
 					"matched values filtering error" );
 				rc = rs->sr_err;
 				goto error_return;
@@ -1165,7 +1154,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					op->o_connid, 0, 0 );
 
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-				send_ldap_error( op, rs, LDAP_OTHER,
+				set_ldap_error( rs, LDAP_OTHER,
 					"encoding description error");
 				rc = rs->sr_err;
 				goto error_return;
@@ -1199,7 +1188,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 							op->o_connid, 0, 0 );
 
 						if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-						send_ldap_error( op, rs, LDAP_OTHER,
+						set_ldap_error( rs, LDAP_OTHER,
 							"encoding description error");
 						rc = rs->sr_err;
 						goto error_return;
@@ -1211,7 +1200,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 						"ber_printf failed.\n", op->o_connid, 0, 0 );
 
 					if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-					send_ldap_error( op, rs, LDAP_OTHER,
+					set_ldap_error( rs, LDAP_OTHER,
 						"encoding values error" );
 					rc = rs->sr_err;
 					goto error_return;
@@ -1225,7 +1214,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				op->o_connid, 0, 0 );
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
+			set_ldap_error( rs, LDAP_OTHER, "encode end error" );
 			rc = rs->sr_err;
 			goto error_return;
 		}
@@ -1258,7 +1247,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					"for matched values filtering\n",
 					op->o_connid, 0, 0 );
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-				send_ldap_error( op, rs, LDAP_OTHER,
+				set_ldap_error( rs, LDAP_OTHER,
 					"not enough memory for matched values filtering" );
 				goto error_return;
 			}
@@ -1278,7 +1267,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					"matched values filtering failed\n", 
 					op->o_connid, 0, 0);
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-				send_ldap_error( op, rs, LDAP_OTHER,
+				set_ldap_error( rs, LDAP_OTHER,
 					"matched values filtering error" );
 				rc = rs->sr_err;
 				goto error_return;
@@ -1332,7 +1321,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				"ber_printf failed\n", op->o_connid, 0, 0 );
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-			send_ldap_error( op, rs, LDAP_OTHER,
+			set_ldap_error( rs, LDAP_OTHER,
 				"encoding description error" );
 			rc = rs->sr_err;
 			goto error_return;
@@ -1361,7 +1350,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 						op->o_connid, 0, 0 );
 
 					if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-					send_ldap_error( op, rs, LDAP_OTHER,
+					set_ldap_error( rs, LDAP_OTHER,
 						"encoding values error" );
 					rc = rs->sr_err;
 					goto error_return;
@@ -1375,7 +1364,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				op->o_connid, 0, 0 );
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
+			set_ldap_error( rs, LDAP_OTHER, "encode end error" );
 			rc = rs->sr_err;
 			goto error_return;
 		}
@@ -1410,7 +1399,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-		send_ldap_error( op, rs, LDAP_OTHER, "encode entry end error" );
+		set_ldap_error( rs, LDAP_OTHER, "encode entry end error" );
 		rc = rs->sr_err;
 		goto error_return;
 	}
@@ -1579,7 +1568,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
 		ber_free_buf( ber );
-		send_ldap_error( op, rs, LDAP_OTHER, "encode DN error" );
+		set_ldap_error( rs, LDAP_OTHER, "encode DN error" );
 		goto rel;
 	}
 

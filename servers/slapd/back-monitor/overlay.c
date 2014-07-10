@@ -1,7 +1,7 @@
 /* overlay.c - deals with overlay subsystem */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2011 The OpenLDAP Foundation.
+ * Copyright 2001-2014 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -78,7 +78,7 @@ monitor_subsys_overlay_init(
 		bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Overlay %d", i );
 		bv.bv_val = buf;
 		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-			mi->mi_oc_monitoredObject, mi, NULL, NULL );
+			mi->mi_oc_monitoredObject, NULL, NULL );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_overlay_init: "

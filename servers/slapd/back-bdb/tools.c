@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2011 The OpenLDAP Foundation.
+ * Copyright 2000-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -672,6 +672,8 @@ ID bdb_tool_entry_put(
 			 text->bv_val, 0, 0 );
 		return NOID;
 	}
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_put) ": txn id: %x\n",
+		tid->id(tid), 0, 0 );
 	}
 
 	op.o_hdr = &ohdr;
@@ -839,6 +841,8 @@ int bdb_tool_entry_reindex(
 			db_strerror(rc), rc, 0 );
 		goto done;
 	}
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_reindex) ": txn id: %x\n",
+		tid->id(tid), 0, 0 );
 	}
  	
 	/*
@@ -929,6 +933,8 @@ ID bdb_tool_entry_modify(
 				 text->bv_val, 0, 0 );
 			return NOID;
 		}
+		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_tool_entry_modify) ": txn id: %x\n",
+			tid->id(tid), 0, 0 );
 	}
 
 	op.o_hdr = &ohdr;

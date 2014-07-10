@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2011 The OpenLDAP Foundation.
+ * Copyright 1999-2014 The OpenLDAP Foundation.
  * Portions Copyright 1999 John C. Quillan.
  * Portions Copyright 2002 myinternet Limited.
  * All rights reserved.
@@ -50,7 +50,7 @@ perl_back_bind(
 
 		PUSHMARK(SP);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0)));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , op->o_req_dn.bv_len)));
 		XPUSHs(sv_2mortal(newSVpv( op->orb_cred.bv_val , op->orb_cred.bv_len)));
 		PUTBACK;
 

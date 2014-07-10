@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2011 The OpenLDAP Foundation.
+ * Copyright 2000-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -200,7 +200,7 @@ static int indexer(
 		keyfunc = mdb_idl_delete_keys;
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-		rc = keyfunc( mc, presence_key, id );
+		rc = keyfunc( op->o_bd, mc, presence_key, id );
 		if( rc ) {
 			err = "presence";
 			goto done;
@@ -216,7 +216,7 @@ static int indexer(
 			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			rc = keyfunc( mc, keys, id );
+			rc = keyfunc( op->o_bd, mc, keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 			if ( rc ) {
 				err = "equality";
@@ -235,7 +235,7 @@ static int indexer(
 			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			rc = keyfunc( mc, keys, id );
+			rc = keyfunc( op->o_bd, mc, keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 			if ( rc ) {
 				err = "approx";
@@ -255,7 +255,7 @@ static int indexer(
 			atname, vals, &keys, op->o_tmpmemctx );
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
-			rc = keyfunc( mc, keys, id );
+			rc = keyfunc( op->o_bd, mc, keys, id );
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 			if( rc ) {
 				err = "substr";

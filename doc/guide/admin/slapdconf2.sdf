@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 2005-2011 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2005-2014 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Configuring slapd
@@ -39,9 +39,8 @@ operations, e.g. {{ldapadd}}(1), {{ldapdelete}}(1), or {{ldapmodify}}(1).
 Note: You will need to continue to use the older {{slapd.conf}}(5)
 configuration system if your OpenLDAP installation requires the use of one
 or more backends or overlays that have not been updated to use the
-{{slapd-config}}(5) system.  As of OpenLDAP 2.4.25, the only official backends
-that have not yet been updated to use {{slapd-config}}(5) are {{slapd-meta}}(5)
-and {{slapd-sql}}(5).  There may be additional contributed or experimental
+{{slapd-config}}(5) system.  As of OpenLDAP 2.4.33, all of the official
+backends have been updated.  There may be additional contributed or experimental
 overlays that also have not been updated.
 
 
@@ -191,7 +190,7 @@ or consult the table below. The possible values for <level> are:
 Level	Keyword		Description
 -1	any		enable all debugging
 0			no debugging
-1	(0x1 trace)	trace function callss
+1	(0x1 trace)	trace function calls
 2	(0x2 packets)	debug packet handling
 4	(0x4 args)	heavy trace debugging
 8	(0x8 conns)	connection management
@@ -1077,12 +1076,12 @@ E: 30.    dn: olcDatabase=bdb,cn=config
 E: 31.    objectClass: olcDatabaseConfig
 E: 32.    objectClass: olcBdbConfig
 E: 33.    olcDatabase: bdb
-E: 34.    olcSuffix: "dc=example,dc=com"
+E: 34.    olcSuffix: dc=example,dc=com
 E: 35.    olcDbDirectory: /usr/local/var/openldap-data
-E: 36.    olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 36.    olcRootDN: cn=Manager,dc=example,dc=com
 E: 37.    olcRootPW: secret
 E: 38.    olcDbIndex: uid pres,eq
-E: 39.    olcDbIndex: cn,sn,uid pres,eq,approx,sub
+E: 39.    olcDbIndex: cn,sn pres,eq,approx,sub
 E: 40.    olcDbIndex: objectClass eq
 E: 41.    olcAccess: to attrs=userPassword
 E: 42.      by self write

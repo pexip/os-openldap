@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,6 +129,9 @@ ldap_ld_free(
 		ld->ld_abandoned = NULL;
 	}
 	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
+
+	ber_sockbuf_free( ld->ld_sb );
+
 	LDAP_MUTEX_LOCK( &ld->ld_ldopts_mutex );
 
 	/* final close callbacks */
@@ -217,8 +220,6 @@ ldap_ld_free(
 	}
 	LDAP_MUTEX_UNLOCK( &ld->ld_ldopts_mutex );
 
-	ber_sockbuf_free( ld->ld_sb );   
-   
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_destroy( &ld->ld_msgid_mutex );
 	ldap_pvt_thread_mutex_destroy( &ld->ld_conn_mutex );

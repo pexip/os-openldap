@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1090,7 +1090,6 @@ slapd_rw_destroy( void *private )
 	assert( private != NULL );
 
 	ch_free( md->base.bv_val );
-	ch_free( md->filter.bv_val );
 	ch_free( md );
 
 	return 0;

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2011 The OpenLDAP Foundation.
+ * Copyright 2000-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,14 +39,14 @@ mdb_key_read(
 {
 	int rc;
 	MDB_val key;
-#ifndef MSIALIGNED_OK
+#ifndef MISALIGNED_OK
 	int kbuf[2];
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
 
 #ifndef MISALIGNED_OK
-	if (k->bv_len & 0x03) {
+	if (k->bv_len & ALIGNER) {
 		key.mv_size = sizeof(kbuf);
 		key.mv_data = kbuf;
 		kbuf[1] = 0;

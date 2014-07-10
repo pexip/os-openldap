@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2011 The OpenLDAP Foundation.
+ * Copyright 2004-2014 The OpenLDAP Foundation.
  * Portions Copyright 2004-2005 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
@@ -68,9 +68,11 @@ static ObjectClass *oc_krb5KDCEntry;
 #ifdef HAVE_GNUTLS
 #include <gcrypt.h>
 typedef unsigned char DES_cblock[8];
-#else
+#elif HAVE_OPENSSL
 #include <openssl/des.h>
 #include <openssl/md4.h>
+#else
+#error Unsupported crypto backend.
 #endif
 #include "ldap_utf8.h"
 
@@ -680,6 +682,7 @@ static int smbk5pwd_exop_passwd(
 		qpw->rs_mods = ml;
 
 		keys = ch_malloc( sizeof(struct berval) * 2);
+		BER_BVZERO( &keys[1] );
 		keys[0].bv_val = ch_malloc( LDAP_PVT_INTTYPE_CHARS(long) );
 		keys[0].bv_len = snprintf(keys[0].bv_val,
 			LDAP_PVT_INTTYPE_CHARS(long),

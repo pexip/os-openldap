@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2011 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2014 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Replication
@@ -335,13 +335,18 @@ demonstrate a very real problem that is encountered in some LDAP deployments.
 
 Delta-syncrepl, a changelog-based variant of syncrepl, is designed to address 
 situations like the one described above. Delta-syncrepl works by maintaining a 
-changelog of a selectable depth on the provider. The replication consumer 
+changelog of a selectable depth in a separate database on the provider. The replication consumer 
 checks the changelog for the changes it needs and, as long as 
 the changelog contains the needed changes, the consumer fetches the changes
 from the changelog and applies them to its database. If, however, a replica 
 is too far out of sync (or completely empty), conventional syncrepl is used to 
 bring it up to date and replication then switches back to the delta-syncrepl
 mode.
+
+Note: since the database state is stored in both the changelog DB and the
+main DB on the provider, it is important to backup/restore both the changelog
+DB and the main DB using slapcat/slapadd when restoring a DB or copying
+it to another machine.
 
 For configuration, please see the {{SECT:Delta-syncrepl}} section.
 
@@ -421,7 +426,6 @@ is needed to manage which provider is currently active
 - If backing up the Berkeley database itself and periodically backing up the 
 transaction log files, then the same member of the mirror pair needs to be 
 used to collect logfiles until the next database backup is taken 
-* Delta-Syncrepl is not yet supported
 
 For configuration, please see the {{SECT:MirrorMode}} section below
 
@@ -861,8 +865,6 @@ H4: Mirror Node Configuration
 
 The first step is to configure the syncrepl provider the same as in the 
 {{SECT:Set up the provider slapd}} section.
-
-Note: Delta-syncrepl is not yet supported with MirrorMode.
 
 Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
 {{refreshAndPersist}} mode:

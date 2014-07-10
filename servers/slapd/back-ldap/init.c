@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2011 The OpenLDAP Foundation.
+ * Copyright 2003-2014 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -35,9 +35,9 @@
 static const ldap_extra_t ldap_extra = {
 	ldap_back_proxy_authz_ctrl,
 	ldap_back_controls_free,
-	slap_idassert_authzfrom_parse_cf,
+	slap_idassert_authzfrom_parse,
 	slap_idassert_passthru_parse_cf,
-	slap_idassert_parse_cf,
+	slap_idassert_parse,
 	slap_retry_info_destroy,
 	slap_retry_info_parse,
 	slap_retry_info_unparse,
@@ -179,6 +179,11 @@ ldap_back_db_init( Backend *be, ConfigReply *cr )
 		LDAP_TAILQ_INIT( &li->li_conn_priv[ i ].lic_priv );
 	}
 	li->li_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
+
+	ldap_pvt_thread_mutex_init( &li->li_counter_mutex );
+	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+		ldap_pvt_mp_init( li->li_ops_completed[ i ] );
+	}
 
 	be->be_private = li;
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_NOLASTMOD;
@@ -336,6 +341,11 @@ ldap_back_db_destroy( Backend *be, ConfigReply *cr )
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_uri_mutex );
+
+		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+			ldap_pvt_mp_clear( li->li_ops_completed[ i ] );
+		}
+		ldap_pvt_thread_mutex_destroy( &li->li_counter_mutex );
 	}
 
 	ch_free( be->be_private );

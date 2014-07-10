@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2011 The OpenLDAP Foundation.
+ * Copyright 2000-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -184,7 +184,7 @@ static int search_aliases(
 	BDB_IDL_ZERO( aliases );
 	rs->sr_err = bdb_filter_candidates( op, txn, &af, aliases,
 		curscop, visited );
-	if (rs->sr_err != LDAP_SUCCESS) {
+	if (rs->sr_err != LDAP_SUCCESS || BDB_IDL_IS_ZERO( aliases )) {
 		return rs->sr_err;
 	}
 	oldsubs[0] = 1;
@@ -1038,6 +1038,9 @@ id_retry:
 					break;
 				default:		/* entry not sent */
 					break;
+				case LDAP_BUSY:
+					send_ldap_result( op, rs );
+					goto done;
 				case LDAP_UNAVAILABLE:
 				case LDAP_SIZELIMIT_EXCEEDED:
 					if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
@@ -1253,6 +1256,8 @@ static int search_candidates(
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 		rc = search_aliases( op, rs, e, txn, ids, scopes, stack );
+		if ( BDB_IDL_IS_ZERO( ids ) && rc == LDAP_SUCCESS )
+			rc = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), ids, stack );
 	} else {
 		rc = bdb_dn2idl( op, txn, &e->e_nname, BEI(e), ids, stack );
 	}

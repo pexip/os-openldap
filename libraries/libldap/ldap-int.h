@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,9 @@
 
 /* for struct timeval */
 #include <ac/time.h>
+#ifdef _WIN32
+#include <ac/socket.h>
+#endif
 
 #undef TV2MILLISEC
 #define TV2MILLISEC(tv) (((tv)->tv_sec * 1000) + ((tv)->tv_usec/1000))
@@ -185,75 +188,19 @@ struct ldapoptions {
 #define LDAP_TRASHED_SESSION	0xFF
 	int   ldo_debug;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_t	ldo_mutex;
-#define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
-#else
-#define LDAP_LDO_MUTEX_NULLARG
-#endif
-
-#ifdef LDAP_CONNECTIONLESS
-#define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
-	void*			ldo_peer;	/* struct sockaddr* */
-	char*			ldo_cldapdn;
-	int			ldo_is_udp;
-#endif
-
-	/* per API call timeout */
-	struct timeval		ldo_tm_api;
-	struct timeval		ldo_tm_net;
-
 	ber_int_t		ldo_version;
 	ber_int_t		ldo_deref;
 	ber_int_t		ldo_timelimit;
 	ber_int_t		ldo_sizelimit;
 
-#ifdef HAVE_TLS
-   	/* tls context */
-   	void		*ldo_tls_ctx;
-	LDAP_TLS_CONNECT_CB	*ldo_tls_connect_cb;
-	void*			ldo_tls_connect_arg;
-	struct ldaptls ldo_tls_info;
-#define ldo_tls_certfile	ldo_tls_info.lt_certfile
-#define ldo_tls_keyfile	ldo_tls_info.lt_keyfile
-#define ldo_tls_dhfile	ldo_tls_info.lt_dhfile
-#define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
-#define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
-#define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
-#define ldo_tls_protocol_min	ldo_tls_info.lt_protocol_min
-#define ldo_tls_crlfile	ldo_tls_info.lt_crlfile
-#define ldo_tls_randfile	ldo_tls_info.lt_randfile
-   	int			ldo_tls_mode;
-   	int			ldo_tls_require_cert;
-	int			ldo_tls_impl;
-#ifdef HAVE_OPENSSL_CRL
-   	int			ldo_tls_crlcheck;
-#endif
-#endif
+	/* per API call timeout */
+	struct timeval		ldo_tm_api;
+	struct timeval		ldo_tm_net;
 
 	LDAPURLDesc *ldo_defludp;
 	int		ldo_defport;
 	char*	ldo_defbase;
 	char*	ldo_defbinddn;	/* bind dn */
-
-#ifdef HAVE_CYRUS_SASL
-	char*	ldo_def_sasl_mech;		/* SASL Mechanism(s) */
-	char*	ldo_def_sasl_realm;		/* SASL realm */
-	char*	ldo_def_sasl_authcid;	/* SASL authentication identity */
-	char*	ldo_def_sasl_authzid;	/* SASL authorization identity */
-
-	/* SASL Security Properties */
-	struct sasl_security_properties	ldo_sasl_secprops;
-#endif
-
-#ifdef HAVE_GSSAPI
-	unsigned gssapi_flags;
-
-	unsigned ldo_gssapi_flags;
-#define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
-#define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002
-	unsigned ldo_gssapi_options;
-#endif
 
 	/*
 	 * Per connection tcp-keepalive settings (Linux only,
@@ -281,6 +228,72 @@ struct ldapoptions {
 	ldaplist *ldo_conn_cbs;
 
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
+
+#define LDAP_LDO_NULLARG	,0,0,0,0 ,{0},{0} ,0,0,0,0, 0,0,0,0, 0,0, 0,0,0,0,0,0, 0, 0
+
+#ifdef LDAP_CONNECTIONLESS
+#define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
+	void*			ldo_peer;	/* struct sockaddr* */
+	char*			ldo_cldapdn;
+	int			ldo_is_udp;
+#define	LDAP_LDO_CONNECTIONLESS_NULLARG	,0,0,0
+#else
+#define	LDAP_LDO_CONNECTIONLESS_NULLARG
+#endif
+
+#ifdef HAVE_TLS
+   	/* tls context */
+   	void		*ldo_tls_ctx;
+	LDAP_TLS_CONNECT_CB	*ldo_tls_connect_cb;
+	void*			ldo_tls_connect_arg;
+	struct ldaptls ldo_tls_info;
+#define ldo_tls_certfile	ldo_tls_info.lt_certfile
+#define ldo_tls_keyfile	ldo_tls_info.lt_keyfile
+#define ldo_tls_dhfile	ldo_tls_info.lt_dhfile
+#define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
+#define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
+#define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
+#define ldo_tls_protocol_min	ldo_tls_info.lt_protocol_min
+#define ldo_tls_crlfile	ldo_tls_info.lt_crlfile
+#define ldo_tls_randfile	ldo_tls_info.lt_randfile
+   	int			ldo_tls_mode;
+   	int			ldo_tls_require_cert;
+	int			ldo_tls_impl;
+   	int			ldo_tls_crlcheck;
+#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0
+#else
+#define LDAP_LDO_TLS_NULLARG
+#endif
+
+#ifdef HAVE_CYRUS_SASL
+	char*	ldo_def_sasl_mech;		/* SASL Mechanism(s) */
+	char*	ldo_def_sasl_realm;		/* SASL realm */
+	char*	ldo_def_sasl_authcid;	/* SASL authentication identity */
+	char*	ldo_def_sasl_authzid;	/* SASL authorization identity */
+
+	/* SASL Security Properties */
+	struct sasl_security_properties	ldo_sasl_secprops;
+#define LDAP_LDO_SASL_NULLARG ,0,0,0,0,{0}
+#else
+#define LDAP_LDO_SASL_NULLARG
+#endif
+
+#ifdef HAVE_GSSAPI
+	unsigned ldo_gssapi_flags;
+#define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
+#define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002
+	unsigned ldo_gssapi_options;
+#define LDAP_LDO_GSSAPI_NULLARG ,0,0
+#else
+#define LDAP_LDO_GSSAPI_NULLARG
+#endif
+
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldo_mutex;
+#define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
+#else
+#define LDAP_LDO_MUTEX_NULLARG
+#endif
 };
 
 
@@ -375,6 +388,46 @@ struct ldap_common {
 	Sockbuf		*ldc_sb;	/* socket descriptor & buffer */
 #define ld_sb			ldc->ldc_sb
 
+	unsigned short	ldc_lberoptions;
+#define	ld_lberoptions		ldc->ldc_lberoptions
+
+	/* protected by msgid_mutex */
+	ber_len_t		ldc_msgid;
+#define	ld_msgid		ldc->ldc_msgid
+
+	/* do not mess with these */
+	/* protected by req_mutex */
+	LDAPRequest	*ldc_requests;	/* list of outstanding requests */
+	/* protected by res_mutex */
+	LDAPMessage	*ldc_responses;	/* list of outstanding responses */
+#define	ld_requests		ldc->ldc_requests
+#define	ld_responses		ldc->ldc_responses
+
+	/* protected by abandon_mutex */
+	ber_len_t	ldc_nabandoned;
+	ber_int_t	*ldc_abandoned;	/* array of abandoned requests */
+#define	ld_nabandoned		ldc->ldc_nabandoned
+#define	ld_abandoned		ldc->ldc_abandoned
+
+	/* unused by libldap */
+	LDAPCache	*ldc_cache;	/* non-null if cache is initialized */
+#define	ld_cache		ldc->ldc_cache
+
+	/* do not mess with the rest though */
+
+	/* protected by conn_mutex */
+	LDAPConn	*ldc_defconn;	/* default connection */
+#define	ld_defconn		ldc->ldc_defconn
+	LDAPConn	*ldc_conns;	/* list of server connections */
+#define	ld_conns		ldc->ldc_conns
+	void		*ldc_selectinfo;/* platform specifics for select */
+#define	ld_selectinfo		ldc->ldc_selectinfo
+
+	/* ldap_common refcnt - free only if 0 */
+	/* protected by ldc_mutex */
+	unsigned int		ldc_refcnt;
+#define	ld_ldcrefcnt		ldc->ldc_refcnt
+
 	/* protected by ldo_mutex */
 	struct ldapoptions ldc_options;
 #define ld_options		ldc->ldc_options
@@ -403,66 +456,22 @@ struct ldap_common {
 #define ld_urllist_params	ld_options.ldo_urllist_params
 
 #define ld_version		ld_options.ldo_version
-#ifdef LDAP_R_COMPILE
-#define	ld_ldopts_mutex		ld_options.ldo_mutex
-#endif
-
-	unsigned short	ldc_lberoptions;
-#define	ld_lberoptions		ldc->ldc_lberoptions
-
-	/* protected by msgid_mutex */
-	ber_len_t		ldc_msgid;
-#define	ld_msgid		ldc->ldc_msgid
-
-	/* do not mess with these */
-	/* protected by req_mutex */
-	LDAPRequest	*ldc_requests;	/* list of outstanding requests */
-	/* protected by res_mutex */
-	LDAPMessage	*ldc_responses;	/* list of outstanding responses */
-#define	ld_requests		ldc->ldc_requests
-#define	ld_responses		ldc->ldc_responses
 
 #ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ldc_mutex;
 	ldap_pvt_thread_mutex_t	ldc_msgid_mutex;
 	ldap_pvt_thread_mutex_t	ldc_conn_mutex;
 	ldap_pvt_thread_mutex_t	ldc_req_mutex;
 	ldap_pvt_thread_mutex_t	ldc_res_mutex;
 	ldap_pvt_thread_mutex_t	ldc_abandon_mutex;
+#define	ld_ldopts_mutex		ld_options.ldo_mutex
+#define	ld_ldcmutex		ldc->ldc_mutex
 #define	ld_msgid_mutex		ldc->ldc_msgid_mutex
 #define	ld_conn_mutex		ldc->ldc_conn_mutex
 #define	ld_req_mutex		ldc->ldc_req_mutex
 #define	ld_res_mutex		ldc->ldc_res_mutex
 #define	ld_abandon_mutex	ldc->ldc_abandon_mutex
 #endif
-
-	/* protected by abandon_mutex */
-	ber_len_t	ldc_nabandoned;
-	ber_int_t	*ldc_abandoned;	/* array of abandoned requests */
-#define	ld_nabandoned		ldc->ldc_nabandoned
-#define	ld_abandoned		ldc->ldc_abandoned
-
-	/* unused by libldap */
-	LDAPCache	*ldc_cache;	/* non-null if cache is initialized */
-#define	ld_cache		ldc->ldc_cache
-
-	/* do not mess with the rest though */
-
-	/* protected by conn_mutex */
-	LDAPConn	*ldc_defconn;	/* default connection */
-#define	ld_defconn		ldc->ldc_defconn
-	LDAPConn	*ldc_conns;	/* list of server connections */
-#define	ld_conns		ldc->ldc_conns
-	void		*ldc_selectinfo;/* platform specifics for select */
-#define	ld_selectinfo		ldc->ldc_selectinfo
-
-	/* ldap_common refcnt - free only if 0 */
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_t	ldc_mutex;
-#define	ld_ldcmutex		ldc->ldc_mutex
-#endif
-	/* protected by ldc_mutex */
-	unsigned int		ldc_refcnt;
-#define	ld_ldcrefcnt		ldc->ldc_refcnt
 };
 
 struct ldap {
@@ -482,10 +491,8 @@ struct ldap {
 
 #ifdef LDAP_R_COMPILE
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
+LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_hostname_mutex;
 
-#ifdef HAVE_CYRUS_SASL
-LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
-#endif
 #ifdef HAVE_GSSAPI
 LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_gssapi_mutex;
 #endif
@@ -610,7 +617,7 @@ LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest,
 LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
 	int proto, LDAPURLDesc *srv, int async );
 LDAP_F (int) ldap_int_poll( LDAP *ld, ber_socket_t s,
-	struct timeval *tvp );
+	struct timeval *tvp, int wr );
 
 #if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LDAP_V (char *) ldap_int_hostname;
@@ -624,6 +631,7 @@ LDAP_F (void) ldap_free_select_info( void *sip );
 LDAP_F (void) ldap_mark_select_write( LDAP *ld, Sockbuf *sb );
 LDAP_F (void) ldap_mark_select_read( LDAP *ld, Sockbuf *sb );
 LDAP_F (void) ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
+LDAP_F (void) ldap_clear_select_write( LDAP *ld, Sockbuf *sb );
 LDAP_F (int) ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
 LDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 

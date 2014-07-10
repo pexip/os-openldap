@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2011 The OpenLDAP Foundation.
+ * Copyright 2005-2014 The OpenLDAP Foundation.
  * Portions Copyright 2004-2005 Symas Corporation.
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS:
- * This work was initially developed by Matthew Backes at Symas
+ * This work was initially developed by Emily Backes at Symas
  * Corporation for inclusion in OpenLDAP Software.
  */
 

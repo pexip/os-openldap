@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2011 The OpenLDAP Foundation.
+ * Copyright 2003-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1214,8 +1214,12 @@ overlay_remove( BackendDB *be, slap_overinst *on, Operation *op )
 	rm_cb->sc_private = (void*) rm_ctx;
 
 	/* Append callback to the end of the list */
-	for ( cb = op->o_callback; cb->sc_next; cb = cb->sc_next );
-	cb->sc_next = rm_cb;
+	if ( !op->o_callback ) {
+		op->o_callback = rm_cb;
+	} else {
+		for ( cb = op->o_callback; cb->sc_next; cb = cb->sc_next );
+		cb->sc_next = rm_cb;
+	}
 }
 #endif /* SLAP_CONFIG_DELETE */
 

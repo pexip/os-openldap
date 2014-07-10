@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 1998-2001 Net Boolean Incorporated.
  * Portions Copyright 2001-2003 IBM Corporation.
@@ -41,11 +41,12 @@
 #include <stdio.h>
 
 #include <ac/stdlib.h>
-
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
+#include <ac/time.h>
+
 #include <sys/stat.h>
 
 #include <ac/signal.h>

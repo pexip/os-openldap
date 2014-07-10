@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1613,7 +1613,7 @@ static int parsePermissiveModify (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
 		rs->sr_text = "permissiveModify control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}

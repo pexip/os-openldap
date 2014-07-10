@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2008-2011 The OpenLDAP Foundation.
+ * Copyright 2008-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS: GNUTLS support written by Howard Chu and
- * Matt Backes; sponsored by The Written Word (thewrittenword.com)
+ * Emily Backes; sponsored by The Written Word (thewrittenword.com)
  * and Stanford University (stanford.edu).
  */
 
@@ -651,12 +651,8 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 	}
 
 #ifdef LDAP_PF_INET6
-	if (name[0] == '[' && strchr(name, ']')) {
-		char *n2 = ldap_strdup(name+1);
-		*strchr(n2, ']') = 0;
-		if (inet_pton(AF_INET6, n2, &addr))
-			ntype = IS_IP6;
-		LDAP_FREE(n2);
+	if (inet_pton(AF_INET6, name, &addr)) {
+		ntype = IS_IP6;
 	} else 
 #endif
 	if ((ptr = strrchr(name, '.')) && isdigit((unsigned char)ptr[1])) {
