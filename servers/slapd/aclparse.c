@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -2830,7 +2830,7 @@ acl_unparse( AccessControl *a, struct berval *bv )
 		ptr = acl_safe_strcopy( ptr, "\n" );
 	}
 
-	if ( !BER_BVISEMPTY( &a->acl_attrval ) ) {
+	if ( !BER_BVISNULL( &a->acl_attrval ) ) {
 		to++;
 		ptr = acl_safe_strcopy( ptr, " val." );
 		if ( a->acl_attrval_style == ACL_STYLE_BASE &&

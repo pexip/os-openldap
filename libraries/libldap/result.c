@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -302,7 +302,7 @@ wait4msg(
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
 					LBER_SB_OPT_DATA_READY, NULL ) )
 				{
-					lc_ready = 1;
+					lc_ready = 2;	/* ready at ber level, not socket level */
 					break;
 				}
 			}
@@ -373,8 +373,8 @@ wait4msg(
 					}
 				}
 				LDAP_MUTEX_UNLOCK( &ld->ld_req_mutex );
-				/* Quit looping if no one handled any events */
-				if (!serviced)
+				/* Quit looping if no one handled any socket events */
+				if (!serviced && lc_ready == 1)
 					rc = -1;
 			}
 			LDAP_MUTEX_UNLOCK( &ld->ld_conn_mutex );
@@ -482,8 +482,8 @@ retry:
 	sock_errset(0);
 #ifdef LDAP_CONNECTIONLESS
 	if ( LDAP_IS_UDP(ld) ) {
-		struct sockaddr from;
-		ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr) );
+		struct sockaddr_storage from;
+		ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr_storage) );
 		if ( ld->ld_options.ldo_version == LDAP_VERSION2 ) isv2 = 1;
 	}
 nextresp3:

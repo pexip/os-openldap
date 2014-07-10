@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2011 The OpenLDAP Foundation.
+ * Copyright 2005-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -240,7 +240,7 @@ static OidRec OidMacros[] = {
  * OLcfg{Bk|Db}{Oc|At}:0		-> common
  * OLcfg{Bk|Db}{Oc|At}:1		-> back-bdb(/back-hdb)
  * OLcfg{Bk|Db}{Oc|At}:2		-> back-ldif
- * OLcfg{Bk|Db}{Oc|At}:3		-> back-ldap
+ * OLcfg{Bk|Db}{Oc|At}:3		-> back-ldap/meta
  * OLcfg{Bk|Db}{Oc|At}:4		-> back-monitor
  * OLcfg{Bk|Db}{Oc|At}:5		-> back-relay
  * OLcfg{Bk|Db}{Oc|At}:6		-> back-sql(/back-ndb)
@@ -399,13 +399,13 @@ static ConfigTable config_back_cf_table[] = {
 	{ "index_substr_if_maxlen", "max", 2, 2, 0, ARG_UINT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MAX,
 		&config_generic, "( OLcfgGlAt:21 NAME 'olcIndexSubstrIfMaxLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "index_substr_any_len", "len", 2, 2, 0, ARG_INT|ARG_NONZERO,
+	{ "index_substr_any_len", "len", 2, 2, 0, ARG_UINT|ARG_NONZERO,
 		&index_substr_any_len, "( OLcfgGlAt:22 NAME 'olcIndexSubstrAnyLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "index_substr_any_step", "step", 2, 2, 0, ARG_INT|ARG_NONZERO,
+	{ "index_substr_any_step", "step", 2, 2, 0, ARG_UINT|ARG_NONZERO,
 		&index_substr_any_step, "( OLcfgGlAt:23 NAME 'olcIndexSubstrAnyStep' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "index_intlen", "len", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_IX_INTLEN,
+	{ "index_intlen", "len", 2, 2, 0, ARG_UINT|ARG_MAGIC|CFG_IX_INTLEN,
 		&config_generic, "( OLcfgGlAt:84 NAME 'olcIndexIntLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "lastmod", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD,
@@ -807,7 +807,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcDisallows $ olcGentleHUP $ olcIdleTimeout $ "
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcIndexIntLen $ "
-		 "olcLocalSSF $ olcLogFile $ olcLogLevel $ "
+		 "olcListenerThreads $ olcLocalSSF $ olcLogFile $ olcLogLevel $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
@@ -820,7 +820,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
 		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamFile $ "
-		 "olcTLSCRLFile $ olcToolThreads $ olcWriteTimeout $ "
+		 "olcTLSCRLFile $ olcTLSProtocolMin $ olcToolThreads $ olcWriteTimeout $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
 		 "olcDitContentRules $ olcLdapSyntaxes ) )", Cft_Global },
 	{ "( OLcfgGlOc:2 "
@@ -890,6 +890,7 @@ typedef struct ServerID {
 } ServerID;
 
 static ServerID *sid_list;
+static ServerID *sid_set;
 
 typedef struct voidList {
 	struct voidList *vl_next;
@@ -1271,6 +1272,8 @@ config_generic(ConfigArgs *c) {
 				si; si = *sip, i++ ) {
 				if ( c->valx == -1 || i == c->valx ) {
 					*sip = si->si_next;
+					if ( sid_set == si )
+						sid_set = NULL;
 					ch_free( si );
 					if ( c->valx >= 0 )
 						break;
@@ -1661,7 +1664,7 @@ config_generic(ConfigArgs *c) {
 				/* else prev is NULL, append to end of global list */
 			}
 			if(parse_oc(c, &oc, prev)) return(1);
-			if (!cfn->c_oc_head) cfn->c_oc_head = oc;
+			if (!cfn->c_oc_head || !c->valx) cfn->c_oc_head = oc;
 			if (cfn->c_oc_tail == prev) cfn->c_oc_tail = oc;
 			}
 			break;
@@ -1694,7 +1697,7 @@ config_generic(ConfigArgs *c) {
 				/* else prev is NULL, append to end of global list */
 			}
 			if(parse_at(c, &at, prev)) return(1);
-			if (!cfn->c_at_head) cfn->c_at_head = at;
+			if (!cfn->c_at_head || !c->valx) cfn->c_at_head = at;
 			if (cfn->c_at_tail == prev) cfn->c_at_tail = at;
 			}
 			break;
@@ -1727,7 +1730,7 @@ config_generic(ConfigArgs *c) {
 				/* else prev is NULL, append to end of global list */
 			}
 			if ( parse_syn( c, &syn, prev ) ) return(1);
-			if ( !cfn->c_syn_head ) cfn->c_syn_head = syn;
+			if ( !cfn->c_syn_head || !c->valx ) cfn->c_syn_head = syn;
 			if ( cfn->c_syn_tail == prev ) cfn->c_syn_tail = syn;
 			}
 			break;
@@ -1903,6 +1906,7 @@ sortval_reject:
 					Debug( LDAP_DEBUG_CONFIG,
 						"%s: SID=0x%03x\n",
 						c->log, slap_serverID, 0 );
+					sid_set = si;
 				}
 				si->si_next = NULL;
 				si->si_num = num;
@@ -1912,11 +1916,20 @@ sortval_reject:
 				if (( slapMode & SLAP_SERVER_MODE ) && c->argc > 2 ) {
 					Listener *l = config_check_my_url( c->argv[2], lud );
 					if ( l ) {
+						if ( sid_set ) {
+							ldap_free_urldesc( lud );
+							snprintf( c->cr_msg, sizeof( c->cr_msg ),
+								"<%s> multiple server ID URLs matched, only one is allowed", c->argv[0] );
+							Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
+								c->log, c->cr_msg, c->argv[1] );
+							return 1;
+						}
 						slap_serverID = si->si_num;
 						Debug( LDAP_DEBUG_CONFIG,
 							"%s: SID=0x%03x (listener=%s)\n",
 							c->log, slap_serverID,
 							l->sl_url.bv_val );
+						sid_set = si;
 					}
 				}
 				if ( c->argc > 2 )
@@ -2925,7 +2938,8 @@ config_suffix(ConfigArgs *c)
 	}
 #endif
 
-	if (SLAP_DB_ONE_SUFFIX( c->be ) && c->be->be_suffix ) {
+	if (SLAP_DB_ONE_SUFFIX( c->be ) && c->be->be_suffix &&
+		!BER_BVISNULL( &c->be->be_suffix[0] )) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> Only one suffix is allowed on this %s backend",
 			c->argv[0], c->be->bd_info->bi_type );
 		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
@@ -3400,6 +3414,10 @@ loglevel2bvarray( int l, BerVarray *bva )
 		loglevel_init();
 	}
 
+	if ( l == 0 ) {
+		return value_add_one( bva, ber_bvstr( "0" ) );
+	}
+
 	return mask_to_verbs( loglevel_ops, l, bva );
 }
 
@@ -3841,7 +3859,7 @@ config_tls_config(ConfigArgs *c) {
 	}
 	ch_free( c->value_string );
 	c->cleanup = config_tls_cleanup;
-	if ( isdigit( (unsigned char)c->argv[1][0] ) ) {
+	if ( isdigit( (unsigned char)c->argv[1][0] ) && c->type != CFG_TLS_PROTOCOL_MIN ) {
 		if ( lutil_atoi( &i, c->argv[1] ) != 0 ) {
 			Debug(LDAP_DEBUG_ANY, "%s: "
 				"unable to parse %s \"%s\"\n",
@@ -4226,6 +4244,13 @@ done:
 				frontendDB->be_schemadn.bv_val, 0, 0 );
 			/* must not happen */
 			assert( 0 );
+		}
+	}
+	if ( rc == 0 && ( slapMode & SLAP_SERVER_MODE ) && sid_list ) {
+		if ( !BER_BVISEMPTY( &sid_list->si_url ) && !sid_set ) {
+			Debug(LDAP_DEBUG_ANY, "read_config: no serverID / URL match found. "
+				"Check slapd -h arguments.\n", 0,0,0 );
+			rc = LDAP_OTHER;
 		}
 	}
 	return rc;
@@ -4613,9 +4638,34 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		}
 	}
 
-	/* count related kids */
-	for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
-		if ( ce->ce_type == ce_type ) nsibs++;
+	/* count related kids.
+	 * For entries of type Cft_Misc, only count siblings with same RDN type
+	 */
+	if ( ce_type == Cft_Misc ) {
+		rdn.bv_val = e->e_nname.bv_val;
+		ptr1 = strchr( rdn.bv_val, '=' );
+		assert( ptr1 != NULL );
+
+		rdn.bv_len = ptr1 - rdn.bv_val;
+
+		for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
+			struct berval rdn2;
+			if ( ce->ce_type != ce_type )
+				continue;
+
+			dnRdn( &ce->ce_entry->e_nname, &rdn2 );
+
+			ptr1 = strchr( rdn2.bv_val, '=' );
+			assert( ptr1 != NULL );
+
+			rdn2.bv_len = ptr1 - rdn2.bv_val;
+			if ( bvmatch( &rdn, &rdn2 ))
+				nsibs++;
+		}
+	} else {
+		for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
+			if ( ce->ce_type == ce_type ) nsibs++;
+		}
 	}
 
 	/* account for -1 frontend */
@@ -5755,8 +5805,11 @@ out:
 		ca->reply = msg;
 	}
 
-	if ( ca->cleanup )
-		ca->cleanup( ca );
+	if ( ca->cleanup ) {
+		i = ca->cleanup( ca );
+		if (rc == LDAP_SUCCESS)
+			rc = i;
+	}
 out_noop:
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
@@ -6497,7 +6550,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 
 	for (; cf; cf=cf->c_sibs, c->depth++) {
 		if ( !cf->c_at_head && !cf->c_cr_head && !cf->c_oc_head &&
-			!cf->c_om_head && !cf->c_syn_head ) continue;
+			!cf->c_om_head && !cf->c_syn_head && !cf->c_kids ) continue;
 		c->value_dn.bv_val = c->log;
 		LUTIL_SLASHPATH( cf->c_file.bv_val );
 		bv.bv_val = strrchr(cf->c_file.bv_val, LDAP_DIRSEP[0]);

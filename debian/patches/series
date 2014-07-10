@@ -1,4 +1,3 @@
-nssov-build
 man-slapd 
 evolution-ntlm
 slapi-errorlog-file 
@@ -8,8 +7,8 @@ index-files-created-as-root
 sasl-default-path 
 libldap-symbol-versions
 getaddrinfo-is-threadsafe
-gssapi.diff
 do-not-second-guess-sonames
+contrib-modules-use-dpkg-buildflags
 smbk5pwd-makefile
 autogroup-makefile
 ldap-conf-tls-cacertdir
@@ -19,8 +18,4 @@ fix-build-top-mk
 no-AM_INIT_AUTOMAKE
 switch-to-lt_dlopenadvise-to-get-RTLD_GLOBAL-set.diff
 no-bdb-ABI-second-guessing
-its-7176-only-poll-sockets-for-write-as-needed.diff
-its-7107-fix-Operation-init-on-reuse.diff
-shell-config
-bdb-deadlock.patch
-its-7174-lutil_str2bin-cant-modify-input-strings.patch
+heimdal-fix

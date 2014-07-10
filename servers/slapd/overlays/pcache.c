@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2011 The OpenLDAP Foundation.
+ * Copyright 2003-2014 The OpenLDAP Foundation.
  * Portions Copyright 2003 IBM Corporation.
  * Portions Copyright 2003-2009 Symas Corporation.
  * All rights reserved.
@@ -2438,6 +2438,7 @@ pcache_response(
 
 	if ( si->swap_saved_attrs ) {
 		rs->sr_attrs = si->save_attrs;
+		rs->sr_attr_flags = slap_attr_flags( si->save_attrs );
 		op->ors_attrs = si->save_attrs;
 	}
 
@@ -3210,6 +3211,10 @@ get_attr_set(
 		int found = 1;
 
 		if ( count > qm->attr_sets[i].count ) {
+			if ( qm->attr_sets[i].count &&
+				bvmatch( &qm->attr_sets[i].attrs[0].an_name, slap_bv_all_user_attrs )) {
+				break;
+			}
 			continue;
 		}
 
@@ -3418,6 +3423,7 @@ refresh_query( Operation *op, CachedQuery *query, slap_overinst *on )
 	op->o_req_dn = query->qbase->base;
 	op->o_req_ndn = query->qbase->base;
 	op->ors_scope = query->scope;
+	op->ors_deref = LDAP_DEREF_NEVER;
 	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_limit = NULL;
@@ -3654,6 +3660,7 @@ static ConfigTable pccfg[] = {
 		2, 0, 0, ARG_MAGIC|PC_ATTR, pc_cf_gen,
 		"( OLcfgOvAt:2.2 NAME ( 'olcPcacheAttrset' 'olcProxyAttrset' ) "
 			"DESC 'A set of attributes to cache' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "pcacheTemplate", "filter> <attrset-index> <TTL> <negTTL> "
 			"<limitTTL> <TTR",
@@ -3662,36 +3669,38 @@ static ConfigTable pccfg[] = {
 			"DESC 'Filter template, attrset, cache TTL, "
 				"optional negative TTL, optional sizelimit TTL, "
 				"optional TTR' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "pcachePosition", "head|tail(default)",
 		2, 2, 0, ARG_MAGIC|PC_RESP, pc_cf_gen,
 		"( OLcfgOvAt:2.4 NAME 'olcPcachePosition' "
 			"DESC 'Response callback position in overlay stack' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheMaxQueries", "queries",
 		2, 2, 0, ARG_INT|ARG_MAGIC|PC_QUERIES, pc_cf_gen,
 		"( OLcfgOvAt:2.5 NAME ( 'olcPcacheMaxQueries' 'olcProxyCacheQueries' ) "
 			"DESC 'Maximum number of queries to cache' "
-			"SYNTAX OMsInteger )", NULL, NULL },
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "pcachePersist", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, save_queries),
 		"( OLcfgOvAt:2.6 NAME ( 'olcPcachePersist' 'olcProxySaveQueries' ) "
 			"DESC 'Save cached queries for hot restart' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheValidate", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_OFFSET, (void *)offsetof(cache_manager, check_cacheability),
 		"( OLcfgOvAt:2.7 NAME ( 'olcPcacheValidate' 'olcProxyCheckCacheability' ) "
 			"DESC 'Check whether the results of a query are cacheable, e.g. for schema issues' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheOffline", "TRUE|FALSE",
 		2, 2, 0, ARG_ON_OFF|ARG_MAGIC|PC_OFFLINE, pc_cf_gen,
 		"( OLcfgOvAt:2.8 NAME 'olcPcacheOffline' "
 			"DESC 'Set cache to offline mode and disable expiration' "
-			"SYNTAX OMsBoolean )", NULL, NULL },
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "pcacheBind", "filter> <attrset-index> <TTR> <scope> <base",
 		6, 6, 0, ARG_MAGIC|PC_BIND, pc_cf_gen,
 		"( OLcfgOvAt:2.9 NAME 'olcPcacheBind' "
 			"DESC 'Parameters for caching Binds' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "pcache-", "private database args",
 		1, 0, STRLENOF("pcache-"), ARG_MAGIC|PC_PRIVATE_DB, pc_cf_gen,
@@ -5519,7 +5528,6 @@ pcache_monitor_db_open( BackendDB *be )
 	int			rc = 0;
 	BackendInfo		*mi;
 	monitor_extra_t		*mbe;
-	struct berval		dummy = BER_BVC( "" );
 
 	if ( !SLAP_DBMONITORING( be ) ) {
 		return 0;
@@ -5579,7 +5587,7 @@ pcache_monitor_db_open( BackendDB *be )
 	rc = mbe->register_overlay( be, on, &cm->monitor_ndn );
 	if ( rc == 0 ) {
 		rc = mbe->register_entry_attrs( &cm->monitor_ndn, a, cb,
-			&dummy, -1, &dummy);
+			NULL, -1, NULL);
 	}
 
 cleanup:;

@@ -1,6 +1,6 @@
 .TH LDAP_GET_OPTION 3 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
-.\" Copyright 1998-2011 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2014 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_get_option, ldap_set_option \- LDAP option handling routines
@@ -27,7 +27,9 @@ is cast to
 The actual type is determined based on the value of the
 .B option
 argument.
-Global options are set/retrieved by passing a NULL LDAP handle.
+Global options are set/retrieved by passing a NULL LDAP handle. LDAP handles
+inherit their default settings from the global options in effect at the time
+the handle is created.
 .TP
 .B LDAP_OPT_API_FEATURE_INFO
 Fills-in a 
@@ -451,7 +453,7 @@ must be
 .BR "char ***" .
 The caller must not free or otherwise muck with it.
 .TP
-.B LDAP_OPT_X_SASL_NOCANON	
+.B LDAP_OPT_X_SASL_NOCANON
 Sets/gets the NOCANON flag.
 When unset, the hostname is canonicalized.
 .BR invalue

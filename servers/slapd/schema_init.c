@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -2155,7 +2155,11 @@ approxIndexer(
 			len = strlen( c );
 			if( len < SLAPD_APPROX_WORDLEN ) continue;
 			ber_str2bv( phonetic( c ), 0, 0, &keys[keycount] );
-			keycount++;
+			if( keys[keycount].bv_len ) {
+				keycount++;
+			} else {
+				ch_free( keys[keycount].bv_val );
+			}
 			i++;
 		}
 
@@ -3664,12 +3668,14 @@ certificateExactNormalize(
 	tag = ber_skip_tag( ber, &len );	/* SignatureAlg */
 	ber_skip_data( ber, len );
 	tag = ber_peek_tag( ber, &len );	/* IssuerDN */
-	len = ber_ptrlen( ber );
-	bvdn.bv_val = val->bv_val + len;
-	bvdn.bv_len = val->bv_len - len;
+	if ( len ) {
+		len = ber_ptrlen( ber );
+		bvdn.bv_val = val->bv_val + len;
+		bvdn.bv_len = val->bv_len - len;
 
-	rc = dnX509normalize( &bvdn, &issuer_dn );
-	if ( rc != LDAP_SUCCESS ) goto done;
+		rc = dnX509normalize( &bvdn, &issuer_dn );
+		if ( rc != LDAP_SUCCESS ) goto done;
+	}
 
 	normalized->bv_len = STRLENOF( "{ serialNumber , issuer rdnSequence:\"\" }" )
 		+ sn2.bv_len + issuer_dn.bv_len;
@@ -6335,7 +6341,9 @@ char *componentFilterMatchSyntaxes[] = {
 #endif
 
 char *directoryStringSyntaxes[] = {
+	"1.3.6.1.4.1.1466.115.121.1.11" /* countryString */,
 	"1.3.6.1.4.1.1466.115.121.1.44" /* printableString */,
+	"1.3.6.1.4.1.1466.115.121.1.50" /* telephoneNumber */,
 	NULL
 };
 char *integerFirstComponentMatchSyntaxes[] = {

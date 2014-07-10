@@ -109,8 +109,8 @@ Running slapd under a Different UID/GID
 
   - Tell linux slapd can access configuration files -- usually:
 
-      chgrp -R <group> /etc/ldap/slapd.d
-      chmod -R g+rX /etc/ldap/slapd.d
+      chgrp <group> /etc/ldap/slapd.conf
+      chmod 0640 /etc/ldap/slapd.conf
 
   - Tell linux slapd can access /var/run/slapd and write a PID file:
 
@@ -200,14 +200,3 @@ Modifications Compared to Upstream
   openldap source package.
 
  -- Russ Allbery <rra@debian.org>, Thu, 14 Feb 2008 18:47:07 -0800
-
-Apparmor Profile
-----------------
-
-  If your system uses AppArmor, please note that the shipped enforcing profile
-  works with the default installation, and changes in your configuration may
-  require changes to the installed apparmor profile. Please see
-  https://wiki.ubuntu.com/DebuggingApparmor before filing a bug against this
-  software.
-
- -- Jamie Strandboge <jamie@ubuntu.com>, Mon,  4 Feb 2008 21:18:21 -0500

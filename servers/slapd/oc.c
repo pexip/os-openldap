@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -399,6 +399,8 @@ static void
 oc_delete_names( ObjectClass *oc )
 {
 	char			**names = oc->soc_names;
+
+	if (!names) return;
 
 	while (*names) {
 		struct oindexrec	tmpoir, *oir;

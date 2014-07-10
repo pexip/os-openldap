@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2011 The OpenLDAP Foundation.
+ * Copyright 1999-2014 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -274,6 +274,10 @@ retry:;
 			goto retry;
 		}
 	}
+
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 
 	ldap_back_controls_free( op, rs, &ctrls );
 
@@ -712,6 +716,9 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, (const void *)&tv );
 	}
 
+	/* turn on network keepalive, if configured so */
+	slap_client_keepalive(ld, &li->li_tls.sb_keepalive);
+
 #ifdef HAVE_TLS
 	if ( LDAP_BACK_CONN_ISPRIV( lc ) ) {
 		/* See "rationale" comment in ldap_back_getconn() */
@@ -1062,6 +1069,7 @@ retry_lock:
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
 		LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
+		lc->lc_connid = li->li_conn_nextid++;
 
 		assert( lc->lc_refcnt == 1 );
 
@@ -1401,7 +1409,17 @@ retry_lock:;
 			/* if we got here, it shouldn't return result */
 			rc = ldap_back_is_proxy_authz( op, rs,
 				LDAP_BACK_DONTSEND, &binddn, &bindcred );
-			assert( rc == 1 );
+			if ( rc != 1 ) {
+				Debug( LDAP_DEBUG_ANY, "Error: ldap_back_is_proxy_authz "
+					"returned %d, misconfigured URI?\n", rc, 0, 0 );
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "misconfigured URI?";
+				LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
+				if ( sendok & LDAP_BACK_SENDERR ) {
+					send_ldap_result( op, rs );
+				}
+				goto done;
+			}
 		}
 		rc = ldap_back_proxy_authz_bind( lc, op, rs, sendok, &binddn, &bindcred );
 		goto done;
@@ -1451,6 +1469,10 @@ retry_lock:;
 				LDAP_SASL_QUIET, lutil_sasl_interact,
 				defaults );
 
+		ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+		ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+		ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 		lutil_sasl_freedefs( defaults );
 
 		switch ( rs->sr_err ) {
@@ -1499,6 +1521,10 @@ retry:;
 			tmp_dn,
 			LDAP_SASL_SIMPLE, &lc->lc_cred,
 			NULL, NULL, &msgid );
+
+	ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+	ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+	ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 
 	if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 		if ( retries != LDAP_BACK_RETRY_NEVER ) {
@@ -1558,7 +1584,6 @@ retry:;
 	rc = ldap_back_op_result( lc, op, rs, msgid,
 		-1, ( sendok | LDAP_BACK_BINDING ) );
 	if ( rc == LDAP_SUCCESS ) {
-		op->o_conn->c_authz_cookie = op->o_bd->be_private;
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 	}
 
@@ -1624,6 +1649,8 @@ ldap_back_default_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 #endif /* HAVE_TLS */
 
 	/* FIXME: add checks on the URL/identity? */
+	/* TODO: would like to count this bind operation for monitoring
+	 * too, but where do we get the ldapinfo_t? */
 
 	return ldap_sasl_bind_s( ld,
 			BER_BVISNULL( &lc->lc_cred ) ? "" : lc->lc_bound_ndn.bv_val,
@@ -2091,6 +2118,18 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 		ndn = op->o_ndn;
 	}
 
+	if ( !( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )) {
+		if ( op->o_tag == LDAP_REQ_BIND ) {
+			if ( !BER_BVISEMPTY( &ndn )) {
+				dobind = 0;
+				goto done;
+			}
+		} else if ( SLAP_IS_AUTHZ_BACKEND( op )) {
+			dobind = 0;
+			goto done;
+		}
+	}
+
 	switch ( li->li_idassert_mode ) {
 	case LDAP_BACK_IDASSERT_LEGACY:
 		if ( !BER_BVISNULL( &ndn ) && !BER_BVISEMPTY( &ndn ) ) {
@@ -2313,6 +2352,10 @@ ldap_back_proxy_authz_bind(
 			}
 		} while ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS );
 
+		ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+		ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+		ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
+
 		switch ( rs->sr_err ) {
 		case LDAP_SUCCESS:
 #ifdef SLAP_AUTH_DN
@@ -2370,7 +2413,6 @@ ldap_back_proxy_authz_bind(
 				ber_bvreplace( &lc->lc_bound_ndn, &bv );
 			}
 #endif /* SLAP_AUTH_DN */
-			op->o_conn->c_authz_cookie = op->o_bd->be_private;
 			LDAP_BACK_CONN_ISBOUND_SET( lc );
 			break;
 
@@ -2420,6 +2462,10 @@ ldap_back_proxy_authz_bind(
 				bindcred, NULL, NULL, &msgid );
 		rc = ldap_back_op_result( lc, op, rs, msgid,
 			-1, ( sendok | LDAP_BACK_BINDING ) );
+
+		ldap_pvt_thread_mutex_lock( &li->li_counter_mutex );
+		ldap_pvt_mp_add( li->li_ops_completed[ SLAP_OP_BIND ], 1 );
+		ldap_pvt_thread_mutex_unlock( &li->li_counter_mutex );
 		break;
 
 	default:
@@ -2437,7 +2483,6 @@ ldap_back_proxy_authz_bind(
 		 * so that referral chasing is attempted using the right
 		 * identity */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
-		op->o_conn->c_authz_cookie = op->o_bd->be_private;
 		if ( !BER_BVISNULL( binddn ) ) {
 			ber_bvreplace( &lc->lc_bound_ndn, binddn );
 		}

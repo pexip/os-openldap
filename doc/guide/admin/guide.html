@@ -23,7 +23,7 @@
 <DIV CLASS="title">
 <H1 CLASS="doc-title">OpenLDAP Software 2.4 Administrator's Guide</H1>
 <ADDRESS CLASS="doc-author">The OpenLDAP Project &lt;<A HREF="http://www.openldap.org/">http://www.openldap.org/</A>&gt;</ADDRESS>
-<ADDRESS CLASS="doc-modified">25 November 2011</ADDRESS>
+<ADDRESS CLASS="doc-modified">25 January 2014</ADDRESS>
 <BR CLEAR="All">
 </DIV>
 <DIV CLASS="contents">
@@ -243,54 +243,61 @@
 <BR>
 <A HREF="#Further Information">11.3.3. Further Information</A></UL>
 <BR>
-<A HREF="#Metadirectory">11.4. Metadirectory</A><UL>
+<A HREF="#LMDB">11.4. LMDB</A><UL>
 <A HREF="#Overview">11.4.1. Overview</A>
 <BR>
-<A HREF="#back-meta Configuration">11.4.2. back-meta Configuration</A>
+<A HREF="#back-mdb Configuration">11.4.2. back-mdb Configuration</A>
 <BR>
 <A HREF="#Further Information">11.4.3. Further Information</A></UL>
 <BR>
-<A HREF="#Monitor">11.5. Monitor</A><UL>
+<A HREF="#Metadirectory">11.5. Metadirectory</A><UL>
 <A HREF="#Overview">11.5.1. Overview</A>
 <BR>
-<A HREF="#back-monitor Configuration">11.5.2. back-monitor Configuration</A>
+<A HREF="#back-meta Configuration">11.5.2. back-meta Configuration</A>
 <BR>
 <A HREF="#Further Information">11.5.3. Further Information</A></UL>
 <BR>
-<A HREF="#Null">11.6. Null</A><UL>
+<A HREF="#Monitor">11.6. Monitor</A><UL>
 <A HREF="#Overview">11.6.1. Overview</A>
 <BR>
-<A HREF="#back-null Configuration">11.6.2. back-null Configuration</A>
+<A HREF="#back-monitor Configuration">11.6.2. back-monitor Configuration</A>
 <BR>
 <A HREF="#Further Information">11.6.3. Further Information</A></UL>
 <BR>
-<A HREF="#Passwd">11.7. Passwd</A><UL>
+<A HREF="#Null">11.7. Null</A><UL>
 <A HREF="#Overview">11.7.1. Overview</A>
 <BR>
-<A HREF="#back-passwd Configuration">11.7.2. back-passwd Configuration</A>
+<A HREF="#back-null Configuration">11.7.2. back-null Configuration</A>
 <BR>
 <A HREF="#Further Information">11.7.3. Further Information</A></UL>
 <BR>
-<A HREF="#Perl/Shell">11.8. Perl/Shell</A><UL>
+<A HREF="#Passwd">11.8. Passwd</A><UL>
 <A HREF="#Overview">11.8.1. Overview</A>
 <BR>
-<A HREF="#back-perl/back-shell Configuration">11.8.2. back-perl/back-shell Configuration</A>
+<A HREF="#back-passwd Configuration">11.8.2. back-passwd Configuration</A>
 <BR>
 <A HREF="#Further Information">11.8.3. Further Information</A></UL>
 <BR>
-<A HREF="#Relay">11.9. Relay</A><UL>
+<A HREF="#Perl/Shell">11.9. Perl/Shell</A><UL>
 <A HREF="#Overview">11.9.1. Overview</A>
 <BR>
-<A HREF="#back-relay Configuration">11.9.2. back-relay Configuration</A>
+<A HREF="#back-perl/back-shell Configuration">11.9.2. back-perl/back-shell Configuration</A>
 <BR>
 <A HREF="#Further Information">11.9.3. Further Information</A></UL>
 <BR>
-<A HREF="#SQL">11.10. SQL</A><UL>
+<A HREF="#Relay">11.10. Relay</A><UL>
 <A HREF="#Overview">11.10.1. Overview</A>
 <BR>
-<A HREF="#back-sql Configuration">11.10.2. back-sql Configuration</A>
+<A HREF="#back-relay Configuration">11.10.2. back-relay Configuration</A>
 <BR>
-<A HREF="#Further Information">11.10.3. Further Information</A></UL></UL>
+<A HREF="#Further Information">11.10.3. Further Information</A></UL>
+<BR>
+<A HREF="#SQL">11.11. SQL</A><UL>
+<A HREF="#Overview">11.11.1. Overview</A>
+<BR>
+<A HREF="#back-sql Configuration">11.11.2. back-sql Configuration</A>
+<BR>
+<A HREF="#Further Information">11.11.3. Further Information</A></UL></UL>
 <BR>
 <A HREF="#Overlays">12. Overlays</A><UL>
 <A HREF="#Access Logging">12.1. Access Logging</A><UL>
@@ -612,9 +619,9 @@
 <BR>
 <A HREF="#{{slapd}}(8) Entry Cache (cachesize)">21.4.2. <EM>slapd</EM>(8) Entry Cache (cachesize)</A>
 <BR>
-<A HREF="#{{TERM:IDL}} Cache (idlcachesize)">21.4.3. <TERM>IDL</TERM> Cache (idlcachesize)</A>
+<A HREF="#{{TERM:IDL}} Cache (idlcachesize)">21.4.3. <TERM>IDL</TERM> Cache (idlcachesize)</A></UL>
 <BR>
-<A HREF="#{{slapd}}(8) Threads">21.4.4. <EM>slapd</EM>(8) Threads</A></UL></UL>
+<A HREF="#{{slapd}}(8) Threads">21.5. <EM>slapd</EM>(8) Threads</A></UL>
 <BR>
 <A HREF="#Troubleshooting">22. Troubleshooting</A><UL>
 <A HREF="#User or Software errors">22.1. User or Software errors?</A>
@@ -913,7 +920,7 @@
 <HR>
 <H1><A NAME="Preface">Preface</A></H1>
 <H2>Copyright</H2>
-<P>Copyright 1998-2011, The <A HREF="http://www.openldap.org/foundation/">OpenLDAP Foundation</A>, <EM>All Rights Reserved</EM>.</P>
+<P>Copyright 1998-2012, The <A HREF="http://www.openldap.org/foundation/">OpenLDAP Foundation</A>, <EM>All Rights Reserved</EM>.</P>
 <P>Copyright 1992-1996, Regents of the <A HREF="http://www.umich.edu/">University of Michigan</A>, <EM>All Rights Reserved</EM>.</P>
 <P>This document is considered a part of OpenLDAP Software.  This document is subject to terms of conditions set forth in <A HREF="#OpenLDAP Software Copyright Notices">OpenLDAP Software Copyright Notices</A> and the <A HREF="#OpenLDAP Public License">OpenLDAP Public License</A>. Complete copies of the notices and associated license can be found in Appendix K and L, respectively.</P>
 <P>Portions of OpenLDAP Software and this document may be copyright by other parties and/or subject to additional restrictions.  Individual source files should be consulted for additional copyright notices.</P>
@@ -1356,9 +1363,9 @@ This command will search for and retrieve every entry in the database.</OL>
 <PRE>
         ./configure --help
 </PRE>
-<P>The <TT>configure</TT> script will also look at various environment variables for certain settings.  These environment variables include:</P>
+<P>The <TT>configure</TT> script also looks for certain variables on the command line and in the environment.  These include:</P>
 <TABLE CLASS="columns" BORDER ALIGN='Center'>
-<CAPTION ALIGN=top>Table 4.1: Environment Variables</CAPTION>
+<CAPTION ALIGN=top>Table 4.1: Variables</CAPTION>
 <TR CLASS="heading">
 <TD>
 <STRONG>Variable</STRONG>
@@ -1409,22 +1416,20 @@ Specify additional libraries
 </TR>
 </TABLE>
 
-<P>Now run the configure script with any desired configuration options or environment variables.</P>
+<P>Now run the configure script with any desired configuration options or variables.</P>
 <PRE>
-        [[env] settings] ./configure [options]
+        ./configure [options] [variable=value ...]
 </PRE>
 <P>As an example, let's assume that we want to install OpenLDAP with BDB backend and TCP Wrappers support.  By default, BDB is enabled and TCP Wrappers is not.  So, we just need to specify <TT>--enable-wrappers</TT> to include TCP Wrappers support:</P>
 <PRE>
         ./configure --enable-wrappers
 </PRE>
-<P>However, this will fail to locate dependent software not installed in system directories.  For example, if TCP Wrappers headers and libraries are installed in <TT>/usr/local/include</TT> and <TT>/usr/local/lib</TT> respectively, the <TT>configure</TT> script should be called as follows:</P>
+<P>However, this will fail to locate dependent software not installed in system directories.  For example, if TCP Wrappers headers and libraries are installed in <TT>/usr/local/include</TT> and <TT>/usr/local/lib</TT> respectively, the <TT>configure</TT> script should typically be called as follows:</P>
 <PRE>
-        env CPPFLAGS=&quot;-I/usr/local/include&quot; LDFLAGS=&quot;-L/usr/local/lib&quot; \
-                ./configure --enable-wrappers
+        ./configure --enable-wrappers \
+                CPPFLAGS=&quot;-I/usr/local/include&quot; \
+                LDFLAGS=&quot;-L/usr/local/lib -Wl,-rpath,/usr/local/lib&quot;
 </PRE>
-<P><HR WIDTH="80%" ALIGN="Left">
-<STRONG>Note: </STRONG>Some shells, such as those derived from the Bourne <EM>sh</EM>(1), do not require use of the <EM>env</EM>(1) command.  In some cases, environmental variables have to be specified using alternative syntaxes.
-<HR WIDTH="80%" ALIGN="Left"></P>
 <P>The <TT>configure</TT> script will normally auto-detect appropriate settings.  If you have problems at this stage, consult any platform specific hints and check your <TT>configure</TT> options, if any.</P>
 <H2><A NAME="Building the Software">4.4. Building the Software</A></H2>
 <P>Once you have run the <TT>configure</TT> script the last line of output should be:</P>
@@ -1472,7 +1477,7 @@ Specify additional libraries
 <STRONG>Note: </STRONG>Although the <EM>slapd-config</EM>(5) system stores its configuration as (text-based) LDIF files, you should <EM>never</EM> edit any of the LDIF files directly.  Configuration changes should be performed via LDAP operations, e.g. <EM>ldapadd</EM>(1), <EM>ldapdelete</EM>(1), or <EM>ldapmodify</EM>(1).
 <HR WIDTH="80%" ALIGN="Left"></P>
 <P><HR WIDTH="80%" ALIGN="Left">
-<STRONG>Note: </STRONG>You will need to continue to use the older <EM>slapd.conf</EM>(5) configuration system if your OpenLDAP installation requires the use of one or more backends or overlays that have not been updated to use the <EM>slapd-config</EM>(5) system.  As of OpenLDAP 2.4.25, the only official backends that have not yet been updated to use <EM>slapd-config</EM>(5) are <EM>slapd-meta</EM>(5) and <EM>slapd-sql</EM>(5).  There may be additional contributed or experimental overlays that also have not been updated.
+<STRONG>Note: </STRONG>You will need to continue to use the older <EM>slapd.conf</EM>(5) configuration system if your OpenLDAP installation requires the use of one or more backends or overlays that have not been updated to use the <EM>slapd-config</EM>(5) system.  As of OpenLDAP 2.4.33, all of the official backends have been updated.  There may be additional contributed or experimental overlays that also have not been updated.
 <HR WIDTH="80%" ALIGN="Left"></P>
 <H2><A NAME="Configuration Layout">5.1. Configuration Layout</A></H2>
 <P>The slapd configuration is stored as a special LDAP directory with a predefined schema and DIT. There are specific objectClasses used to carry global configuration options, schema definitions, backend and database definitions, and assorted other items. A sample config tree is shown in Figure 5.1.</P>
@@ -1585,7 +1590,7 @@ no debugging
 (0x1 trace)
 </TD>
 <TD>
-trace function callss
+trace function calls
 </TD>
 </TR>
 <TR>
@@ -2239,12 +2244,12 @@ olcDbIndex: objectClass eq
  31.    objectClass: olcDatabaseConfig
  32.    objectClass: olcBdbConfig
  33.    olcDatabase: bdb
- 34.    olcSuffix: &quot;dc=example,dc=com&quot;
+ 34.    olcSuffix: dc=example,dc=com
  35.    olcDbDirectory: /usr/local/var/openldap-data
- 36.    olcRootDN: &quot;cn=Manager,dc=example,dc=com&quot;
+ 36.    olcRootDN: cn=Manager,dc=example,dc=com
  37.    olcRootPW: secret
  38.    olcDbIndex: uid pres,eq
- 39.    olcDbIndex: cn,sn,uid pres,eq,approx,sub
+ 39.    olcDbIndex: cn,sn pres,eq,approx,sub
  40.    olcDbIndex: objectClass eq
  41.    olcAccess: to attrs=userPassword
  42.      by self write
@@ -2829,7 +2834,7 @@ SQL Programmable backend
  10.    rootpw secret
  11.    # indexed attribute definitions
  12.    index uid pres,eq
- 13.    index cn,sn,uid pres,eq,approx,sub
+ 13.    index cn,sn pres,eq,approx,sub
  14.    index objectClass eq
  15.    # database access control definitions
  16.    access to attrs=userPassword
@@ -4628,10 +4633,13 @@ Members of a group
 </PRE>
 <H2><A NAME="Berkeley DB Backends">11.1. Berkeley DB Backends</A></H2>
 <H3><A NAME="Overview">11.1.1. Overview</A></H3>
-<P>The <EM>bdb</EM> backend to <EM>slapd</EM>(8) is the recommended primary backend for a normal <EM>slapd</EM> database.  It uses the Oracle Berkeley DB (<TERM>BDB</TERM>) package to store data. It makes extensive use of indexing and caching (see the <A HREF="#Tuning">Tuning</A> section) to speed data access.</P>
-<P><EM>hdb</EM> is a variant of the <EM>bdb</EM> backend that uses a hierarchical database layout which supports subtree renames. It is otherwise identical to the <EM>bdb</EM> behavior, and all the same configuration options apply.</P>
+<P>The <EM>hdb</EM> backend to <EM>slapd</EM>(8) is the recommended primary backend for a normal <EM>slapd</EM> database.  It uses the Oracle Berkeley DB (<TERM>BDB</TERM>) package to store data. It makes extensive use of indexing and caching (see the <A HREF="#Tuning">Tuning</A> section) to speed data access.</P>
+<P><EM>hdb</EM> is a variant of the original <EM>bdb</EM> backend which was first written for use with BDB. <EM>hdb</EM> uses a hierarchical database layout which supports subtree renames. It is otherwise identical to the <EM>bdb</EM> behavior, and all the same configuration options apply.</P>
 <P><HR WIDTH="80%" ALIGN="Left">
 <STRONG>Note: </STRONG>An <EM>hdb</EM> database needs a large <EM>idlcachesize</EM> for good search performance, typically three times the <EM>cachesize</EM> (entry cache size) or larger.
+<HR WIDTH="80%" ALIGN="Left"></P>
+<P><HR WIDTH="80%" ALIGN="Left">
+<STRONG>Note: </STRONG>The <EM>hdb</EM> backend has superseded the <EM>bdb</EM> backend, and both will soon be deprecated in favor of the new <EM>mdb</EM> backend. See below.
 <HR WIDTH="80%" ALIGN="Left"></P>
 <H3><A NAME="back-bdb/back-hdb Configuration">11.1.2. back-bdb/back-hdb Configuration</A></H3>
 <P>MORE LATER</P>
@@ -4671,7 +4679,7 @@ Members of a group
         include ./schema/core.schema
 
         database  ldif
-        directory &quot;./ldif&quot;
+        directory ./ldif
         suffix    &quot;dc=suretecsystems,dc=com&quot;
         rootdn    &quot;cn=LDIF,dc=suretecsystems,dc=com&quot;
         rootpw    LDIF
@@ -4714,21 +4722,40 @@ Members of a group
 <P>This is the complete format you would get when exporting your directory using <TT>slapcat</TT> etc.</P>
 <H3><A NAME="Further Information">11.3.3. Further Information</A></H3>
 <P><EM>slapd-ldif</EM>(5)</P>
-<H2><A NAME="Metadirectory">11.4. Metadirectory</A></H2>
+<H2><A NAME="LMDB">11.4. LMDB</A></H2>
 <H3><A NAME="Overview">11.4.1. Overview</A></H3>
+<P>The <EM>mdb</EM> backend to <EM>slapd</EM>(8) is the upcoming primary backend for a normal <EM>slapd</EM> database.  It uses OpenLDAP's own Lightning Memory-Mapped Database (<TERM>LMDB</TERM>) library to store data and is intended to replace the Berkeley DB backends.</P>
+<P>It supports indexing like the BDB backends, but it uses no caching and requires no tuning to deliver maximum search performance.  Like <EM>hdb</EM>, it is also fully hierarchical and supports subtree renames in constant time.</P>
+<H3><A NAME="back-mdb Configuration">11.4.2. back-mdb Configuration</A></H3>
+<P>Unlike the BDB backends, the <EM>mdb</EM> backend can be instantiated with very few configuration lines:</P>
+<PRE>
+        include ./schema/core.schema
+
+        database  mdb
+        directory ./mdb
+        suffix    &quot;dc=suretecsystems,dc=com&quot;
+        rootdn    &quot;cn=mdb,dc=suretecsystems,dc=com&quot;
+        rootpw    mdb
+        maxsize   1073741824
+</PRE>
+<P>In addition to the usual parameters that a minimal configuration requires, the <EM>mdb</EM> backend requires a maximum size to be set. This should be the largest that the database is ever anticipated to grow (in bytes). The filesystem must also provide enough free space to accommodate this size.</P>
+<H3><A NAME="Further Information">11.4.3. Further Information</A></H3>
+<P><EM>slapd-mdb</EM>(5)</P>
+<H2><A NAME="Metadirectory">11.5. Metadirectory</A></H2>
+<H3><A NAME="Overview">11.5.1. Overview</A></H3>
 <P>The meta backend to <EM>slapd</EM>(8) performs basic LDAP proxying with respect to a set of remote LDAP servers, called &quot;targets&quot;. The information contained in these servers can be presented as belonging to a single Directory Information Tree (<TERM>DIT</TERM>).</P>
 <P>A basic knowledge of the functionality of the <EM>slapd-ldap</EM>(5) backend is recommended. This backend has been designed as an enhancement of the ldap backend. The two backends share many features (actually they also share portions of code). While the ldap backend is intended to proxy operations directed to a single server, the meta backend is mainly intended for proxying of multiple servers and possibly naming context  masquerading.</P>
 <P>These features, although useful in many scenarios, may result in excessive overhead for some applications, so its use should be carefully considered.</P>
-<H3><A NAME="back-meta Configuration">11.4.2. back-meta Configuration</A></H3>
+<H3><A NAME="back-meta Configuration">11.5.2. back-meta Configuration</A></H3>
 <P>LATER</P>
-<H3><A NAME="Further Information">11.4.3. Further Information</A></H3>
+<H3><A NAME="Further Information">11.5.3. Further Information</A></H3>
 <P><EM>slapd-meta</EM>(5)</P>
-<H2><A NAME="Monitor">11.5. Monitor</A></H2>
-<H3><A NAME="Overview">11.5.1. Overview</A></H3>
+<H2><A NAME="Monitor">11.6. Monitor</A></H2>
+<H3><A NAME="Overview">11.6.1. Overview</A></H3>
 <P>The monitor backend to <EM>slapd</EM>(8) is not an actual database; if enabled, it is automatically generated and dynamically maintained by slapd with information about the running status of the daemon.</P>
 <P>To inspect all monitor information, issue a subtree search with base <EM>cn=Monitor</EM>, requesting that attributes &quot;+&quot; and &quot;*&quot; are returned. The monitor backend produces mostly operational attributes, and LDAP only returns operational attributes that are explicitly requested.  Requesting attribute &quot;+&quot; is an extension which requests all operational attributes.</P>
 <P>See the <A HREF="#Monitoring">Monitoring</A> section.</P>
-<H3><A NAME="back-monitor Configuration">11.5.2. back-monitor Configuration</A></H3>
+<H3><A NAME="back-monitor Configuration">11.6.2. back-monitor Configuration</A></H3>
 <P>The monitor database can be instantiated only once, i.e. only one occurrence of &quot;database monitor&quot; can occur in the <EM>slapd.conf(5)</EM> file.  Also the suffix is automatically set to <EM>&quot;cn=Monitor&quot;</EM>.</P>
 <P>You can however set a <EM>rootdn</EM> and <EM>rootpw</EM>. The following is all that is needed to instantiate a monitor backend:</P>
 <PRE>
@@ -4775,10 +4802,10 @@ Members of a group
         description: This subsystem contains information about available backends.
 </PRE>
 <P>Please see the <A HREF="#Monitoring">Monitoring</A> section for complete examples of information available via this backend.</P>
-<H3><A NAME="Further Information">11.5.3. Further Information</A></H3>
+<H3><A NAME="Further Information">11.6.3. Further Information</A></H3>
 <P><EM>slapd-monitor</EM>(5)</P>
-<H2><A NAME="Null">11.6. Null</A></H2>
-<H3><A NAME="Overview">11.6.1. Overview</A></H3>
+<H2><A NAME="Null">11.7. Null</A></H2>
+<H3><A NAME="Overview">11.7.1. Overview</A></H3>
 <P>The Null backend to <EM>slapd</EM>(8) is surely the most useful part of slapd:</P>
 <UL>
 <LI>Searches return success but no entries.
@@ -4787,7 +4814,7 @@ Members of a group
 <LI>Binds other than as the rootdn fail unless the database option &quot;bind on&quot; is given.
 <LI>The slapadd(8) and slapcat(8) tools are equally exciting.</UL>
 <P>Inspired by the <TT>/dev/null</TT> device.</P>
-<H3><A NAME="back-null Configuration">11.6.2. back-null Configuration</A></H3>
+<H3><A NAME="back-null Configuration">11.7.2. back-null Configuration</A></H3>
 <P>This has to be one of the shortest configurations you'll ever do. In order to test this, your <TT>slapd.conf</TT> file would look like:</P>
 <PRE>
         database null
@@ -4813,13 +4840,13 @@ Members of a group
 
         # numResponses: 1
 </PRE>
-<H3><A NAME="Further Information">11.6.3. Further Information</A></H3>
+<H3><A NAME="Further Information">11.7.3. Further Information</A></H3>
 <P><EM>slapd-null</EM>(5)</P>
-<H2><A NAME="Passwd">11.7. Passwd</A></H2>
-<H3><A NAME="Overview">11.7.1. Overview</A></H3>
+<H2><A NAME="Passwd">11.8. Passwd</A></H2>
+<H3><A NAME="Overview">11.8.1. Overview</A></H3>
 <P>The PASSWD backend to <EM>slapd</EM>(8) serves up the user account information listed in the system <EM>passwd</EM>(5) file (defaulting to <TT>/etc/passwd</TT>).</P>
 <P>This backend is provided for demonstration purposes only. The DN of each entry is &quot;uid=&lt;username&gt;,&lt;suffix&gt;&quot;.</P>
-<H3><A NAME="back-passwd Configuration">11.7.2. back-passwd Configuration</A></H3>
+<H3><A NAME="back-passwd Configuration">11.8.2. back-passwd Configuration</A></H3>
 <P>The configuration using <TT>slapd.conf</TT> a slightly longer, but not much. For example:</P>
 <PRE>
         include ./schema/core.schema
@@ -4852,33 +4879,33 @@ Members of a group
         sn: root
         description: root
 </PRE>
-<H3><A NAME="Further Information">11.7.3. Further Information</A></H3>
+<H3><A NAME="Further Information">11.8.3. Further Information</A></H3>
 <P><EM>slapd-passwd</EM>(5)</P>
-<H2><A NAME="Perl/Shell">11.8. Perl/Shell</A></H2>
-<H3><A NAME="Overview">11.8.1. Overview</A></H3>
+<H2><A NAME="Perl/Shell">11.9. Perl/Shell</A></H2>
+<H3><A NAME="Overview">11.9.1. Overview</A></H3>
 <P>The Perl backend to <EM>slapd</EM>(8) works by embedding a <EM>perl</EM>(1) interpreter into <EM>slapd</EM>(8). Any perl database section of the configuration file <EM>slapd.conf</EM>(5) must then specify what Perl module to use. Slapd then creates a new Perl object that handles all the requests for that particular instance of the backend.</P>
 <P>The Shell backend to <EM>slapd</EM>(8) executes external programs to implement operations, and is designed to make it easy to tie an existing database to the slapd front-end. This backend is is primarily intended to be used in prototypes.</P>
-<H3><A NAME="back-perl/back-shell Configuration">11.8.2. back-perl/back-shell Configuration</A></H3>
-<P>LATER</P>
-<H3><A NAME="Further Information">11.8.3. Further Information</A></H3>
-<P><EM>slapd-shell</EM>(5) and <EM>slapd-perl</EM>(5)</P>
-<H2><A NAME="Relay">11.9. Relay</A></H2>
-<H3><A NAME="Overview">11.9.1. Overview</A></H3>
-<P>The primary purpose of this <EM>slapd</EM>(8) backend is to map a naming context defined in a database running in the same <EM>slapd</EM>(8) instance into a virtual naming context, with attributeType and objectClass manipulation, if required. It requires the rwm overlay.</P>
-<P>This backend and the above mentioned overlay are experimental.</P>
-<H3><A NAME="back-relay Configuration">11.9.2. back-relay Configuration</A></H3>
+<H3><A NAME="back-perl/back-shell Configuration">11.9.2. back-perl/back-shell Configuration</A></H3>
 <P>LATER</P>
 <H3><A NAME="Further Information">11.9.3. Further Information</A></H3>
-<P><EM>slapd-relay</EM>(5)</P>
-<H2><A NAME="SQL">11.10. SQL</A></H2>
+<P><EM>slapd-shell</EM>(5) and <EM>slapd-perl</EM>(5)</P>
+<H2><A NAME="Relay">11.10. Relay</A></H2>
 <H3><A NAME="Overview">11.10.1. Overview</A></H3>
+<P>The primary purpose of this <EM>slapd</EM>(8) backend is to map a naming context defined in a database running in the same <EM>slapd</EM>(8) instance into a virtual naming context, with attributeType and objectClass manipulation, if required. It requires the rwm overlay.</P>
+<P>This backend and the above mentioned overlay are experimental.</P>
+<H3><A NAME="back-relay Configuration">11.10.2. back-relay Configuration</A></H3>
+<P>LATER</P>
+<H3><A NAME="Further Information">11.10.3. Further Information</A></H3>
+<P><EM>slapd-relay</EM>(5)</P>
+<H2><A NAME="SQL">11.11. SQL</A></H2>
+<H3><A NAME="Overview">11.11.1. Overview</A></H3>
 <P>The primary purpose of this <EM>slapd</EM>(8) backend is to PRESENT information stored in some RDBMS as an LDAP subtree without any programming (some SQL and maybe stored procedures can't be considered programming, anyway ;).</P>
 <P>That is, for example, when you (some ISP) have account information you use in an RDBMS, and want to use modern solutions that expect such information in LDAP (to authenticate users, make email lookups etc.). Or you want to synchronize or distribute information between different sites/applications that use RDBMSes and/or LDAP. Or whatever else...</P>
 <P>It is <B>NOT</B> designed as a general-purpose backend that uses RDBMS instead of BerkeleyDB (as the standard BDB backend does), though it can be used as such with several limitations. Please see <A HREF="#LDAP vs RDBMS">LDAP vs RDBMS</A> for discussion.</P>
 <P>The idea is to use some meta-information to translate LDAP queries to SQL queries, leaving relational schema untouched, so that old applications can continue using it without any modifications. This allows SQL and LDAP applications to interoperate without replication, and exchange data as needed.</P>
 <P>The SQL backend is designed to be tunable to virtually any relational schema without having to change source (through that meta-information mentioned). Also, it uses ODBC to connect to RDBMSes, and is highly configurable for SQL dialects RDBMSes may use, so it may be used for integration and distribution of data on different RDBMSes, OSes, hosts etc., in other words, in highly heterogeneous environments.</P>
 <P>This backend is experimental.</P>
-<H3><A NAME="back-sql Configuration">11.10.2. back-sql Configuration</A></H3>
+<H3><A NAME="back-sql Configuration">11.11.2. back-sql Configuration</A></H3>
 <P>This backend has to be one of the most abused and complex backends there is. Therefore, we will go through a simple, small example that comes with the OpenLDAP source and can be found in <TT>servers/slapd/back-sql/rdbms_depend/README</TT></P>
 <P>For this example we will be using PostgreSQL.</P>
 <P>First, we add to <TT>/etc/odbc.ini</TT> a block of the form:</P>
@@ -4941,7 +4968,7 @@ Members of a group
 <P><HR WIDTH="80%" ALIGN="Left">
 <STRONG>Note: </STRONG>This backend is experimental.
 <HR WIDTH="80%" ALIGN="Left"></P>
-<H3><A NAME="Further Information">11.10.3. Further Information</A></H3>
+<H3><A NAME="Further Information">11.11.3. Further Information</A></H3>
 <P><EM>slapd-sql</EM>(5) and <TT>servers/slapd/back-sql/rdbms_depend/README</TT></P>
 <P></P>
 <HR>
@@ -5423,7 +5450,7 @@ Members of a group
         rootdn          &quot;dc=example,dc=com&quot;
         uri             ldap://ldap.example.com/
         overlay pcache
-        pcache         bdb 100000 1 1000 100
+        pcache         hdb 100000 1 1000 100
         pcacheAttrset  0 mail postaladdress telephonenumber
         pcacheTemplate (sn=) 0 3600
         pcacheTemplate (&amp;(sn=)(givenName=)) 0 3600
@@ -5437,7 +5464,7 @@ Members of a group
 <H4><A NAME="Example for slapd-config">12.9.2.5. Example for slapd-config</A></H4>
 <P>The same example as a LDIF file for back-config for a caching server which proxies for the <TT>&quot;dc=example,dc=com&quot;</TT> subtree held at server <TT>ldap.example.com</TT>.</P>
 <PRE>
-   dn: olcDatabase={2}ldap
+   dn: olcDatabase={2}ldap,cn=config
    objectClass: olcDatabaseConfig
    objectClass: olcLDAPConfig
    olcDatabase: {2}ldap
@@ -5445,17 +5472,17 @@ Members of a group
    olcRootDN: dc=example,dc=com
    olcDbURI: &quot;ldap://ldap.example.com&quot;
 
-   dn: olcOverlay={0}pcache
+   dn: olcOverlay={0}pcache,olcDatabase={2}ldap,cn=config
    objectClass: olcOverlayConfig
    objectClass: olcPcacheConfig
    olcOverlay: {0}pcache
-   olcPcache: bdb 100000 1 1000 100
+   olcPcache: hdb 100000 1 1000 100
    olcPcacheAttrset: 0 mail postalAddress telephoneNumber
    olcPcacheTemplate: &quot;(sn=)&quot; 0 3600 0 0 0
    olcPcacheTemplate: &quot;(&amp;(sn=)(givenName=))&quot; 0 3600 0 0 0
    olcPcacheTemplate: &quot;(&amp;(departmentNumber=)(secretary=))&quot; 0 3600
 
-   dn: olcDatabase={0}hdb
+   dn: olcDatabase={0}hdb,olcOverlay={0}pcache,olcDatabase={2}ldap,cn=config
    objectClass: olcHdbConfig
    objectClass: olcPcacheDatabase
    olcDatabase: {0}hdb
@@ -7151,7 +7178,10 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <P>99.98% of the data that is transmitted and processed in a case like this will be redundant, since it represents values that did not change. This is a waste of valuable transmission and processing bandwidth and can cause an unacceptable replication backlog to develop. While this situation is extreme, it serves to demonstrate a very real problem that is encountered in some LDAP deployments.</P>
 <UL>
 <LI>Where Delta-syncrepl comes in:</UL>
-<P>Delta-syncrepl, a changelog-based variant of syncrepl, is designed to address situations like the one described above. Delta-syncrepl works by maintaining a changelog of a selectable depth on the provider. The replication consumer checks the changelog for the changes it needs and, as long as the changelog contains the needed changes, the consumer fetches the changes from the changelog and applies them to its database. If, however, a replica is too far out of sync (or completely empty), conventional syncrepl is used to bring it up to date and replication then switches back to the delta-syncrepl mode.</P>
+<P>Delta-syncrepl, a changelog-based variant of syncrepl, is designed to address situations like the one described above. Delta-syncrepl works by maintaining a changelog of a selectable depth in a separate database on the provider. The replication consumer checks the changelog for the changes it needs and, as long as the changelog contains the needed changes, the consumer fetches the changes from the changelog and applies them to its database. If, however, a replica is too far out of sync (or completely empty), conventional syncrepl is used to bring it up to date and replication then switches back to the delta-syncrepl mode.</P>
+<P><HR WIDTH="80%" ALIGN="Left">
+<STRONG>Note: </STRONG>since the database state is stored in both the changelog DB and the main DB on the provider, it is important to backup/restore both the changelog DB and the main DB using slapcat/slapadd when restoring a DB or copying it to another machine.
+<HR WIDTH="80%" ALIGN="Left"></P>
 <P>For configuration, please see the <A HREF="#Delta-syncrepl">Delta-syncrepl</A> section.</P>
 <H3><A NAME="N-Way Multi-Master replication">18.2.2. N-Way Multi-Master replication</A></H3>
 <P>Multi-Master replication is a replication technique using Syncrepl to replicate data to multiple provider (&quot;Master&quot;) Directory servers.</P>
@@ -7188,8 +7218,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <LI>MirrorMode is not what is termed as a Multi-Master solution. This is because writes have to go to just one of the mirror nodes at a time
 <LI>MirrorMode can be termed as Active-Active Hot-Standby, therefore an external server (slapd in proxy mode) or device (hardware load balancer) is needed to manage which provider is currently active
 <LI>Backups are managed slightly differently<UL>
-<LI>If backing up the Berkeley database itself and periodically backing up the transaction log files, then the same member of the mirror pair needs to be used to collect logfiles until the next database backup is taken</UL>
-<LI>Delta-Syncrepl is not yet supported</UL>
+<LI>If backing up the Berkeley database itself and periodically backing up the transaction log files, then the same member of the mirror pair needs to be used to collect logfiles until the next database backup is taken</UL></UL>
 <P>For configuration, please see the <A HREF="#MirrorMode">MirrorMode</A> section below</P>
 <H3><A NAME="Syncrepl Proxy Mode">18.2.4. Syncrepl Proxy Mode</A></H3>
 <P>While the LDAP Sync protocol supports both pull- and push-based replication, the push mode (refreshAndPersist) must still be initiated from the consumer before the provider can begin pushing changes. In some network configurations, particularly where firewalls restrict the direction in which connections can be made, a provider-initiated push mode may be needed.</P>
@@ -7482,9 +7511,6 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <HR WIDTH="80%" ALIGN="Left"></P>
 <H4><A NAME="Mirror Node Configuration">18.3.4.1. Mirror Node Configuration</A></H4>
 <P>The first step is to configure the syncrepl provider the same as in the <A HREF="#Set up the provider slapd">Set up the provider slapd</A> section.</P>
-<P><HR WIDTH="80%" ALIGN="Left">
-<STRONG>Note: </STRONG>Delta-syncrepl is not yet supported with MirrorMode.
-<HR WIDTH="80%" ALIGN="Left"></P>
 <P>Here's a specific cut down example using <A HREF="#LDAP Sync Replication">LDAP Sync Replication</A> in <EM>refreshAndPersist</EM> mode:</P>
 <P>MirrorMode node 1:</P>
 <PRE>
@@ -8189,9 +8215,10 @@ Database objects of instances of this backend
 <P>Various factors can play a part in how your directory performs on your chosen hardware and environment. We will attempt to discuss these here.</P>
 <H3><A NAME="Memory">21.1.1. Memory</A></H3>
 <P>Scale your cache to use available memory and increase system memory if you can.</P>
-<P>See <A HREF="#Caching">Caching</A></P>
+<P>See <A HREF="#Caching">Caching</A> for BDB cache tuning hints. Note that LMDB uses no cache of its own and has no tuning options, so the Caching section can be ignored when using LMDB.</P>
 <H3><A NAME="Disks">21.1.2. Disks</A></H3>
-<P>Use fast subsystems. Put each database and logs on separate disks configurable via <EM>DB_CONFIG</EM>:</P>
+<P>Use fast filesystems, and conduct your own testing to see which filesystem types perform best with your workload. (On our own Linux testing, EXT2 and JFS tend to provide better write performance than everything else, including newer filesystems like EXT4, BTRFS, etc.)</P>
+<P>Use fast subsystems. Put each database and logs on separate disks (for BDB this is configurable via <EM>DB_CONFIG</EM>):</P>
 <PRE>
        # Data Directory
        set_data_dir /data/db
@@ -8298,8 +8325,8 @@ Database objects of instances of this backend
 <H3><A NAME="{{TERM:IDL}} Cache (idlcachesize)">21.4.3. <TERM>IDL</TERM> Cache (idlcachesize)</A></H3>
 <P>Each IDL holds the search results from a given query, so the IDL cache will end up holding the most frequently requested search results.  For back-bdb, it is generally recommended to match the &quot;cachesize&quot; setting.  For back-hdb, it is generally recommended to be 3x&quot;cachesize&quot;.</P>
 <P>{NOTE: The idlcachesize setting directly affects search performance}</P>
-<H3><A NAME="{{slapd}}(8) Threads">21.4.4. <EM>slapd</EM>(8) Threads</A></H3>
-<P><EM>slapd</EM>(8) can process requests via a configurable number of thread, which in turn affects the in/out rate of connections.</P>
+<H2><A NAME="{{slapd}}(8) Threads">21.5. <EM>slapd</EM>(8) Threads</A></H2>
+<P><EM>slapd</EM>(8) can process requests via a configurable number of threads, which in turn affects the in/out rate of connections.</P>
 <P>This value should generally be a function of the number of &quot;real&quot; cores on the system, for example on a server with 2 CPUs with one core each, set this to 8, or 4 threads per real core.  This is a &quot;read&quot; maximized value. The more threads that are configured per core, the slower <EM>slapd</EM>(8) responds for &quot;read&quot; operations.  On the flip side, it appears to handle write operations faster in a heavy write/low read scenario.</P>
 <P>The upper bound for good read performance appears to be 16 threads (which also happens to be the default setting).</P>
 <P></P>
@@ -8341,7 +8368,7 @@ Database objects of instances of this backend
 <P>Sometimes you may encounter an actual OpenLDAP bug, in which case please visit our Issue Tracking system <A HREF="http://www.openldap.org/its/">http://www.openldap.org/its/</A> and report it. However, make sure it's not already a known bug or a common user problem.</P>
 <UL>
 <LI>bugs in historic versions of OpenLDAP will not be considered;
-<LI>bugs in released versions that are no longer present in HEAD code, either because they have been fixed or because they no longer apply, will not be considered as well;
+<LI>bugs in released versions that are no longer present in the Git master branch, either because they have been fixed or because they no longer apply, will not be considered as well;
 <LI>bugs in distributions of OpenLDAP software that are not related to the software as provided by OpenLDAP will not be considered; in those cases please refer to the distributor.</UL>
 <P><HR WIDTH="80%" ALIGN="Left">
 <STRONG>Note: </STRONG>Our Issue Tracking system is <B>NOT</B> for OpenLDAP <B>Support</B>, please join our mailing Lists: <A HREF="http://www.openldap.org/lists/">http://www.openldap.org/lists/</A> for that.
@@ -8428,7 +8455,7 @@ Database objects of instances of this backend
 <P>In 2.4 all of these sessions inherit their settings from the main slapd configuration, but settings can be individually overridden on a per-config-item basis. This is particularly helpful if you use certificate-based authentication and need to use a different client certificate for different destinations.</P>
 <H3><A NAME="Performance enhancements">A.2.8. Performance enhancements</A></H3>
 <P>Too many to list. Some notable changes - ldapadd used to be a couple of orders of magnitude slower than &quot;slapadd -q&quot;. It's now at worst only about half the speed of slapadd -q. Some comparisons of all the 2.x OpenLDAP releases are available at <A HREF="http://www.openldap.org/pub/hyc/scale2007.pdf">http://www.openldap.org/pub/hyc/scale2007.pdf</A></P>
-<P>That compared 2.0.27, 2.1.30, 2.2.30, 2.3.33, and HEAD). Toward the latter end of the &quot;Cached Search Performance&quot; chart it gets hard to see the difference because the run times are so small, but the new code is about 25% faster than 2.3, which was about 20% faster than 2.2, which was about 100% faster than 2.1, which was about 100% faster than 2.0, in that particular search scenario. That test basically searched a 1.3GB DB of 380836 entries (all in the slapd entry cache) in under 1 second. i.e., on a 2.4GHz CPU with DDR400 ECC/Registered RAM we can search over 500 thousand entries per second. The search was on an unindexed attribute using a filter that would not match any entry, forcing slapd to examine every entry in the DB, testing the filter for a match.</P>
+<P>That compared 2.0.27, 2.1.30, 2.2.30, 2.3.33, and CVS HEAD). Toward the latter end of the &quot;Cached Search Performance&quot; chart it gets hard to see the difference because the run times are so small, but the new code is about 25% faster than 2.3, which was about 20% faster than 2.2, which was about 100% faster than 2.1, which was about 100% faster than 2.0, in that particular search scenario. That test basically searched a 1.3GB DB of 380836 entries (all in the slapd entry cache) in under 1 second. i.e., on a 2.4GHz CPU with DDR400 ECC/Registered RAM we can search over 500 thousand entries per second. The search was on an unindexed attribute using a filter that would not match any entry, forcing slapd to examine every entry in the DB, testing the filter for a match.</P>
 <P>Essentially the slapd entry cache in back-bdb/back-hdb is so efficient the search processing time is almost invisible; the runtime is limited only by the memory bandwidth of the machine. (The search data rate corresponds to about 3.5GB/sec; the memory bandwidth on the machine is only about 4GB/sec due to ECC and register latency.)</P>
 <H3><A NAME="New overlays">A.2.9. New overlays</A></H3>
 <UL>
@@ -9842,6 +9869,14 @@ LDAP Data Interchange Format
 </TR>
 <TR>
 <TD>
+LMDB
+</TD>
+<TD>
+Lightning Memory-Mapped Database
+</TD>
+</TR>
+<TR>
+<TD>
 MD5
 </TD>
 <TD>
@@ -10570,14 +10605,6 @@ University of Michigan LDAP Team
 </TR>
 <TR>
 <TD>
-<A HREF="http://www.cvshome.org/">CVS</A>
-</TD>
-<TD>
-<A HREF="http://www.cvshome.org/">http://www.cvshome.org/</A>
-</TD>
-</TR>
-<TR>
-<TD>
 <A HREF="http://cyrusimap.web.cmu.edu/generalinfo.html">Cyrus</A>
 </TD>
 <TD>
@@ -10590,6 +10617,14 @@ University of Michigan LDAP Team
 </TD>
 <TD>
 <A HREF="http://asg.web.cmu.edu/sasl/sasl-library.html">http://asg.web.cmu.edu/sasl/sasl-library.html</A>
+</TD>
+</TR>
+<TR>
+<TD>
+<A HREF="http://git-scm.com/">Git</A>
+</TD>
+<TD>
+<A HREF="http://git-scm.com/">http://git-scm.com/</A>
 </TD>
 </TR>
 <TR>
@@ -11300,7 +11335,7 @@ operates.
 <HR>
 <H1><A NAME="OpenLDAP Software Copyright Notices">K. OpenLDAP Software Copyright Notices</A></H1>
 <H2><A NAME="OpenLDAP Copyright Notice">K.1. OpenLDAP Copyright Notice</A></H2>
-<P>Copyright 1998-2011 The OpenLDAP Foundation.<BR><EM>All rights reserved.</EM></P>
+<P>Copyright 1998-2012 The OpenLDAP Foundation.<BR><EM>All rights reserved.</EM></P>
 <P>Redistribution and use in source and binary forms, with or without modification, are permitted <EM>only as authorized</EM> by the <A HREF="#OpenLDAP Public License">OpenLDAP Public License</A>.</P>
 <P>A copy of this license is available in file <TT>LICENSE</TT> in the top-level directory of the distribution or, alternatively, at &lt;<A HREF="http://www.OpenLDAP.org/license.html">http://www.OpenLDAP.org/license.html</A>&gt;.</P>
 <P>OpenLDAP is a registered trademark of the OpenLDAP Foundation.</P>
@@ -11309,7 +11344,7 @@ operates.
 <P>This work also contains materials derived from public sources.</P>
 <P>Additional information about OpenLDAP software can be obtained at &lt;<A HREF="http://www.OpenLDAP.org/">http://www.OpenLDAP.org/</A>&gt;.</P>
 <H2><A NAME="Additional Copyright Notices">K.2. Additional Copyright Notices</A></H2>
-<P>Portions Copyright 1998-2011 Kurt D. Zeilenga.<BR>Portions Copyright 1998-2006 Net Boolean Incorporated.<BR>Portions Copyright 2001-2006 IBM Corporation.<BR><EM>All rights reserved.</EM></P>
+<P>Portions Copyright 1998-2012 Kurt D. Zeilenga.<BR>Portions Copyright 1998-2006 Net Boolean Incorporated.<BR>Portions Copyright 2001-2006 IBM Corporation.<BR><EM>All rights reserved.</EM></P>
 <P>Redistribution and use in source and binary forms, with or without modification, are permitted only as authorized by the <A HREF="#OpenLDAP Public License">OpenLDAP Public License</A>.</P>
 <P>Portions Copyright 1999-2008 Howard Y.H. Chu.<BR>Portions Copyright 1999-2008 Symas Corporation.<BR>Portions Copyright 1998-2003 Hallvard B. Furuseth.<BR>Portions Copyright 2007-2011 Gavin Henry.<BR>Portions Copyright 2007-2011 Suretec Systems Limited.<BR><EM>All rights reserved.</EM></P>
 <P>Redistribution and use in source and binary forms, with or without modification, are permitted provided that this notice is preserved. The names of the copyright holders may not be used to endorse or promote products derived from this software without their specific prior written permission.  This software is provided ``as is'' without express or implied warranty.</P>

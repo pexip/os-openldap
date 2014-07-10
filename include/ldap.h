@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -2431,7 +2431,7 @@ ldap_create_session_tracking_value LDAP_P((
 	struct berval	*value ));
 
 LDAP_F( int )
-ldap_create_session_tracking LDAP_P((
+ldap_create_session_tracking_control LDAP_P((
 	LDAP		*ld,
 	char		*sessionSourceIp,
 	char		*sessionSourceName,

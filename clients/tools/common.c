@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * Portions Copyright 2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -341,7 +341,7 @@ N_("  -I         use SASL Interactive mode\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
 N_("  -N         do not use reverse DNS to canonicalize SASL host name\n"),
 N_("  -O props   SASL security properties\n"),
-N_("  -o <opt>[=<optparam] general options\n"),
+N_("  -o <opt>[=<optparam>] general options\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
 N_("             ldif-wrap=<width> (in columns, or \"no\" for no wrapping)\n"),
 N_("  -p port    port on LDAP server\n"),
@@ -412,7 +412,7 @@ tool_args( int argc, char **argv )
 		case 'c':	/* continuous operation mode */
 			contoper++;
 			break;
-		case 'C':
+		case 'C':	/* referrals: obsolete */
 			referrals++;
 			break;
 		case 'd':
@@ -1329,7 +1329,7 @@ dnssrv_free:;
 
 		if( private_setup ) private_setup( ld );
 
-		/* referrals */
+		/* referrals: obsolete */
 		if( ldap_set_option( ld, LDAP_OPT_REFERRALS,
 			referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
 		{
@@ -1340,12 +1340,13 @@ dnssrv_free:;
 
 #ifdef HAVE_CYRUS_SASL
 		/* canon */
-		if( ldap_set_option( ld, LDAP_OPT_X_SASL_NOCANON,
-			nocanon ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
-		{
-			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_NOCANON %s\n",
-				nocanon ? "on" : "off" );
-			tool_exit( ld, EXIT_FAILURE );
+		if( nocanon ) {
+			if( ldap_set_option( ld, LDAP_OPT_X_SASL_NOCANON,
+				LDAP_OPT_ON ) != LDAP_OPT_SUCCESS )
+			{
+				fprintf( stderr, "Could not set LDAP_OPT_X_SASL_NOCANON on\n" );
+				tool_exit( ld, EXIT_FAILURE );
+			}
 		}
 #endif
 		if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &protocol )
@@ -1520,11 +1521,13 @@ tool_bind( LDAP *ld )
 			tool_exit( ld, LDAP_LOCAL_ERROR );
 		}
 
-		rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
-			&ctrls, 1 );
-		if ( rc != LDAP_SUCCESS ) {
-			tool_perror( "ldap_bind parse result", rc, NULL, matched, info, refs );
-			tool_exit( ld, LDAP_LOCAL_ERROR );
+		if ( result ) {
+			rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
+			                        &ctrls, 1 );
+			if ( rc != LDAP_SUCCESS ) {
+				tool_perror( "ldap_bind parse result", rc, NULL, matched, info, refs );
+				tool_exit( ld, LDAP_LOCAL_ERROR );
+			}
 		}
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST

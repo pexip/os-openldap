@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -40,18 +40,20 @@
 
 #include "slapcommon.h"
 
+extern int slap_DN_strict;	/* dn.c */
+
 static char csnbuf[ LDAP_PVT_CSNSTR_BUFSIZE ];
 
 typedef struct Erec {
 	Entry *e;
-	int lineno;
-	int nextline;
+	unsigned long lineno;
+	unsigned long nextline;
 } Erec;
 
 typedef struct Trec {
 	Entry *e;
-	int lineno;
-	int nextline;
+	unsigned long lineno;
+	unsigned long nextline;
 	int rc;
 	int ready;
 } Trec;
@@ -96,11 +98,19 @@ again:
 	{
 		BackendDB *bd;
 		Entry *e;
+		int prev_DN_strict;
 
 		if ( erec->lineno < jumpline )
 			goto again;
 
+		if ( !dbnum ) {
+			prev_DN_strict = slap_DN_strict;
+			slap_DN_strict = 0;
+		}
 		e = str2entry2( buf, checkvals );
+		if ( !dbnum ) {
+			slap_DN_strict = prev_DN_strict;
+		}
 
 		if ( enable_meter )
 			lutil_meter_update( &meter,
@@ -108,7 +118,7 @@ again:
 					 0);
 
 		if( e == NULL ) {
-			fprintf( stderr, "%s: could not parse entry (line=%d)\n",
+			fprintf( stderr, "%s: could not parse entry (line=%lu)\n",
 				progname, erec->lineno );
 			return -2;
 		}
@@ -117,7 +127,7 @@ again:
 		if( BER_BVISEMPTY( &e->e_nname ) &&
 			!BER_BVISEMPTY( be->be_nsuffix ))
 		{
-			fprintf( stderr, "%s: line %d: "
+			fprintf( stderr, "%s: line %lu: "
 				"cannot add entry with empty dn=\"%s\"",
 				progname, erec->lineno, e->e_dn );
 			bd = select_backend( &e->e_nname, nosubordinates );
@@ -144,7 +154,7 @@ again:
 		/* check backend */
 		bd = select_backend( &e->e_nname, nosubordinates );
 		if ( bd != be ) {
-			fprintf( stderr, "%s: line %d: "
+			fprintf( stderr, "%s: line %lu: "
 				"database #%d (%s) not configured to hold \"%s\"",
 				progname, erec->lineno,
 				dbnum,
@@ -302,11 +312,13 @@ getrec_thr(void *ctx)
 	return NULL;
 }
 
+static int ldif_threaded;
+
 static int
 getrec(Erec *erec)
 {
 	int rc;
-	if ( slap_tool_thread_max < 2 )
+	if ( !ldif_threaded )
 		return getrec0(erec);
 
 	while (!trec.ready)
@@ -331,6 +343,7 @@ slapadd( int argc, char **argv )
 	struct berval bvtext;
 	ldap_pvt_thread_t thr;
 	ID id;
+	Entry *prev = NULL;
 
 	int ldifrc;
 	int rc = EXIT_SUCCESS;
@@ -404,6 +417,7 @@ slapadd( int argc, char **argv )
 		ldap_pvt_thread_mutex_init( &add_mutex );
 		ldap_pvt_thread_cond_init( &add_cond );
 		ldap_pvt_thread_create( &thr, 0, getrec_thr, NULL );
+		ldif_threaded = 1;
 	}
 
 	erec.nextline = 0;
@@ -428,11 +442,14 @@ slapadd( int argc, char **argv )
 			id = be->be_entry_put( be, erec.e, &bvtext );
 			if( id == NOID ) {
 				fprintf( stderr, "%s: could not add entry dn=\"%s\" "
-								 "(line=%d): %s\n", progname, erec.e->e_dn,
+								 "(line=%lu): %s\n", progname, erec.e->e_dn,
 								 erec.lineno, bvtext.bv_val );
 				rc = EXIT_FAILURE;
-				entry_free( erec.e );
-				if( continuemode ) continue;
+				if( continuemode ) {
+					if ( prev ) entry_free( prev );
+					prev = erec.e;
+					continue;
+				}
 				break;
 			}
 			if ( verbose )
@@ -444,15 +461,19 @@ slapadd( int argc, char **argv )
 					erec.e->e_dn );
 		}
 
-		entry_free( erec.e );
+		if ( prev ) entry_free( prev );
+		prev = erec.e;
 	}
 
-	if ( slap_tool_thread_max > 1 ) {
+	if ( ldif_threaded ) {
+		ldap_pvt_thread_mutex_lock( &add_mutex );
 		add_stop = 1;
 		trec.ready = 0;
 		ldap_pvt_thread_cond_signal( &add_cond );
+		ldap_pvt_thread_mutex_unlock( &add_mutex );
 		ldap_pvt_thread_join( thr, NULL );
 	}
+	if ( erec.e ) entry_free( erec.e );
 
 	if ( ldifrc < 0 )
 		rc = EXIT_FAILURE;

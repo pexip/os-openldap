@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2011 The OpenLDAP Foundation.
+ * Copyright 1998-2014 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -92,7 +92,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPTEST:
-		options = " [-n databasenumber] [-u]\n";
+		options = " [-n databasenumber] [-u] [-Q]\n";
 		break;
 
 	case SLAPSCHEMA:
@@ -452,7 +452,7 @@ slap_tool_init(
 			} break;
 
 		case 'j':	/* jump to linenumber */
-			if ( lutil_atoi( &jumpline, optarg ) ) {
+			if ( lutil_atoul( &jumpline, optarg ) ) {
 				usage( tool, progname );
 			}
 			break;
