@@ -439,7 +439,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 **
 */
 
-	op->o_bd->bd_info = (BackendInfo *) on->on_info;
+	op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 	rc = be_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &e);
 	op->o_bd->bd_info = (BackendInfo *) on;
 
@@ -486,7 +486,7 @@ release:
 			} else
 				entry_free(re);
 		}
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 		be_entry_release_r(op, e);
 		op->o_bd->bd_info = (BackendInfo *) on;
 		if(erc == SLAP_CB_CONTINUE) {
@@ -662,7 +662,7 @@ static int translucent_pwmod(Operation *op, SlapReply *rs) {
 **	return CONTINUE;
 */
 
-	op->o_bd->bd_info = (BackendInfo *) on->on_info;
+	op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 	rc = be_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &e);
 	op->o_bd->bd_info = (BackendInfo *) on;
 
@@ -676,7 +676,7 @@ static int translucent_pwmod(Operation *op, SlapReply *rs) {
 				entry_free(re);
 			}
 		}
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		op->o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 		be_entry_release_r(op, e);
 		op->o_bd->bd_info = (BackendInfo *) on;
 		return SLAP_CB_CONTINUE;
@@ -1070,6 +1070,9 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	struct berval fbv;
 	int rc = 0;
 
+	if ( op->o_managedsait > SLAP_CONTROL_IGNORED )
+		return SLAP_CB_CONTINUE;
+
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search: <%s> %s\n",
 		op->o_req_dn.bv_val, op->ors_filterstr.bv_val, 0);
 
@@ -1109,7 +1112,8 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 			filter2bv_x( op, fr, &op->ors_filterstr );
 		}
 		rc = ov->db.bd_info->bi_op_search(op, rs);
-		op->ors_attrs = tc.attrs;
+		if ( op->ors_attrs == slap_anlist_all_attributes )
+			op->ors_attrs = tc.attrs;
 		op->o_bd = tc.db;
 		if ( fl ) {
 			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );

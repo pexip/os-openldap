@@ -1,14 +1,13 @@
 # Italian (it) translation of debconf templates for openldap
-# COPYRIGHT (C) 2010 THE OPENLDAP'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the openldap package.
-# Luca Monducci <luca.mo@tiscali.it>, 2007-2010.
-# 
+# Luca Monducci <luca.mo@tiscali.it>, 2007-2014.
+#
 msgid ""
 msgstr ""
-"Project-Id-Version: openldap 2.4.23-3exp1 italian debconf templates\n"
+"Project-Id-Version: openldap 2.4.40-2 italian debconf templates\n"
 "Report-Msgid-Bugs-To: openldap@packages.debian.org\n"
-"POT-Creation-Date: 2010-07-15 22:05+0200\n"
-"PO-Revision-Date: 2010-07-24 11:45+0200\n"
+"POT-Creation-Date: 2014-10-20 22:17-0700\n"
+"PO-Revision-Date: 2014-11-01 11:45+0100\n"
 "Last-Translator: Luca Monducci <luca.mo@tiscali.it>\n"
 "Language-Team: Italian <debian-l10n-italian@lists.debian.org>\n"
 "Language: it\n"
@@ -29,8 +28,7 @@ msgid ""
 "If you enable this option, no initial configuration or database will be "
 "created for you."
 msgstr ""
-"Se si accetta, non verranno creati né la configurazione iniziale né il "
-"database."
+"Se si accetta, non verrà creata la configurazione iniziale né il database."
 
 #. Type: select
 #. Choices
@@ -54,7 +52,7 @@ msgstr "mai"
 #. Description
 #: ../slapd.templates:2002
 msgid "Dump databases to file on upgrade:"
-msgstr "Effettuare il dump dei database prima di un aggiornamento:"
+msgstr "Fare il dump su file dei database prima dell'aggiornamento:"
 
 #. Type: select
 #. Description
@@ -65,8 +63,8 @@ msgid ""
 "Data Interchange Format."
 msgstr ""
 "Prima dell'aggiornamento a una nuova versione del server OpenLDAP, è "
-"possibile effettuare il dump delle proprie directory LDAP in dei semplici "
-"file di testo in formato LDIF (lo standard per lo scambio di dati LDAP)."
+"possibile fare il dump delle proprie directory LDAP in dei semplici file di "
+"testo in formato LDIF (lo standard per lo scambio di dati LDAP)."
 
 #. Type: select
 #. Description
@@ -100,12 +98,11 @@ msgid ""
 "string \"VERSION\" is replaced with the server version you are upgrading "
 "from."
 msgstr ""
-"Specificare la directory in cui verranno esportati i database LDAP. In "
-"questa directory verrà creato un file LDIF per ogni base di ricerca presente "
-"sul server. Assicurarsi di avere spazio libero sufficiente sulla partizione "
-"che contiene la directory indicata. La prima occorrenza della stringa "
-"\"VERSION\" viene sostituita con la versione del server che si sta "
-"aggiornando."
+"Indicare la directory in cui verranno esportati i database LDAP. In questa "
+"directory verrà creato un file LDIF per ogni base di ricerca presente sul "
+"server. Assicurarsi di avere spazio libero sufficiente sulla partizione che "
+"contiene la directory indicata. La prima occorrenza della stringa \"VERSION\" "
+"viene sostituita con la versione del server che si sta aggiornando."
 
 #. Type: boolean
 #. Description
@@ -124,7 +121,7 @@ msgid ""
 msgstr ""
 "Ci sono ancora dei file in /var/lib/ldap che potrebbero intralciare il "
 "processo di configurazione. Se si accetta, gli script di installazione "
-"metteranno da parte i file dei vecchi database prima che sia creato il nuovo "
+"toglieranno di mezzo i file dei vecchi database prima di creare il nuovo "
 "database."
 
 #. Type: boolean
@@ -165,8 +162,8 @@ msgid ""
 "dc=example, dc=org' as base DN."
 msgstr ""
 "Il nome DNS di dominio è usato per costruire la base DN della directory "
-"LDAP. Per esempio \"pippo.esempio.org\" creerà una directory con \"dc=pippo, "
-"dc=esempio, dc=org\" come base DN."
+"LDAP. Per esempio con \"pippo.esempio.org\" sarà creata una directory con "
+"\"dc=pippo, dc=esempio, dc=org\" come base DN."
 
 #. Type: string
 #. Description
@@ -195,7 +192,7 @@ msgstr "Password dell'amministratore:"
 #: ../slapd.templates:8001
 msgid "Please enter the password for the admin entry in your LDAP directory."
 msgstr ""
-"Inserire la password per l'amministratore della propria directory LDAP."
+"Inserire la password per l'amministrazione della propria directory LDAP."
 
 #. Type: password
 #. Description
@@ -210,7 +207,7 @@ msgid ""
 "Please enter the admin password for your LDAP directory again to verify that "
 "you have typed it correctly."
 msgstr ""
-"Inserire di nuovo la password per l'amministratore della propria directory "
+"Inserire di nuovo la password per l'amministrazione della propria directory "
 "LDAP, per verificare che sia stata digitata correttamente."
 
 #. Type: note
@@ -316,21 +313,69 @@ msgstr "Database di backend da usare:"
 #. Description
 #: ../slapd.templates:16001
 msgid ""
-"The HDB backend is recommended. HDB and BDB use similar storage formats, but "
-"HDB adds support for subtree renames. Both support the same configuration "
-"options."
+"HDB and BDB use similar storage formats, but HDB adds support for subtree "
+"renames. Both support the same configuration options."
 msgstr ""
-"Si raccomanda HDB come backend. HDB e BDB usano un formato di memorizzazione "
-"simile ma HDB dispone in più del supporto per rinominare i sottoalberi. "
-"Entrambi hanno le stesse opzioni da configurare."
+"HDB e BDB usano un formato di memorizzazione simile ma HDB dispone in più del "
+"supporto per rinominare i sottoalberi. Entrambi hanno le stesse opzioni da "
+"configurare."
 
 #. Type: select
 #. Description
 #: ../slapd.templates:16001
 msgid ""
-"In either case, you should review the resulting database configuration for "
-"your needs. See /usr/share/doc/slapd/README.DB_CONFIG.gz for more details."
+"The MDB backend is recommended. MDB uses a new storage format and requires "
+"less configuration than BDB or HDB."
 msgstr ""
-"Qualsiasi scelta si faccia è necessario rivedere la configurazione del "
-"database in base alle proprie necessità. Per maggiori informazioni si veda /"
-"usr/share/doc/slapd/README.DB_CONFIG.gz."
+"Si raccomanda MDB come backend. MDB usa un formato di memorizzazione nuovo e "
+"richiede la configurazione di un minor numero di opzioni rispetto a BDB e HDB."
+
+#. Type: select
+#. Description
+#: ../slapd.templates:16001
+msgid ""
+"In any case, you should review the resulting database configuration for your "
+"needs. See /usr/share/doc/slapd/README.Debian.gz for more details."
+msgstr ""
+"In ogni caso è necessario rivedere la configurazione del database in base "
+"alle proprie necessità. Consultare /usr/share/doc/slapd/README.Debian.gz "
+"per maggiori informazioni."
+
+#. Type: note
+#. Description
+#: ../slapd.templates:17001
+msgid "Potentially unsafe slapd access control configuration"
+msgstr "Configurazione degli accessi di slapd potenzialmente non sicura"
+
+#. Type: note
+#. Description
+#: ../slapd.templates:17001
+msgid ""
+"One or more of the configured databases has an access control rule that "
+"allows users to modify most of their own attributes. This may be unsafe, "
+"depending on how the database is used."
+msgstr ""
+"Uno o più dei database configurati hanno una regola di accesso che permette "
+"agli utenti di modificare la maggior parte dei propri attributi. Ciò è non "
+"sicuro, il livello di pericolosità dipende da qual è l'uso del database."
+
+#. Type: note
+#. Description
+#. Translators: keep "by self write" and "to *" unchanged. These are part
+#. of the slapd configuration and are not translatable.
+#: ../slapd.templates:17001
+msgid ""
+"In the case of slapd access rules that begin with \"to *\", it is "
+"recommended to remove any instances of \"by self write\", so that users are "
+"only able to modify specifically allowed attributes."
+msgstr ""
+"Se esistono regole di accesso che iniziano con \"to *\", si raccomanda di "
+"togliere tutti i \"by self write\" in modo che gli utenti possano modificare "
+"solo gli attributi a loro consentiti."
+
+#. Type: note
+#. Description
+#: ../slapd.templates:17001
+msgid "See /usr/share/doc/slapd/README.Debian.gz for more details."
+msgstr ""
+"Consultare /usr/share/doc/slapd/README.Debian.gz per maggiori informazioni."
