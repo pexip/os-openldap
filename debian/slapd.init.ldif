@@ -62,24 +62,21 @@ objectClass: olcDatabaseConfig
 objectClass: @BACKENDOBJECTCLASS@
 olcDatabase: @BACKEND@
 olcDbCheckpoint: 512 30
-olcDbConfig: set_cachesize 0 2097152 0
-olcDbConfig: set_lk_max_objects 1500
-olcDbConfig: set_lk_max_locks 1500
-olcDbConfig: set_lk_max_lockers 1500
+@BACKENDOPTIONS@
 olcLastMod: TRUE
 olcSuffix: @SUFFIX@
 olcDbDirectory: /var/lib/ldap
 olcRootDN: cn=admin,@SUFFIX@
 olcRootPW: @PASSWORD@
 olcDbIndex: objectClass eq
+olcDbIndex: cn,uid eq
+olcDbIndex: uidNumber,gidNumber eq
+olcDbIndex: member,memberUid eq
 olcAccess: to attrs=userPassword,shadowLastChange
   by self write
   by anonymous auth
-  by dn="cn=admin,@SUFFIX@" write
   by * none
 olcAccess: to dn.base="" by * read
 olcAccess: to *
-  by self write
-  by dn="cn=admin,@SUFFIX@" write
   by * read
 

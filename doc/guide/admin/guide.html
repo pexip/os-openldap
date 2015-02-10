@@ -23,7 +23,7 @@
 <DIV CLASS="title">
 <H1 CLASS="doc-title">OpenLDAP Software 2.4 Administrator's Guide</H1>
 <ADDRESS CLASS="doc-author">The OpenLDAP Project &lt;<A HREF="http://www.openldap.org/">http://www.openldap.org/</A>&gt;</ADDRESS>
-<ADDRESS CLASS="doc-modified">25 January 2014</ADDRESS>
+<ADDRESS CLASS="doc-modified">18 September 2014</ADDRESS>
 <BR CLEAR="All">
 </DIV>
 <DIV CLASS="contents">
@@ -1347,10 +1347,14 @@ This command will search for and retrieve every entry in the database.</OL>
 <P>Heimdal Kerberos is available from <A HREF="http://www.pdc.kth.se/heimdal/">http://www.pdc.kth.se/heimdal/</A>. MIT Kerberos is available from <A HREF="http://web.mit.edu/kerberos/www/">http://web.mit.edu/kerberos/www/</A>.</P>
 <P>Use of strong authentication services, such as those provided by Kerberos, is highly recommended.</P>
 <H3><A NAME="Database Software">4.2.4. Database Software</A></H3>
-<P>OpenLDAP's <EM>slapd</EM>(8) <TERM>BDB</TERM> and <TERM>HDB</TERM> primary database backends require <A HREF="http://www.oracle.com/">Oracle Corporation</A> <A HREF="http://www.oracle.com/database/berkeley-db/db/index.html">Berkeley DB</A>. If not available at configure time, you will not be able to build <EM>slapd</EM>(8) with these primary database backends.</P>
+<P>OpenLDAP's <EM>slapd</EM>(8) <TERM>MDB</TERM> primary database backend uses the <TERM>LMDB</TERM> software included with the OpenLDAP source.  There is no need to download any additional software to have <EM>MDB</EM> support.</P>
+<P>OpenLDAP's <EM>slapd</EM>(8) <TERM>BDB</TERM> and <TERM>HDB</TERM> deprecated database backends require <A HREF="http://www.oracle.com/">Oracle Corporation</A> <A HREF="http://www.oracle.com/database/berkeley-db/db/index.html">Berkeley DB</A>. If not available at configure time, you will not be able to build <EM>slapd</EM>(8) with these primary database backends.</P>
 <P>Your operating system may provide a supported version of <A HREF="http://www.oracle.com/database/berkeley-db/db/index.html">Berkeley DB</A> in the base system or as an optional software component.  If not, you'll have to obtain and install it yourself.</P>
 <P><A HREF="http://www.oracle.com/database/berkeley-db/db/index.html">Berkeley DB</A> is available from <A HREF="http://www.oracle.com/">Oracle Corporation</A>'s Berkeley DB download page <A HREF="http://www.oracle.com/technology/software/products/berkeley-db/index.html">http://www.oracle.com/technology/software/products/berkeley-db/index.html</A>.</P>
-<P>There are several versions available. Generally, the most recent release (with published patches) is recommended. This package is required if you wish to use the <TERM>BDB</TERM> or <TERM>HDB</TERM> database backends.</P>
+<P>There are several versions available. Generally, the most recent release (with published patches) is recommended. This package is required if you wish to use the deprecated <TERM>BDB</TERM> or <TERM>HDB</TERM> database backends.</P>
+<P><HR WIDTH="80%" ALIGN="Left">
+<STRONG>Note: </STRONG>Berkeley DB version 6.0.20 and later uses a software license that is incompatible with LDAP technology and should not be used with OpenLDAP.
+<HR WIDTH="80%" ALIGN="Left"></P>
 <P><HR WIDTH="80%" ALIGN="Left">
 <STRONG>Note: </STRONG>Please see <A HREF="#Recommended OpenLDAP Software Dependency Versions">Recommended OpenLDAP Software Dependency Versions</A> for more information.
 <HR WIDTH="80%" ALIGN="Left"></P>
@@ -8910,7 +8914,7 @@ Database objects of instances of this backend
 <TT>&nbsp;<A HREF="http://www.gnu.org/software/gnutls/">GnuTLS</A></TT>
 </TD>
 <TD>
-<TT>2.0.1</TT>
+<TT>2.12.0</TT>
 </TD>
 </TR>
 <TR>
@@ -8976,84 +8980,7 @@ Database Software
 <TT>&nbsp;<A HREF="http://www.oracle.com/database/berkeley-db/db/index.html">Berkeley DB</A>:</TT>
 </TD>
 <TD>
-<TT>&nbsp;</TT>
-</TD>
-</TR>
-<TR>
-<TD>
-&nbsp;
-</TD>
-<TD>
-<TT>&nbsp;</TT>
-</TD>
-<TD>
-<TT>4.4</TT>
-</TD>
-</TR>
-<TR>
-<TD>
-&nbsp;
-</TD>
-<TD>
-<TT>&nbsp;</TT>
-</TD>
-<TD>
-<TT>4.5</TT>
-</TD>
-</TR>
-<TR>
-<TD>
-&nbsp;
-</TD>
-<TD>
-<TT>&nbsp;</TT>
-</TD>
-<TD>
-<TT>4.6</TT>
-</TD>
-</TR>
-<TR>
-<TD>
-&nbsp;
-</TD>
-<TD>
-<TT>&nbsp;</TT>
-</TD>
-<TD>
-<TT>4.7</TT>
-</TD>
-</TR>
-<TR>
-<TD>
-&nbsp;
-</TD>
-<TD>
-<TT>&nbsp;</TT>
-</TD>
-<TD>
-<TT>4.8</TT>
-</TD>
-</TR>
-<TR>
-<TD>
-&nbsp;
-</TD>
-<TD>
-<TT>&nbsp;</TT>
-</TD>
-<TD>
-<TT>5.0</TT>
-</TD>
-</TR>
-<TR>
-<TD>
-&nbsp;
-</TD>
-<TD>
-<TT>&nbsp;</TT>
-</TD>
-<TD>
-<TT>5.1</TT>
+<TT>5.3</TT>
 </TD>
 </TR>
 <TR>
@@ -9881,6 +9808,14 @@ MD5
 </TD>
 <TD>
 Message Digest 5
+</TD>
+</TR>
+<TR>
+<TD>
+MDB
+</TD>
+<TD>
+Memory-Mapped Database (Backend)
 </TD>
 </TR>
 <TR>

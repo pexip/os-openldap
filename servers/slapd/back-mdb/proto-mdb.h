@@ -138,6 +138,10 @@ int mdb_idscopes(
 	Operation *op,
 	struct IdScopes *isc );
 
+int mdb_idscopechk(
+	Operation *op,
+	struct IdScopes *isc );
+
 int mdb_dn2id_walk(
 	Operation *op,
 	struct IdScopes *isc );
@@ -193,7 +197,7 @@ int mdb_entry_return( Operation *op, Entry *e );
 BI_entry_release_rw mdb_entry_release;
 BI_entry_get_rw mdb_entry_get;
 
-int mdb_entry_decode( Operation *op, MDB_val *data, Entry **e );
+int mdb_entry_decode( Operation *op, MDB_txn *txn, MDB_val *data, Entry **e );
 
 void mdb_reader_flush( MDB_env *env );
 int mdb_opinfo_get( Operation *op, struct mdb_info *mdb, int rdonly, mdb_op_info **moi );

@@ -13,6 +13,18 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 #
+
+# The version of this file as distributed by the OpenLDAP Foundation
+# contains text claiming copyright by the Internet Society and including
+# the IETF RFC license, which does not meet Debian's Free Software
+# Guidelines.  However, apart from short and obvious comments, the text of
+# this file is purely a functional interface specification, which is not
+# subject to that license and is not copyrightable under US law.
+#
+# The license statement is retained below so as not to remove credit, but
+# as best as we can determine, it is not applicable to the contents of
+# this file.
+
 ## Portions Copyright (C) The Internet Society (1997-2006).
 ## All Rights Reserved.
 ##

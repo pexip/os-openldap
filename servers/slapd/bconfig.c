@@ -3415,7 +3415,8 @@ loglevel2bvarray( int l, BerVarray *bva )
 	}
 
 	if ( l == 0 ) {
-		return value_add_one( bva, ber_bvstr( "0" ) );
+		struct berval bv = BER_BVC("0");
+		return value_add_one( bva, &bv );
 	}
 
 	return mask_to_verbs( loglevel_ops, l, bva );
@@ -3792,6 +3793,7 @@ config_tls_cleanup(ConfigArgs *c) {
 		int opt = 1;
 
 		ldap_pvt_tls_ctx_free( slap_tls_ctx );
+		slap_tls_ctx = NULL;
 
 		/* Force new ctx to be created */
 		rc = ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
@@ -3800,6 +3802,11 @@ config_tls_cleanup(ConfigArgs *c) {
 			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
 			/* This is a no-op if it's already loaded */
 			load_extop( &slap_EXOP_START_TLS, 0, starttls_extop );
+		} else {
+			if ( rc == LDAP_NOT_SUPPORTED )
+				rc = LDAP_UNWILLING_TO_PERFORM;
+			else
+				rc = LDAP_OTHER;
 		}
 	}
 	return rc;
@@ -6572,7 +6579,12 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 			bv.bv_len );
 		c->value_dn.bv_len += bv.bv_len;
 		c->value_dn.bv_val[c->value_dn.bv_len] ='\0';
-		rdnNormalize( 0, NULL, NULL, &c->value_dn, &rdn, NULL );
+		if ( rdnNormalize( 0, NULL, NULL, &c->value_dn, &rdn, NULL )) {
+			Debug( LDAP_DEBUG_ANY,
+				"config_build_schema_inc: invalid schema name \"%s\"\n",
+				bv.bv_val, 0, 0 );
+			return -1;
+		}
 
 		c->ca_private = cf;
 		e = config_build_entry( op, rs, ceparent, c, &rdn,

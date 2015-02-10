@@ -699,7 +699,7 @@ mdb_idscopes(
 	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
 	MDB_dbi dbi = mdb->mi_dn2id;
 	MDB_val		key, data;
-	ID id;
+	ID id, prev;
 	ID2 id2;
 	char	*ptr;
 	int		rc = 0;
@@ -723,6 +723,7 @@ mdb_idscopes(
 		return MDB_SUCCESS;
 	}
 
+	isc->sctmp[0].mid = 0;
 	while (id) {
 		if ( !rc ) {
 			key.mv_data = &id;
@@ -742,16 +743,29 @@ mdb_idscopes(
 		isc->numrdns++;
 
 		if (!rc && id != isc->id) {
+			/* remember our chain of parents */
 			id2.mid = id;
 			id2.mval = data;
-			mdb_id2l_insert( isc->scopes, &id2 );
+			mdb_id2l_insert( isc->sctmp, &id2 );
 		}
 		ptr = data.mv_data;
 		ptr += data.mv_size - sizeof(ID);
+		prev = id;
 		memcpy( &id, ptr, sizeof(ID) );
+		/* If we didn't advance, some parent is missing */
+		if ( id == prev )
+			return MDB_NOTFOUND;
+
 		x = mdb_id2l_search( isc->scopes, id );
 		if ( x <= isc->scopes[0].mid && isc->scopes[x].mid == id ) {
 			if ( !isc->scopes[x].mval.mv_data ) {
+				/* This node is in scope, add parent chain to scope */
+				int i = isc->sctmp[0].mid;
+				for ( i = 1; i <= isc->sctmp[0].mid; i++ )
+					mdb_id2l_insert( isc->scopes, &isc->sctmp[i] );
+				/* check id again since inserts may have changed its position */
+				if ( isc->scopes[x].mid != id )
+					x = mdb_id2l_search( isc->scopes, id );
 				isc->nscope = x;
 				return MDB_SUCCESS;
 			}
@@ -760,6 +774,53 @@ mdb_idscopes(
 		}
 		if ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 			break;
+	}
+	return MDB_SUCCESS;
+}
+
+/* See if ID is a child of any of the scopes,
+ * return MDB_KEYEXIST if so.
+ */
+int
+mdb_idscopechk(
+	Operation *op,
+	IdScopes *isc )
+{
+	struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+	MDB_val		key, data;
+	ID id, prev;
+	char	*ptr;
+	int		rc = 0;
+	unsigned int x;
+
+	key.mv_size = sizeof(ID);
+
+	if ( !isc->mc ) {
+		rc = mdb_cursor_open( isc->mt, mdb->mi_dn2id, &isc->mc );
+		if ( rc ) return rc;
+	}
+
+	id = isc->id;
+
+	while (id) {
+		if ( !rc ) {
+			key.mv_data = &id;
+			rc = mdb_cursor_get( isc->mc, &key, &data, MDB_SET );
+			if ( rc )
+				return rc;
+		}
+
+		ptr = data.mv_data;
+		ptr += data.mv_size - sizeof(ID);
+		prev = id;
+		memcpy( &id, ptr, sizeof(ID) );
+		/* If we didn't advance, some parent is missing */
+		if ( id == prev )
+			return MDB_NOTFOUND;
+
+		x = mdb_id2l_search( isc->scopes, id );
+		if ( x <= isc->scopes[0].mid && isc->scopes[x].mid == id )
+			return MDB_KEYEXIST;
 	}
 	return MDB_SUCCESS;
 }

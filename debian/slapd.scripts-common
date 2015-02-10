@@ -94,8 +94,8 @@ create_ldap_directories() {	# {{{
 update_permissions() {	# {{{
 	dir="$1"
 	if [ -d "$dir" ]; then
-		[ -z "$SLAPD_USER" ] || chown -R "$SLAPD_USER" "$dir"
-		[ -z "$SLAPD_GROUP" ] || chgrp -R "$SLAPD_GROUP" "$dir"
+		[ -z "$SLAPD_USER" ] || chown -R -H "$SLAPD_USER" "$dir"
+		[ -z "$SLAPD_GROUP" ] || chgrp -R -H "$SLAPD_GROUP" "$dir"
 	fi
 }
 # }}}
@@ -165,7 +165,7 @@ dump_databases() {							# {{{
 	echo >&2 "  Dumping to $dir: "
 	(get_suffix | while read suffix; do
 		dbdir=`get_directory "$suffix"`
-		if [ -n "$dbdir" ] && [ -d "$dbdir" ]; then
+		if [ -n "$dbdir" ]; then
 			file="$dir/$suffix.ldif"
 			echo -n "  - directory $suffix... " >&2
 			# Need to support slapd.d migration from preinst
@@ -213,8 +213,6 @@ load_databases() {							# {{{
 		backupdir=`compute_backup_path -n "$dbdir" "$suffix"`
 		if [ -e "$backupdir"/DB_CONFIG ]; then
 			cp -a "$backupdir"/DB_CONFIG "$dbdir"/
-		else
-			copy_example_DB_CONFIG "$dbdir"/
 		fi
 
 		if [ -f "${SLAPD_CONF}" ]; then
@@ -240,9 +238,9 @@ EOF
 		if [ -n "$SLAPD_USER" ] || [ -n "$SLAPD_GROUP" ]; then
 			echo -n "  - chowning database directory ($SLAPD_USER:$SLAPD_GROUP)... "
 			[ -z "$SLAPD_USER" ] || \
-				chown -R "$SLAPD_USER" "$dbdir"
+				chown -R -H "$SLAPD_USER" "$dbdir"
 			[ -z "$SLAPD_GROUP" ] || \
-				chgrp -R "$SLAPD_GROUP" "$dbdir"
+				chgrp -R -H "$SLAPD_GROUP" "$dbdir"
 			echo "done";
 		fi
 	done
@@ -275,14 +273,14 @@ get_suffix() {
 			sed -n -e's/^suffix[[:space:]]\+"*\([^"]\+\)"*/\1/p' $f
 		done
 	else
-		grep -h olcSuffix ${SLAPD_CONF}/cn\=config/olcDatabase*.ldif | cut -d: -f 2
-	fi
+		grep -h ^olcSuffix ${SLAPD_CONF}/cn\=config/olcDatabase*.ldif | cut -d: -f 2
+	fi | sort -u
 }
 # }}}
 get_directory() {							# {{{
 # Returns the db directory for a given suffix
 	if [ -d "${SLAPD_CONF}" ] && get_suffix | grep -q "$1" ; then
-		grep "olcDbDirectory:" `grep -l "olcSuffix: $1" ${SLAPD_CONF}/cn\=config/olcDatabase*.ldif` | cut -d: -f 2 | sed 's/^  *//g'
+		sed -n 's/^olcDbDirectory: *//p' `grep -l "^olcSuffix: $1" ${SLAPD_CONF}/cn\=config/olcDatabase*.ldif`
 	elif [ -f "${SLAPD_CONF}" ]; then
 		# Extract the directory for the given suffix ($1)
 		for f in `get_all_slapd_conf_files`; do
@@ -385,7 +383,7 @@ move_old_database_away() {						# {{{
 		backupdir=`compute_backup_path "$databasedir" "$suffix"`
 		echo -n "  - directory $suffix... " >&2
 		mkdir -p "$backupdir"
-		find "$databasedir" -mindepth 1 -maxdepth 1	\
+		find -H "$databasedir" -mindepth 1 -maxdepth 1 -type f \
 			-exec mv {} "$backupdir" \;
 		echo done. >&2
 	else
@@ -431,7 +429,7 @@ create_new_configuration() {						# {{{
 	# For the domain really.argh.org we create the basedn 
 	# dc=really,dc=argh,dc=org with the dc entry dc: really
 	db_get slapd/domain
-	basedn="dc=`echo $RET | sed 's/^\.//; s/\./,dc=/g'`"
+	basedn="dc=`echo $RET | sed 's/^\.//; s/\.$//; s/\./,dc=/g'`"
 	dc="`echo $RET | sed 's/^\.//; s/\..*$//'`"
 
 	db_get slapd/backend
@@ -460,15 +458,21 @@ create_new_slapd_conf() {						# {{{
 # Create the new slapd.d directory (configuration)
 # Usage: create_new_slapd_conf <basedn> <backend>
 
-	local initldif failed basedn backend backendobjectclass adminpass
+	local initldif failed basedn backend backendobjectclass backendoptions adminpass
 
 	# Fetch configuration
 	basedn="$1"
 	backend="$2"
-	if [ "$backend" = "hdb" ]; then
-		backendobjectclass="olcHdbConfig"
+	if [ "$backend" = "mdb" ]; then
+		backendoptions="olcDbMaxSize: 1073741824"
+		backendobjectclass="olcMdbConfig"
 	else
-		backendobjectclass="olcBdbConfig"
+		backendoptions="olcDbConfig: set_cachesize 0 2097152 0\nolcDbConfig: set_lk_max_objects 1500\nolcDbConfig: set_lk_max_locks 1500\nolcDbConfig: set_lk_max_lockers 1500"
+		if [ "$backend" = "hdb" ]; then
+			backendobjectclass="olcHdbConfig"
+		else
+			backendobjectclass="olcBdbConfig"
+		fi
 	fi
 	db_get slapd/internal/adminpw
 	adminpass="$RET"
@@ -484,6 +488,7 @@ create_new_slapd_conf() {						# {{{
 	# Change some defaults
 	sed -i -e "s|@BACKEND@|$backend|g" ${initldif}
 	sed -i -e "s|@BACKENDOBJECTCLASS@|$backendobjectclass|g" ${initldif}
+	sed -i -e "s|@BACKENDOPTIONS@|$backendoptions|g" ${initldif}
 	sed -i -e "s|@SUFFIX@|$basedn|g" ${initldif}
 	sed -i -e "s|@PASSWORD@|$adminpass|g" ${initldif}
 
@@ -725,7 +730,7 @@ is_empty_dir() {							# {{{
 # (i.e., contains no files except for an optional DB_CONFIG).
 # Usage: if is_empty_dir "$dir"; then ... fi
 
-	output=`find "$1" -mindepth 1 -maxdepth 1 \! -name DB_CONFIG 2>/dev/null`
+	output=`find -H "$1" -mindepth 1 -maxdepth 1 -type f \! -name DB_CONFIG 2>/dev/null`
 	if [ -n "$output" ]; then
     		return 1
 	else
