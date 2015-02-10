@@ -176,18 +176,18 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
-			LDAP_XSTRING(mdb_db_open) ": database \"%s\" cannot be opened, err %d. "
+			LDAP_XSTRING(mdb_db_open) ": database \"%s\" cannot be opened: %s (%d). "
 			"Restore from backup!\n",
-			be->be_suffix[0].bv_val, rc, 0 );
+			be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
 		goto fail;
 	}
 
 	rc = mdb_txn_begin( mdb->mi_dbenv, NULL, flags & MDB_RDONLY, &txn );
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
-			LDAP_XSTRING(mdb_db_open) ": database \"%s\" cannot be opened, err %d. "
+			LDAP_XSTRING(mdb_db_open) ": database \"%s\" cannot be opened: %s (%d). "
 			"Restore from backup!\n",
-			be->be_suffix[0].bv_val, rc, 0 );
+			be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
 		goto fail;
 	}
 
@@ -265,10 +265,15 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 		goto fail;
 	}
 
-	rc = mdb_attr_dbs_open( be, txn, cr );
-	if ( rc ) {
-		mdb_txn_abort( txn );
-		goto fail;
+	/* slapcat doesn't need indexes. avoid a failure if
+	 * a configured index wasn't created yet.
+	 */
+	if ( !(slapMode & SLAP_TOOL_READONLY) ) {
+		rc = mdb_attr_dbs_open( be, txn, cr );
+		if ( rc ) {
+			mdb_txn_abort( txn );
+			goto fail;
+		}
 	}
 
 	rc = mdb_txn_commit(txn);

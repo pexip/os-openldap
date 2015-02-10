@@ -314,8 +314,21 @@ refint_db_destroy(
 
 	if ( on->on_bi.bi_private ) {
 		refint_data *id = on->on_bi.bi_private;
+		refint_attrs *ii, *ij;
+
 		on->on_bi.bi_private = NULL;
 		ldap_pvt_thread_mutex_destroy( &id->qmutex );
+
+		for(ii = id->attrs; ii; ii = ij) {
+			ij = ii->next;
+			ch_free(ii);
+		}
+
+		ch_free( id->nothing.bv_val );
+		BER_BVZERO( &id->nothing );
+		ch_free( id->nnothing.bv_val );
+		BER_BVZERO( &id->nnothing );
+
 		ch_free( id );
 	}
 	return(0);
@@ -349,11 +362,8 @@ refint_open(
 
 
 /*
-** foreach configured attribute:
-**	free it;
 ** free our basedn;
-** reset on_bi.bi_private;
-** free our config data;
+** free our refintdn
 **
 */
 
@@ -365,20 +375,9 @@ refint_close(
 {
 	slap_overinst *on	= (slap_overinst *) be->bd_info;
 	refint_data *id	= on->on_bi.bi_private;
-	refint_attrs *ii, *ij;
-
-	for(ii = id->attrs; ii; ii = ij) {
-		ij = ii->next;
-		ch_free(ii);
-	}
-	id->attrs = NULL;
 
 	ch_free( id->dn.bv_val );
 	BER_BVZERO( &id->dn );
-	ch_free( id->nothing.bv_val );
-	BER_BVZERO( &id->nothing );
-	ch_free( id->nnothing.bv_val );
-	BER_BVZERO( &id->nnothing );
 	ch_free( id->refint_dn.bv_val );
 	BER_BVZERO( &id->refint_dn );
 	ch_free( id->refint_ndn.bv_val );
@@ -529,21 +528,25 @@ refint_repair(
 	Operation		op2;
 	unsigned long	opid;
 	int		rc;
+	int	cache;
 
 	op->o_callback->sc_response = refint_search_cb;
 	op->o_req_dn = op->o_bd->be_suffix[ 0 ];
 	op->o_req_ndn = op->o_bd->be_nsuffix[ 0 ];
 	op->o_dn = op->o_bd->be_rootdn;
 	op->o_ndn = op->o_bd->be_rootndn;
+	cache = op->o_do_not_cache;
+	op->o_do_not_cache = 1;
 
 	/* search */
 	rc = op->o_bd->be_search( op, &rs );
+	op->o_do_not_cache = cache;
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"refint_repair: search failed: %d\n",
 			rc, 0, 0 );
-		return 0;
+		return rc;
 	}
 
 	/* safety? paranoid just in case */
@@ -706,6 +709,7 @@ refint_qtask( void *ctx, void *arg )
 	Filter ftop, *fptr;
 	refint_q *rq;
 	refint_attrs *ip;
+	int pausing = 0, rc = 0;
 
 	connection_fake_init( &conn, &opbuf, ctx );
 	op = &opbuf.ob_op;
@@ -743,6 +747,11 @@ refint_qtask( void *ctx, void *arg )
 		dependent_data	*dp, *dp_next;
 		refint_attrs *ra, *ra_next;
 
+		if ( ldap_pvt_thread_pool_pausing( &connection_pool ) > 0 ) {
+			pausing = 1;
+			break;
+		}
+
 		/* Dequeue an op */
 		ldap_pvt_thread_mutex_lock( &id->qmutex );
 		rq = id->qhead;
@@ -778,7 +787,7 @@ refint_qtask( void *ctx, void *arg )
 
 		if ( rq->db != NULL ) {
 			op->o_bd = rq->db;
-			refint_repair( op, id, rq );
+			rc = refint_repair( op, id, rq );
 
 		} else {
 			BackendDB	*be;
@@ -791,7 +800,7 @@ refint_qtask( void *ctx, void *arg )
 
 				if ( be->be_search && be->be_modify ) {
 					op->o_bd = be;
-					refint_repair( op, id, rq );
+					rc = refint_repair( op, id, rq );
 				}
 			}
 		}
@@ -811,6 +820,17 @@ refint_qtask( void *ctx, void *arg )
 			op->o_tmpfree( dp, op->o_tmpmemctx );
 		}
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		if ( rc == LDAP_BUSY ) {
+			pausing = 1;
+			/* re-queue this op */
+			ldap_pvt_thread_mutex_lock( &id->qmutex );
+			rq->next = id->qhead;
+			id->qhead = rq;
+			if ( !id->qtail )
+				id->qtail = rq;
+			ldap_pvt_thread_mutex_unlock( &id->qmutex );
+			break;
+		}
 
 		if ( !BER_BVISNULL( &rq->newndn )) {
 			ch_free( rq->newndn.bv_val );
@@ -831,7 +851,14 @@ refint_qtask( void *ctx, void *arg )
 	/* wait until we get explicitly scheduled again */
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, id->qtask );
-	ldap_pvt_runqueue_resched( &slapd_rq,id->qtask, 1 );
+	if ( pausing ) {
+		/* try to run again as soon as the pause is done */
+		id->qtask->interval.tv_sec = 0;
+		ldap_pvt_runqueue_resched( &slapd_rq, id->qtask, 0 );
+		id->qtask->interval.tv_sec = RUNQ_INTERVAL;
+	} else {
+		ldap_pvt_runqueue_resched( &slapd_rq,id->qtask, 1 );
+	}
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 	return NULL;
