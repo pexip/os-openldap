@@ -1,3 +1,14 @@
+openldap (2.4.40+dfsg-1) unstable; urgency=medium
+
+  * Remove inetorgperson.schema from the upstream source. Replace it with a
+    copy stripped of RFC text. (Closes: #780283)
+  * Adjust debian/watch for +dfsg versioning.
+  * debian/patches/ITS7975-fix-mdb-onelevel-search.patch: Import upstream
+    patch to fix scope=onelevel searches wrongly including the search base in
+    results under the MDB backend. (ITS#7975) (Closes: #782212)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Thu, 09 Apr 2015 08:38:38 -0700
+
 openldap (2.4.40-4) unstable; urgency=medium
 
   * debian/patches/ITS8027-deref-reject-empty-attr-list.patch: Import upstream 
