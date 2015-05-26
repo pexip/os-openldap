@@ -23,3 +23,4 @@ heimdal-fix
 ITS6035-olcauthzregex-needs-restart.patch
 ITS8027-deref-reject-empty-attr-list.patch
 ITS8046-fix-vrFilter_free-crash.patch
+ITS7975-fix-mdb-onelevel-search.patch

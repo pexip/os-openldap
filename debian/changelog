@@ -1,3 +1,20 @@
+openldap (2.4.40+dfsg-1pexip1) pexip; urgency=low
+
+  * New upstream release.
+
+ -- John-Mark Bell <jmb@pexip.com>  Tue, 26 May 2015 10:41:12 +0000
+
+openldap (2.4.40+dfsg-1) unstable; urgency=medium
+
+  * Remove inetorgperson.schema from the upstream source. Replace it with a
+    copy stripped of RFC text. (Closes: #780283)
+  * Adjust debian/watch for +dfsg versioning.
+  * debian/patches/ITS7975-fix-mdb-onelevel-search.patch: Import upstream
+    patch to fix scope=onelevel searches wrongly including the search base in
+    results under the MDB backend. (ITS#7975) (Closes: #782212)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Thu, 09 Apr 2015 08:38:38 -0700
+
 openldap (2.4.40-4pexip1) pexip; urgency=low
 
   * New upstream release.
