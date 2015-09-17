@@ -1,3 +1,19 @@
+openldap (2.4.40+dfsg-1+deb8u1pexip1) pexip; urgency=low
+
+  * New upstream release.
+
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 17 Sep 2015 16:07:52 +0100
+
+openldap (2.4.40+dfsg-1+deb8u1) jessie-security; urgency=high
+
+  * Non-maintainer upload by the Security Team.
+  * Add ITS8240-remove-obsolete-assert.patch patch.
+    Import upstream patch to remove an unnecessary assert(0) that could be
+    triggered remotely by an unauthenticated user by sending a malformed BER
+    element. (CVE-2015-6908, Closes: #798622)
+
+ -- Salvatore Bonaccorso <carnil@debian.org>  Fri, 11 Sep 2015 10:30:43 +0200
+
 openldap (2.4.40+dfsg-1pexip1) pexip; urgency=low
 
   * New upstream release.
