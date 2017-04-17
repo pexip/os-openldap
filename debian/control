@@ -11,7 +11,7 @@ XSBC-Pexip-Original-Uploaders: Roland Bauerschmidt <rb@debian.org>,
  Ryan Tandy <ryan@nardis.ca>
 Build-Depends: debhelper (>= 8.9.0~),
 	dpkg-dev (>= 1.16.1),
-	libdb5.1-dev, libssl-dev, 
+	libdb5.3-dev, libssl-dev, 
  unixodbc-dev, libncurses5-dev, libperl-dev (>= 5.8.0),
  libsasl2-dev, libslp-dev, libltdl-dev | libltdl3-dev (>= 1.4.3),
  libwrap0-dev, perl, po-debconf, quilt (>= 0.46-7),
