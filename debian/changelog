@@ -1,6 +1,7 @@
 openldap (2.4.40+dfsg-1+deb8u2pexip1) pexip; urgency=low
 
   * New upstream release.
+  * Drop all local changes except for building against libssl
 
  -- John-Mark Bell <jmb@pexip.com>  Mon, 17 Apr 2017 12:47:19 +0100
 
