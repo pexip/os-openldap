@@ -43,6 +43,17 @@ Description: OpenLDAP server (slapd)
  (slapd). The server can be used to provide a standalone directory
  service.
 
+Package: slapd-smbk5pwd
+Section: net
+Priority: extra
+Architecture: any
+Depends: slapd (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: Keeps Samba and Kerberos passwords in sync within slapd.
+ Extends the PasswordModify Extended Operation to update Kerberos keys
+ and Samba password hashes for an LDAP user. The Kerberos support is
+ written for Heimdal using its hdb-ldap backend. The Samba support is
+ written using the Samba 3.0 LDAP schema.
+
 Package: ldap-utils
 Section: net
 Priority: optional

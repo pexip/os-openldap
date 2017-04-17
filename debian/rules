@@ -89,12 +89,14 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	dh_auto_build -- $(MAKEVARS)
+	$(MAKE) -C contrib/slapd-modules/smbk5pwd
 	$(MAKE) -C contrib/slapd-modules/autogroup
 	$(MAKE) -C contrib/slapd-modules/lastbind
 	$(MAKE) -C contrib/slapd-modules/passwd/sha2
 
 override_dh_auto_install:
 	dh_auto_install -- $(MAKEVARS)
+	$(MAKE) -C contrib/slapd-modules/smbk5pwd install DESTDIR=$(installdir)
 	$(MAKE) -C contrib/slapd-modules/autogroup install DESTDIR=$(installdir)
 	$(MAKE) -C contrib/slapd-modules/lastbind install DESTDIR=$(installdir)
 	$(MAKE) -C contrib/slapd-modules/passwd/sha2 install DESTDIR=$(installdir)
@@ -127,6 +129,7 @@ override_dh_auto_install:
 
 override_dh_install:
 	dh_install
+	rm -rf $(CURDIR)/debian/slapd/usr/lib/ldap/smbk5pwd*
 	chmod 0755 $(CURDIR)/debian/slapd/usr/share/slapd/ldiftopasswd
 
 override_dh_installinit:
@@ -178,6 +181,10 @@ override_dh_auto_clean:
 	fi
 
 	# Clean the contrib directory
+	rm -rf contrib/slapd-modules/smbk5pwd/.libs \
+		contrib/slapd-modules/smbk5pwd/smbk5pwd.lo \
+		contrib/slapd-modules/smbk5pwd/smbk5pwd.la \
+		contrib/slapd-modules/smbk5pwd/smbk5pwd.o
 	rm -rf contrib/slapd-modules/autogroup/.libs \
 		contrib/slapd-modules/autogroup/autogroup.lo \
 		contrib/slapd-modules/autogroup/autogroup.la \
