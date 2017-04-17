@@ -4,8 +4,6 @@
 # want the checks for DFSG-freeness.
 #DFSG_NONFREE = 1
 
-export DEB_BUILD_HARDENING=1
-
 export DEB_CFLAGS_MAINT_APPEND := -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
 export DEB_BUILD_MAINT_OPTIONS := hardening=+pie,+bindnow
 
