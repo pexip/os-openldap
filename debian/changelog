@@ -1,3 +1,17 @@
+openldap (2.4.40+dfsg-1+deb8u2pexip1) pexip; urgency=low
+
+  * New upstream release.
+
+ -- John-Mark Bell <jmb@pexip.com>  Mon, 17 Apr 2017 12:47:19 +0100
+
+openldap (2.4.40+dfsg-1+deb8u2) jessie; urgency=medium
+
+  * debian/patches/ITS8003-fix-off-by-one-in-LDIF-length.patch: Import
+    upstream patch to fix a crash when adding a large attribute value with the
+    auditlog overlay enabled. (Closes: #806909)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Sat, 12 Dec 2015 16:11:38 -0800
+
 openldap (2.4.40+dfsg-1+deb8u1pexip2) pexip; urgency=low
 
   * Rebuild against libssl1.0.2
