@@ -12,8 +12,7 @@
 +	$(LDAP_BUILD)/debian/build/libraries/liblber/liblber.la
  
  SSL_INC = 
--SSL_LIB = -lcrypto
-+SSL_LIB = -lnettle
+ SSL_LIB = -lcrypto
  
 -HEIMDAL_INC = -I/usr/heimdal/include
 -HEIMDAL_LIB = -L/usr/heimdal/lib -lkrb5 -lkadm5srv
