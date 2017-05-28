@@ -1,3 +1,11 @@
+openldap (2.4.40+dfsg-1+deb8u3) jessie-security; urgency=high
+
+  * debian/patches/ITS-8655-paged-results-double-free.patch: Fix a double free 
+    in the MDB backend on a search including the Paged Results control with a 
+    page size of 0. (ITS#8655) (CVE-2017-9287) (Closes: #863563)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Sun, 28 May 2017 16:08:03 -0700
+
 openldap (2.4.40+dfsg-1+deb8u2) jessie; urgency=medium
 
   * debian/patches/ITS8003-fix-off-by-one-in-LDIF-length.patch: Import
