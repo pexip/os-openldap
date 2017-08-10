@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2014 The OpenLDAP Foundation.
+ * Copyright 1999-2016 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -424,7 +424,7 @@ retry_lock:;
 	slap_client_keepalive(msc->msc_ld, &mt->mt_tls.sb_keepalive);
 
 #ifdef HAVE_TLS
-	if ( !is_ldaps ) {
+	{
 		slap_bindconf *sb = NULL;
 
 		if ( ispriv ) {
@@ -439,13 +439,15 @@ retry_lock:;
 			ldap_set_option( msc->msc_ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
 		}
 
-		if ( sb == &mt->mt_idassert.si_bc && sb->sb_tls_ctx ) {
-			do_start_tls = 1;
+		if ( !is_ldaps ) {
+			if ( sb == &mt->mt_idassert.si_bc && sb->sb_tls_ctx ) {
+				do_start_tls = 1;
 
-		} else if ( META_BACK_TGT_USE_TLS( mt )
-			|| ( op->o_conn->c_is_tls && META_BACK_TGT_PROPAGATE_TLS( mt ) ) )
-		{
-			do_start_tls = 1;
+			} else if ( META_BACK_TGT_USE_TLS( mt )
+				|| ( op->o_conn->c_is_tls && META_BACK_TGT_PROPAGATE_TLS( mt ) ) )
+			{
+				do_start_tls = 1;
+			}
 		}
 	}
 
@@ -470,7 +472,8 @@ retry:;
 			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 			switch ( rc ) {
 			case -1:
-				rs->sr_err = LDAP_OTHER;
+				rs->sr_err = LDAP_UNAVAILABLE;
+				rs->sr_text = "Remote server down";
 				break;
 
 			case 0:
@@ -482,6 +485,7 @@ retry:;
 					goto retry;
 				}
 				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "Timeout, no more retries";
 				break;
 
 			default:
@@ -532,6 +536,8 @@ retry:;
 
 			} else {
 				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "Unknown response to StartTLS request :"
+					" an ExtendedResponse is expected";
 			}
 
 			if ( res != NULL ) {
@@ -672,6 +678,12 @@ error_return:;
 	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+		/* Get the error message and print it in TRACE mode */
+		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+			Log4( LDAP_DEBUG_TRACE, ldap_syslog_level, "%s: meta_back_init_one_conn[%d] failed err=%d text=%s\n",
+				op->o_log_prefix, candidate, rs->sr_err, rs->sr_text );
+		}
+
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			send_ldap_result( op, rs );
@@ -1581,12 +1593,12 @@ retry_lock2:;
 					err = lerr;
 
 					if ( lerr == LDAP_UNAVAILABLE && mt->mt_isquarantined != LDAP_BACK_FQ_NO ) {
-						Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d] quarantined err=%d\n",
-							op->o_log_prefix, i, lerr );
+						Log4( LDAP_DEBUG_TRACE, ldap_syslog_level, "%s: meta_back_getconn[%d] quarantined err=%d text=%s\n",
+							op->o_log_prefix, i, lerr, rs->sr_text );
 
 					} else {
-						Debug( LDAP_DEBUG_ANY, "%s: meta_back_getconn[%d] failed err=%d\n",
-							op->o_log_prefix, i, lerr );
+						Log4( LDAP_DEBUG_ANY, ldap_syslog, "%s: meta_back_getconn[%d] failed err=%d text=%s\n",
+							op->o_log_prefix, i, lerr, rs->sr_text );
 					}
 
 					if ( META_BACK_ONERR_STOP( mi ) ) {

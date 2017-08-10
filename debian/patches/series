@@ -10,8 +10,10 @@ getaddrinfo-is-threadsafe
 do-not-second-guess-sonames
 contrib-modules-use-dpkg-buildflags
 smbk5pwd-makefile
+smbk5pwd-makefile-manpage
 autogroup-makefile
 lastbind-makefile
+lastbind-makefile-manpage
 pw-sha2-makefile
 ldap-conf-tls-cacertdir
 add-tlscacert-option-to-ldap-conf
@@ -21,11 +23,11 @@ switch-to-lt_dlopenadvise-to-get-RTLD_GLOBAL-set.diff
 no-bdb-ABI-second-guessing
 heimdal-fix
 ITS6035-olcauthzregex-needs-restart.patch
-ITS8027-deref-reject-empty-attr-list.patch
-ITS8046-fix-vrFilter_free-crash.patch
-ITS7975-fix-mdb-onelevel-search.patch
-ITS8240-remove-obsolete-assert.patch
-ITS8003-fix-off-by-one-in-LDIF-length.patch
+set-maintainer-name
+ITS-8554-kFreeBSD-is-like-BSD.patch
+ITS-8644-wait-for-slapd-to-start-in-test064.patch
 ITS-8655-paged-results-double-free.patch
+ITS-8385-Fix-use-after-free-with-GnuTLS.patch
+ITS-8432-fix-infinite-looping-mods-in-delta-mmr.patch
 ITS-8648-check-result-of-ldap_int_initialize-in-ldap.patch
 ITS-8648-init-SASL-library-in-global-init.patch

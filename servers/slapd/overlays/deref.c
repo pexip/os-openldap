@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2014 The OpenLDAP Foundation.
+ * Copyright 1998-2016 The OpenLDAP Foundation.
  * Portions Copyright 2008 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -183,7 +183,8 @@ deref_parseCtrl (
 		ber_len_t cnt = sizeof(struct berval);
 		ber_len_t off = 0;
 
-		if ( ber_scanf( ber, "{m{M}}", &derefAttr, &attributes, &cnt, off ) == LBER_ERROR )
+		if ( ber_scanf( ber, "{m{M}}", &derefAttr, &attributes, &cnt, off ) == LBER_ERROR
+			|| !cnt )
 		{
 			rs->sr_text = "Dereference control: derefSpec decoding error";
 			rs->sr_err = LDAP_PROTOCOL_ERROR;

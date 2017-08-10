@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2014 The OpenLDAP Foundation.
+ * Copyright 1998-2016 The OpenLDAP Foundation.
  * Portions Copyright 2007 by Howard Chu, Symas Corporation.
  * All rights reserved.
  *
@@ -1378,7 +1378,10 @@ slap_open_listener(
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
 	ldap_free_urldesc( lud );
-	if ( err ) return -1;
+	if ( err ) {
+		slap_free_listener_addresses(sal);
+		return -1;
+	}
 
 	/* If we got more than one address returned, we need to make space
 	 * for it in the slap_listeners array.

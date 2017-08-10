@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2014 The OpenLDAP Foundation.
+ * Copyright 1998-2016 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -39,6 +39,20 @@
 #include <sys/stat.h>
 
 #include "slapcommon.h"
+
+#ifdef _WIN32
+# ifdef __WIN64__
+# define ftello(fp)	_ftelli64(fp)
+# else
+/* Ideally we would use _ftelli64 but that was only available
+ * starting in MSVCR80.DLL. The approach used here is inaccurate
+ * because returning the underlying file handle's file pointer
+ * doesn't take the stdio buffer offset into account. But, it
+ * works with all versions of MSVCRT.
+ */
+# define ftello(fp)	_telli64(fileno(fp))
+# endif
+#endif
 
 extern int slap_DN_strict;	/* dn.c */
 

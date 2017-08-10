@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2014 The OpenLDAP Foundation.
+ * Copyright 2000-2016 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,6 +78,11 @@ static ConfigTable mdbcfg[] = {
 		mdb_cf_gen, "( OLcfgDbAt:0.3 NAME 'olcDbMode' "
 		"DESC 'Unix permissions of database files' "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "rtxnsize", "entries", 2, 2, 0, ARG_UINT|ARG_OFFSET,
+		(void *)offsetof(struct mdb_info, mi_rtxn_size),
+		"( OLcfgDbAt:12.5 NAME 'olcDbRtxnSize' "
+		"DESC 'Number of entries to process in one read transaction' "
+		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "searchstack", "depth", 2, 2, 0, ARG_INT|ARG_MAGIC|MDB_SSTACK,
 		mdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
@@ -94,8 +99,8 @@ static ConfigOCs mdbocs[] = {
 		"SUP olcDatabaseConfig "
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCheckpoint $ olcDbEnvFlags $ "
-		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxsize $ "
-		"olcDbMode $ olcDbSearchStack ) )",
+		"olcDbNoSync $ olcDbIndex $ olcDbMaxReaders $ olcDbMaxSize $ "
+		"olcDbMode $ olcDbSearchStack $ olcDbRtxnSize ) )",
 		 	Cft_Database, mdbcfg },
 	{ NULL, 0, NULL }
 };
@@ -406,6 +411,9 @@ mdb_cf_gen( ConfigArgs *c )
 					mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
 				} else {
 					/* unknown keyword */
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: unknown keyword \"%s\"",
+						c->argv[0], c->argv[i] );
+					Debug( LDAP_DEBUG_CONFIG, "%s %s\n", c->log, c->cr_msg, 0 );
 					rc = 1;
 				}
 			}
@@ -608,7 +616,10 @@ mdb_cf_gen( ConfigArgs *c )
 				mdb->mi_dbenv_flags |= mdb_envflags[j].mask;
 			} else {
 				/* unknown keyword */
-				rc = 1;
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: unknown keyword \"%s\"",
+					c->argv[0], c->argv[i] );
+				Debug( LDAP_DEBUG_ANY, "%s %s\n", c->log, c->cr_msg, 0 );
+				return 1;
 			}
 		}
 		}
