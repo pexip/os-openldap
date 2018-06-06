@@ -1,3 +1,12 @@
+openldap (2.4.40+dfsg-1+deb8u4) jessie; urgency=medium
+
+  * Fix upgrade failure when olcSuffix contains a backslash. (Closes: #864719)
+  * Import upstream patches to fix memory corruption caused by calling 
+    sasl_client_init() multiple times and possibly concurrently.
+    (ITS#8648) (Closes: #860947)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Tue, 05 Jun 2018 20:16:25 -0700
+
 openldap (2.4.40+dfsg-1+deb8u3) jessie-security; urgency=high
 
   * debian/patches/ITS-8655-paged-results-double-free.patch: Fix a double free 
