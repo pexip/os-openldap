@@ -1,3 +1,18 @@
+openldap (2.4.40+dfsg-1+deb8u4pexip1) pexip; urgency=low
+
+  * New upstream release.
+
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 05 Jul 2018 00:22:29 +0100
+
+openldap (2.4.40+dfsg-1+deb8u4) jessie; urgency=medium
+
+  * Fix upgrade failure when olcSuffix contains a backslash. (Closes: #864719)
+  * Import upstream patches to fix memory corruption caused by calling 
+    sasl_client_init() multiple times and possibly concurrently.
+    (ITS#8648) (Closes: #860947)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Tue, 05 Jun 2018 20:16:25 -0700
+
 openldap (2.4.40+dfsg-1+deb8u3pexip1) pexip; urgency=low
 
   * New upstream release.

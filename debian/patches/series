@@ -27,3 +27,5 @@ ITS7975-fix-mdb-onelevel-search.patch
 ITS8240-remove-obsolete-assert.patch
 ITS8003-fix-off-by-one-in-LDIF-length.patch
 ITS-8655-paged-results-double-free.patch
+ITS-8648-check-result-of-ldap_int_initialize-in-ldap.patch
+ITS-8648-init-SASL-library-in-global-init.patch
