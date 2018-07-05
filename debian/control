@@ -22,7 +22,7 @@ Standards-Version: 3.9.1
 Homepage: http://www.openldap.org/
 Vcs-Git: git://anonscm.debian.org/pkg-openldap/openldap.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-openldap/openldap.git
-XS-Pexip-Upstream: http://ftp.debian.org/debian/ jessie
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ stretch
 
 Package: slapd
 Section: net
