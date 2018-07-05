@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2014 The OpenLDAP Foundation.
+ * Copyright 1999-2016 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -251,6 +251,7 @@ retry:;
 		Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] mc=%p: "
 			"empty dn with non-empty cred: error\n",
 			op->o_log_prefix, candidate, (void *)mc );
+		rc = LDAP_OTHER;
 		goto other;
 	}
 
@@ -335,7 +336,7 @@ down:;
 
 		if ( *mcp == NULL ) {
 			retcode = META_SEARCH_ERR;
-			rs->sr_err = LDAP_UNAVAILABLE;
+			rc = LDAP_UNAVAILABLE;
 			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 			break;
 		}
@@ -353,7 +354,6 @@ other:;
 			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( mi, mc, 0 );
 			*mcp = NULL;
-			rs->sr_err = rc;
 
 			retcode = META_SEARCH_ERR;
 
@@ -1526,8 +1526,9 @@ really_bad:;
 							Debug( LDAP_DEBUG_TRACE, "%s.\n", buf, 0, 0 );
 	
 						} else {
-							Debug( LDAP_DEBUG_ANY, "%s (%s).\n",
-								buf, ldap_err2string( candidates[ i ].sr_err ), 0 );
+							Debug( LDAP_DEBUG_ANY, "%s (%s) text=\"%s\".\n",
+								buf, ldap_err2string( candidates[ i ].sr_err ),
+								candidates[ i ].sr_text ? candidates[i].sr_text : "" );
 						}
 					}
 	
@@ -1627,8 +1628,6 @@ err_pr:;
 								}
 							}
 #endif /* SLAPD_META_CLIENT_PR */
-
-							ldap_controls_free( ctrls );
 						}
 						/* fallthru */
 
@@ -1650,6 +1649,7 @@ err_pr:;
 							|| META_BACK_ONERR_STOP( mi ) )
 						{
 							const char *save_text = rs->sr_text;
+got_err:
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
 							rs->sr_text = candidates[ i ].sr_text;
@@ -1658,27 +1658,19 @@ err_pr:;
 							op->o_private = savepriv;
 							ldap_msgfree( res );
 							res = NULL;
+							ldap_controls_free( ctrls );
 							goto finish;
 						}
 						break;
 	
 					default:
 						candidates[ i ].sr_err = rs->sr_err;
-						if ( META_BACK_ONERR_STOP( mi ) ) {
-							const char *save_text = rs->sr_text;
-							savepriv = op->o_private;
-							op->o_private = (void *)i;
-							rs->sr_text = candidates[ i ].sr_text;
-							send_ldap_result( op, rs );
-							rs->sr_text = save_text;
-							op->o_private = savepriv;
-							ldap_msgfree( res );
-							res = NULL;
-							goto finish;
-						}
+						if ( META_BACK_ONERR_STOP( mi ) )
+							goto got_err;
 						break;
 					}
 	
+					ldap_controls_free( ctrls );
 					last = i;
 					rc = 0;
 	

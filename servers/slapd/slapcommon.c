@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2014 The OpenLDAP Foundation.
+ * Copyright 1998-2016 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -437,6 +437,7 @@ slap_tool_init(
 			}
 
 			if ( ludp->lud_dn != NULL && ludp->lud_dn[0] != '\0' ) {
+				ch_free( subtree );
 				subtree = ludp->lud_dn;
 				ludp->lud_dn = NULL;
 			}
@@ -522,6 +523,7 @@ slap_tool_init(
 			case SLAPCAT:
 			case SLAPSCHEMA:
 				/* dump subtree */
+				ch_free( subtree );
 				subtree = ch_strdup( optarg );
 				break;
 			}
@@ -996,6 +998,7 @@ slap_tool_update_ctxcsn(
 				fprintf( stderr, "%s: couldn't create context entry\n", progname );
 				rc = EXIT_FAILURE;
 			}
+			entry_free( ctxcsn_e );
 		} else {
 			fprintf( stderr, "%s: context entry is missing\n", progname );
 			rc = EXIT_FAILURE;
@@ -1003,9 +1006,14 @@ slap_tool_update_ctxcsn(
 	} else {
 		ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
 		if ( ctxcsn_e != NULL ) {
+			Operation op = { 0 };
 			Entry *e = entry_dup( ctxcsn_e );
-			int change;
 			Attribute *attr = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
+
+			int change;
+			op.o_bd = be;
+			be_entry_release_r( &op, ctxcsn_e );
+
 			if ( attr ) {
 				int		i;
 

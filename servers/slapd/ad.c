@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2014 The OpenLDAP Foundation.
+ * Copyright 1998-2016 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -769,7 +769,8 @@ int slap_bv2undef_ad(
 
 		desc->ad_cname.bv_len = bv->bv_len;
 		desc->ad_cname.bv_val = (char *)(desc+1);
-		strcpy(desc->ad_cname.bv_val, bv->bv_val);
+		strncpy(desc->ad_cname.bv_val, bv->bv_val, bv->bv_len);
+		desc->ad_cname.bv_val[bv->bv_len] = '\0';
 
 		/* canonical to upper case */
 		ldap_pvt_str2upper( desc->ad_cname.bv_val );

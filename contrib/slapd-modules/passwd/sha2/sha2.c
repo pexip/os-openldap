@@ -220,9 +220,9 @@ typedef u_int64_t sha2_word64;	/* Exactly 8 bytes */
  * library -- they are intended for private internal visibility/use
  * only.
  */
-void SHA512_Last(SHA512_CTX*);
-void SHA256_Transform(SHA256_CTX*, const sha2_word32*);
-void SHA512_Transform(SHA512_CTX*, const sha2_word64*);
+static void SHA512_Last(SHA512_CTX*);
+static void SHA256_Transform(SHA256_CTX*, const sha2_word32*);
+static void SHA512_Transform(SHA512_CTX*, const sha2_word64*);
 
 
 /*** SHA-XYZ INITIAL HASH VALUES AND CONSTANTS ************************/
@@ -568,6 +568,7 @@ void SHA256_Update(SHA256_CTX* context, const sha2_byte *data, size_t len) {
 
 void SHA256_Final(sha2_byte digest[], SHA256_CTX* context) {
 	sha2_word32	*d = (sha2_word32*)digest;
+	sha2_word64 *p;
 	unsigned int	usedspace;
 
 	/* Sanity check: */
@@ -605,7 +606,8 @@ void SHA256_Final(sha2_byte digest[], SHA256_CTX* context) {
 			*context->buffer = 0x80;
 		}
 		/* Set the bit count: */
-		*(sha2_word64*)&context->buffer[SHA256_SHORT_BLOCK_LENGTH] = context->bitcount;
+		p = (sha2_word64 *)&context->buffer[SHA256_SHORT_BLOCK_LENGTH];
+		*p = context->bitcount;
 
 		/* Final transform: */
 		SHA256_Transform(context, (sha2_word32*)context->buffer);
@@ -889,6 +891,7 @@ void SHA512_Update(SHA512_CTX* context, const sha2_byte *data, size_t len) {
 }
 
 void SHA512_Last(SHA512_CTX* context) {
+	sha2_word64 *p;
 	unsigned int	usedspace;
 
 	usedspace = (context->bitcount[0] >> 3) % SHA512_BLOCK_LENGTH;
@@ -922,8 +925,9 @@ void SHA512_Last(SHA512_CTX* context) {
 		*context->buffer = 0x80;
 	}
 	/* Store the length of input data (in bits): */
-	*(sha2_word64*)&context->buffer[SHA512_SHORT_BLOCK_LENGTH] = context->bitcount[1];
-	*(sha2_word64*)&context->buffer[SHA512_SHORT_BLOCK_LENGTH+8] = context->bitcount[0];
+	p = (sha2_word64 *)&context->buffer[SHA512_SHORT_BLOCK_LENGTH];
+	p[0] = context->bitcount[1];
+	p[1] = context->bitcount[0];
 
 	/* Final transform: */
 	SHA512_Transform(context, (sha2_word64*)context->buffer);
