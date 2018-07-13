@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2014 The OpenLDAP Foundation.
+ * Copyright 2000-2016 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -210,6 +210,31 @@ mdb_filter_candidates(
 			(unsigned long) f->f_choice, 0, 0 );
 		/* Must not return NULL, otherwise extended filters break */
 		MDB_IDL_ALL( ids );
+	}
+	if ( ids[2] == NOID && MDB_IDL_IS_RANGE( ids )) {
+		struct mdb_info *mdb = (struct mdb_info *) op->o_bd->be_private;
+		ID last;
+
+		if ( mdb->mi_nextid ) {
+			last = mdb->mi_nextid;
+		} else {
+			MDB_cursor *mc;
+			MDB_val key;
+
+			last = 0;
+			rc = mdb_cursor_open( rtxn, mdb->mi_id2entry, &mc );
+			if ( !rc ) {
+				rc = mdb_cursor_get( mc, &key, NULL, MDB_LAST );
+				if ( !rc )
+					memcpy( &last, key.mv_data, sizeof( last ));
+				mdb_cursor_close( mc );
+			}
+		}
+		if ( last ) {
+			ids[2] = last;
+		} else {
+			MDB_IDL_ZERO( ids );
+		}
 	}
 
 out:

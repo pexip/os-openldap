@@ -108,7 +108,7 @@
 #    --enable-slapi        enable SLAPI support (experimental) [no]
 --enable-slapi
 #    --enable-slp          enable SLPv2 support [no]
---enable-slp
+--disable-slp
 #    --enable-wrappers	  enable tcp wrapper support [no]
 --enable-wrappers
 #

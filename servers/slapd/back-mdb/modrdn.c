@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2014 The OpenLDAP Foundation.
+ * Copyright 2000-2016 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -383,7 +383,7 @@ txnReturn:
 				rs->sr_err = LDAP_OTHER;
 				goto return_results;
 			}
-			new_parent_dn = &np->e_name;
+			np_dn = &np->e_name;
 
 		} else {
 			np_dn = NULL;

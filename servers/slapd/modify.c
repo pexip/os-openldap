@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2014 The OpenLDAP Foundation.
+ * Copyright 1998-2016 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -747,7 +747,6 @@ slap_sort_vals(
 				if ( match == 0 ) goto done;
 			}
 			if ( jstack == 0 ) break;
-			if ( match == 0 ) break;
 			ir = istack[jstack--];
 			l = istack[jstack--];
 		} else {
