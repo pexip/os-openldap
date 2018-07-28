@@ -31,3 +31,4 @@ ITS-8385-Fix-use-after-free-with-GnuTLS.patch
 ITS-8432-fix-infinite-looping-mods-in-delta-mmr.patch
 ITS-8648-check-result-of-ldap_int_initialize-in-ldap.patch
 ITS-8648-init-SASL-library-in-global-init.patch
+ITS-8444-Do-not-clear-the-pending-operation-when-che.patch

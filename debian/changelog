@@ -1,3 +1,21 @@
+openldap (2.4.44+dfsg-5+deb9u2pexip1) pexip; urgency=medium
+
+  * New upstream release
+
+ -- John-Mark Bell <jmb@pexip.com>  Sat, 28 Jul 2018 23:25:14 +0100
+
+openldap (2.4.44+dfsg-5+deb9u2) stretch; urgency=medium
+
+  * Import upstream patch to fix an out-of-sync issue with delta-syncrepl
+    replication in multi-master environments, resulting from changes losing
+    tracking information and being applied multiple times.
+    (ITS#8444) (Closes: #877166)
+  * Really fix upgrades when the config contains backslash-escaped special
+    characters. The previous fix was incomplete and didn't fully fix upgrades
+    involving a database reload. (Closes: #864719)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Tue, 22 May 2018 21:25:19 -0700
+
 openldap (2.4.44+dfsg-5+deb9u1pexip1) pexip; urgency=medium
 
   * Migrate to Stretch
