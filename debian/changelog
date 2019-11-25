@@ -1,3 +1,20 @@
+openldap (2.4.44+dfsg-5+deb9u3pexip1) pexip; urgency=medium
+
+  * New upstream release
+
+ -- Vincent Sanders <vince@pexip.com>  Fri, 22 Nov 2019 17:07:45 +0000
+
+openldap (2.4.44+dfsg-5+deb9u3) stretch; urgency=medium
+
+  * Fix slapd to restrict rootDN proxyauthz to its own databases
+    (CVE-2019-13057) (ITS#9038) (Closes: #932997)
+  * Fix slapd to enforce sasl_ssf ACL statement on every connection
+    (CVE-2019-13565) (ITS#9052) (Closes: #932998)
+  * Fix slapo-rwm to not free original filter when rewritten filter is invalid
+    (ITS#8964) (Closes: #934277, LP: #1838370)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Sat, 10 Aug 2019 12:17:00 -0700
+
 openldap (2.4.44+dfsg-5+deb9u2pexip1) pexip; urgency=medium
 
   * New upstream release
