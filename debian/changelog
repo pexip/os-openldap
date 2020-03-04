@@ -1,3 +1,10 @@
+openldap (2.4.47+dfsg-3+deb10u1pexip1) pexip; urgency=medium
+
+  * Migrate to Buster
+  * Reintroduce fix for use of OpenSSL instead of GnuTLS
+
+ -- Vincent Sanders <vince@pexip.com>  Wed, 04 Mar 2020 10:59:18 +0000
+
 openldap (2.4.47+dfsg-3+deb10u1) buster; urgency=medium
 
   * Fix slapd to restrict rootDN proxyauthz to its own databases
