@@ -1,3 +1,10 @@
+openldap (2.4.47+dfsg-3+deb10u2) buster-security; urgency=high
+
+  * Fix slapd to limit depth of nested expressions in search filters
+    (ITS#9202)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Mon, 20 Apr 2020 11:19:54 -0700
+
 openldap (2.4.47+dfsg-3+deb10u1) buster; urgency=medium
 
   * Fix slapd to restrict rootDN proxyauthz to its own databases
