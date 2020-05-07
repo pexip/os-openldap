@@ -1,3 +1,16 @@
+openldap (2.4.44+dfsg-5+deb9u4pexip1) pexip; urgency=medium
+
+  * New upstream release
+
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 07 May 2020 12:28:39 +0100
+
+openldap (2.4.44+dfsg-5+deb9u4) stretch-security; urgency=high
+
+  * Fix slapd to limit depth of nested expressions in search filters
+    (ITS#9202)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Mon, 20 Apr 2020 11:21:37 -0700
+
 openldap (2.4.44+dfsg-5+deb9u3pexip1) pexip; urgency=medium
 
   * New upstream release
