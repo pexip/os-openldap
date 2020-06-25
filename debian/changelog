@@ -1,3 +1,9 @@
+openldap (2.4.47+dfsg-3+deb10u2pexip1) pexip; urgency=medium
+
+  * Migrate to Buster
+
+ -- Vincent Sanders <vince@pexip.com>  Thu, 25 Jun 2020 12:52:44 +0000
+
 openldap (2.4.47+dfsg-3+deb10u2) buster-security; urgency=high
 
   * Fix slapd to limit depth of nested expressions in search filters
