@@ -1,7 +1,13 @@
+openldap (2.4.47+dfsg-3+deb10u3) buster-security; urgency=high
+
+  * Fix slapd normalization handling with modrdn (ITS#9370)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Thu, 29 Oct 2020 18:36:26 -0700
+
 openldap (2.4.47+dfsg-3+deb10u2) buster-security; urgency=high
 
   * Fix slapd to limit depth of nested expressions in search filters
-    (ITS#9202)
+    (ITS#9202) (CVE-2020-12243)
 
  -- Ryan Tandy <ryan@nardis.ca>  Mon, 20 Apr 2020 11:19:54 -0700
 
