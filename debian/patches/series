@@ -27,3 +27,4 @@ ITS-9038-Another-test028-typo.patch
 ITS-9052-zero-out-sasl_ssf-in-connection_init.patch
 ITS-8964-Do-not-free-original-filter.patch
 ITS-9202-limit-depth-of-nested-filters.patch
+ITS-9370-check-for-equality-rule-on-old_rdn.patch
