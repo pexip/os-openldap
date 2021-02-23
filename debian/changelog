@@ -1,3 +1,16 @@
+openldap (2.4.47+dfsg-3+deb10u6pexip1) pexip; urgency=medium
+
+  * New upstream version
+
+ -- Steve McIntyre <steve.mcintyre@pexip.com>  Tue, 23 Feb 2021 10:00:53 +0000
+
+openldap (2.4.47+dfsg-3+deb10u6) buster-security; urgency=high
+
+  * Fix slapd assertion failure in Certificate List Exact Assertion validation
+    (ITS#9454) (CVE-2021-27212)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Sun, 14 Feb 2021 10:32:34 -0800
+
 openldap (2.4.47+dfsg-3+deb10u5pexip1) pexip; urgency=medium
 
   * New upstream version
