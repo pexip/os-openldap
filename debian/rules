@@ -31,7 +31,7 @@ ifneq ($(filter pkg.openldap.noslapd,$(DEB_BUILD_PROFILES)),)
 	CONFIG += --disable-slapd
 endif
 
-CONTRIB_MODULES = autogroup lastbind passwd passwd/argon2 passwd/pbkdf2 passwd/sha2 smbk5pwd
+CONTRIB_MODULES = autogroup lastbind passwd passwd/argon2 passwd/pbkdf2 passwd/sha2
 
 # Ensure CC is set correctly for cross builds, unless it has already
 # been set explicitly.
