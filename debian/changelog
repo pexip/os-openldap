@@ -1,3 +1,12 @@
+openldap (2.4.57+dfsg-3+deb11u1pexip4) pexip-bullseye; urgency=medium
+
+  * Build-Depend on libssl3-dev
+  * debian/patches/openssl3-support.patch: Remove use of API deprecated in
+    OpenSSL 3.
+  * debian/rules: Disable smbk5pwd module
+
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 10 Nov 2022 18:49:34 +0000
+
 openldap (2.4.57+dfsg-3+deb11u1pexip3) pexip-bullseye; urgency=medium
 
   * Bullseye rebuild for ARM64 inclusion
