@@ -24,3 +24,4 @@ ITS-9454-fix-issuerAndThisUpdateCheck.patch
 ITS-9815-slapd-sql-escape-filter-values.patch
 
 no-openssl-locking-callbacks
+openssl3-support.patch

@@ -1,0 +1,162 @@
+diff --git a/libraries/libldap/tls_o.c b/libraries/libldap/tls_o.c
+index b0277df..361da1d 100644
+--- a/libraries/libldap/tls_o.c
++++ b/libraries/libldap/tls_o.c
+@@ -156,6 +156,88 @@ BIO_meth_free( BIO_METHOD *meth )
+ 
+ #endif /* OpenSSL 1.1 */
+ 
++#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
++#include "openssl/core_dispatch.h"
++#include "openssl/decoder.h"
++#else
++#include <assert.h>
++#define OSSL_LIB_CTX void
++#define OSSL_KEYMGMT_SELECT_ALL_PARAMETERS (0x84)
++
++typedef struct {
++    EVP_PKEY **pkey;
++} OSSL_DECODER_CTX;
++
++static OSSL_DECODER_CTX *OSSL_DECODER_CTX_new_for_pkey(EVP_PKEY **pkey,
++    const char *input_type, const char *input_struct, const char *keytype,
++    int selection, OSSL_LIB_CTX *libctx, const char *propquery)
++{
++    OSSL_DECODER_CTX *ctx;
++
++    assert(pkey != NULL && *pkey != NULL);
++    assert(strcmp(input_type, "PEM") == 0);
++    assert(keytype == NULL);
++    assert(input_struct == NULL && libctx == NULL && propquery == NULL);
++    assert(selection == OSSL_KEYMGMT_SELECT_ALL_PARAMETERS);
++
++    ctx = malloc(sizeof(*ctx));
++    if (ctx != NULL) {
++        ctx->pkey = pkey;
++    }
++
++    return ctx;
++}
++
++static void OSSL_DECODER_CTX_free(OSSL_DECODER_CTX *ctx)
++{
++    free(ctx);
++}
++
++static int OSSL_DECODER_from_bio(OSSL_DECODER_CTX *ctx, BIO *bio)
++{
++    DH *dh = NULL;
++    EVP_PKEY *pkey;
++
++    if (ctx == NULL || bio == NULL)
++        return 0;
++
++    if (PEM_read_bio_DHparams(bio, &dh, NULL, NULL) == NULL)
++        return 0;
++
++    pkey = EVP_PKEY_new();
++    if (key == NULL) {
++        DH_free(dh);
++        return 0;
++    }
++    if (EVP_PKEY_assign_DH(pkey, dh) == 0) {
++        EVP_PKEY_free(pkey);
++        DH_free(dh);
++        return 0;
++    }
++
++    *ctx->pkey = pkey;
++
++    return 1;
++}
++
++static int SSL_CTX_set0_tmp_dh_pkey(SSL_CTX *ctx, EVP_PKEY *pkey)
++{
++    DH *dh = EVP_PKEY_get1_DH(pkey);
++
++    if (dh == NULL)
++        return 0;
++
++    if (SSL_CTX_set_tmp_dh(ctx, dh) == 0) {
++        DH_free(dh);
++        return 0;
++    }
++
++    EVP_PKEY_free(pkey);
++    return 1;
++}
++
++#endif /* OpenSSL 3 */
++
+ static STACK_OF(X509_NAME) *
+ tlso_ca_list( char * bundle, char * dir )
+ {
+@@ -375,28 +457,40 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
+ 	}
+ 
+ 	if ( is_server && lo->ldo_tls_dhfile ) {
+-		DH *dh;
++		OSSL_DECODER_CTX *dctx = NULL;
++		EVP_PKEY *dh = NULL;
+ 		BIO *bio;
+ 
++		if (( dctx=OSSL_DECODER_CTX_new_for_pkey( &dh, "PEM", NULL, NULL,
++				OSSL_KEYMGMT_SELECT_ALL_PARAMETERS, NULL, NULL ))
++				== NULL ) {
++			Debug( LDAP_DEBUG_ANY,
++				"TLS: could not use DH parameters file `%s'.\n",
++				lo->ldo_tls_dhfile,0,0);
++			tlso_report_error();
++			return -1;
++		}
+ 		if (( bio=BIO_new_file( lt->lt_dhfile,"r" )) == NULL ) {
+ 			Debug( LDAP_DEBUG_ANY,
+ 				"TLS: could not use DH parameters file `%s'.\n",
+ 				lo->ldo_tls_dhfile,0,0);
+ 			tlso_report_error();
++			OSSL_DECODER_CTX_free( dctx );
+ 			return -1;
+ 		}
+-		if (!( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
++		if (!( OSSL_DECODER_from_bio( dctx, bio ))) {
+ 			Debug( LDAP_DEBUG_ANY,
+ 				"TLS: could not read DH parameters file `%s'.\n",
+ 				lo->ldo_tls_dhfile,0,0);
+ 			tlso_report_error();
+ 			BIO_free( bio );
++			OSSL_DECODER_CTX_free( dctx );
+ 			return -1;
+ 		}
+ 		BIO_free( bio );
+-		SSL_CTX_set_tmp_dh( ctx, dh );
++		OSSL_DECODER_CTX_free( dctx );
++		SSL_CTX_set0_tmp_dh_pkey( ctx, dh );
+ 		SSL_CTX_set_options( ctx, SSL_OP_SINGLE_DH_USE );
+-		DH_free( dh );
+ 	}
+ 
+ 	if ( lo->ldo_tls_ecname ) {
+@@ -581,7 +676,11 @@ tlso_get_cert( SSL *s )
+ 	if (SSL_get_verify_result(s)) {
+ 		return NULL;
+ 	}
++#if OPENSSL_VERSION_NUMBER < 0x30000000L
+ 	return SSL_get_peer_certificate(s);
++#else
++	return SSL_get1_peer_certificate(s);
++#endif
+ }
+ 
+ static int
+@@ -1156,7 +1255,11 @@ tlso_report_error( void )
+ 	const char *file;
+ 	int line;
+ 
++#if OPENSSL_VERSION_NUMBER < 0x30000000L
+ 	while ( ( l = ERR_get_error_line( &file, &line ) ) != 0 ) {
++#else
++	while ( ( l = ERR_get_error_all( &file, &line, NULL, NULL, NULL ) ) != 0 ) {
++#endif
+ 		ERR_error_string_n( l, buf, sizeof( buf ) );
+ #ifdef HAVE_EBCDIC
+ 		if ( file ) {
