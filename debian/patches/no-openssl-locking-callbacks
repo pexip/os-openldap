@@ -1,0 +1,22 @@
+diff --git a/libraries/libldap/tls_o.c b/libraries/libldap/tls_o.c
+index b0277df..092f20b 100644
+--- a/libraries/libldap/tls_o.c
++++ b/libraries/libldap/tls_o.c
+@@ -106,11 +106,13 @@ static void tlso_thr_init( void )
+ {
+ 	int i;
+ 
+-	for( i=0; i< CRYPTO_NUM_LOCKS ; i++ ) {
+-		ldap_pvt_thread_mutex_init( &tlso_mutexes[i] );
++	if ( !CRYPTO_get_locking_callback() ) {
++		for( i=0; i< CRYPTO_NUM_LOCKS ; i++ ) {
++			ldap_pvt_thread_mutex_init( &tlso_mutexes[i] );
++		}
++		CRYPTO_set_locking_callback( tlso_locking_cb );
++		CRYPTO_set_id_callback( tlso_thread_self );
+ 	}
+-	CRYPTO_set_locking_callback( tlso_locking_cb );
+-	CRYPTO_set_id_callback( tlso_thread_self );
+ }
+ #endif /* LDAP_R_COMPILE */
+ #else
