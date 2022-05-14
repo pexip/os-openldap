@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 2005-2018 The OpenLDAP Foundation.
+## Copyright 2005-2021 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,7 @@ sdf-img: \
 	intro_tree.png \
 	ldap-sync-refreshandpersist.png \
 	ldap-sync-refreshonly.png \
-	n-way-multi-master.png \
+	n-way-multi-provider.png \
 	push-based-complete.png \
 	push-based-standalone.png \
 	refint.png \

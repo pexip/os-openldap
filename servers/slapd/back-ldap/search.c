@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2018 The OpenLDAP Foundation.
+ * Copyright 1999-2021 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -1006,6 +1006,7 @@ retry:
 	e = ldap_first_entry( lc->lc_ld, result );
 	if ( e == NULL ) {
 		/* the entry exists, but it doesn't match the filter? */
+		rc = LDAP_NO_RESULTS_RETURNED;
 		goto cleanup;
 	}
 

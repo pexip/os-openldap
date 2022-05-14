@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2011-2018 The OpenLDAP Foundation.
+ * Copyright 2011-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -193,6 +193,17 @@ int mdb_tool_entry_close(
 			return -1;
 		}
 		mdb_tool_txn = NULL;
+	}
+	if( txi ) {
+		int rc;
+		if (( rc = mdb_txn_commit( txi ))) {
+			Debug( LDAP_DEBUG_ANY,
+				LDAP_XSTRING(mdb_tool_entry_close) ": database %s: "
+				"txn_commit failed: %s (%d)\n",
+				be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
+			return -1;
+		}
+		txi = NULL;
 	}
 
 	if( nholes ) {

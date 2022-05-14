@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2018 The OpenLDAP Foundation.
+ * Copyright 2000-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -160,6 +160,12 @@ static int search_aliases(
 		curscop, visited );
 	if (rs->sr_err != LDAP_SUCCESS || MDB_IDL_IS_ZERO( aliases )) {
 		return rs->sr_err;
+	}
+	if ( op->ors_limit	/* isroot == FALSE */ &&
+		op->ors_limit->lms_s_unchecked != -1 &&
+		MDB_IDL_N( aliases ) > (unsigned) op->ors_limit->lms_s_unchecked )
+	{
+		return LDAP_ADMINLIMIT_EXCEEDED;
 	}
 	oldsubs[0] = 1;
 	oldsubs[1] = e_id;
@@ -325,7 +331,7 @@ typedef struct ww_ctx {
 	ID key;
 	MDB_val data;
 	int flag;
-	int nentries;
+	unsigned nentries;
 } ww_ctx;
 
 /* ITS#7904 if we get blocked while writing results to client,
@@ -665,6 +671,10 @@ dn2entry_retry:
 		scopes[1].mval.mv_data = NULL;
 		rs->sr_err = search_candidates( op, rs, base,
 			&isc, mci, candidates, stack );
+
+		if ( rs->sr_err == LDAP_ADMINLIMIT_EXCEEDED )
+			goto adminlimit;
+
 		ncand = MDB_IDL_N( candidates );
 		if ( !base->e_id || ncand == NOID ) {
 			/* grab entry count from id2entry stat
@@ -696,6 +706,7 @@ dn2entry_retry:
 		ncand > (unsigned) op->ors_limit->lms_s_unchecked )
 	{
 		rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+adminlimit:
 		send_ldap_result( op, rs );
 		rs->sr_err = LDAP_SUCCESS;
 		goto done;
@@ -708,6 +719,7 @@ dn2entry_retry:
 	}
 
 	wwctx.flag = 0;
+	wwctx.nentries = 0;
 	/* If we're running in our own read txn */
 	if (  moi == &opinfo ) {
 		cb.sc_writewait = mdb_writewait;

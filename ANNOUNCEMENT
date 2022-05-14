@@ -9,7 +9,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.4
 
         * Slapd(8) enhancements
             - Syncrepl enhancements, including push-mode and
-              Multi-Master support
+              Multi-Provider support
             - Dynamic configuration enhancements, including
               online schema editing and full access control
             - Dynamic monitoring enhancements, including
@@ -106,6 +106,6 @@ SUPPORTED PLATFORMS
 ---
 OpenLDAP is a registered trademark of the OpenLDAP Foundation.
 
-Copyright 1999-2018 The OpenLDAP Foundation, Redwood City,
+Copyright 1999-2021 The OpenLDAP Foundation, Redwood City,
 California, USA.  All Rights Reserved.  Permission to copy and
 distribute verbatim copies of this document is granted.

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -541,6 +541,23 @@ Connection * connection_init(
 		Debug( LDAP_DEBUG_ANY,
 			"connection_init(%d, %s): set nonblocking failed\n",
 			s, c->c_peer_name.bv_val, 0 );
+
+		c->c_listener = NULL;
+		if(c->c_peer_domain.bv_val != NULL) {
+			free(c->c_peer_domain.bv_val);
+		}
+		BER_BVZERO( &c->c_peer_domain );
+		if(c->c_peer_name.bv_val != NULL) {
+			free(c->c_peer_name.bv_val);
+		}
+		BER_BVZERO( &c->c_peer_name );
+
+		ber_sockbuf_free( c->c_sb );
+		c->c_sb = NULL;
+		c->c_sd = AC_SOCKET_INVALID;
+		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+
+		return NULL;
 	}
 
 	ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
@@ -554,7 +571,7 @@ Connection * connection_init(
 	c->c_close_reason = "?";			/* should never be needed */
 
 	c->c_ssf = c->c_transport_ssf = ssf;
-	c->c_tls_ssf = 0;
+	c->c_tls_ssf = c->c_sasl_ssf = 0;
 
 #ifdef HAVE_TLS
 	if ( flags & CONN_IS_TLS ) {

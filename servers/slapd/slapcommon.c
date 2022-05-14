@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -794,7 +794,7 @@ slap_tool_init(
 			break;
 		}
 
-		/* If the named base is a glue master, operate on the
+		/* If the named base is a glue primary, operate on the
 		 * entire context
 		 */
 		if ( SLAP_GLUE_INSTANCE( be ) ) {
@@ -822,7 +822,7 @@ slap_tool_init(
 				continue;
 
 		/* If just doing the first by default and it is a
-		 * glue subordinate, find the master.
+		 * glue subordinate, find the primary.
 		 */
 			if ( SLAP_GLUE_SUBORDINATE(be) ) {
 				nosubordinates = 1;

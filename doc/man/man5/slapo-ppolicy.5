@@ -1,5 +1,5 @@
 .TH SLAPO_PPOLICY 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2004-2018 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 2004-2021 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -36,6 +36,9 @@ when considering a single-valued password attribute, while
 the userPassword attribute allows multiple values.  This implementation
 enforces a single value for the userPassword attribute, despite
 its specification.
+.P
+In addition to supporting the IETF Password Policy, this module can
+send the Netscape Password validity controls when configured to do so.
 
 .SH CONFIGURATION
 These 
@@ -53,7 +56,7 @@ and no default is given, then no policies will be enforced.
 .B ppolicy_forward_updates
 Specify that policy state changes that result from Bind operations (such
 as recording failures, lockout, etc.) on a consumer should be forwarded
-to a master instead of being written directly into the consumer's local
+to a provider instead of being written directly into the consumer's local
 database. This setting is only useful on a replication consumer, and
 also requires the
 .B updateref
@@ -84,6 +87,12 @@ that sending the
 error code provides useful information
 to an attacker; sites that are sensitive to security issues should not
 enable this option.
+.TP
+.B ppolicy_send_netscape_controls
+If set, ppolicy will send the password policy expired (2.16.840.1.113730.3.4.4)
+and password policy expiring (2.16.840.1.113730.3.4.5) controls when
+appropriate. The controls are not sent for bind requests where the Password
+policy control has already been requested. Default is not to send the controls.
 
 .SH OBJECT CLASS
 The 
@@ -552,12 +561,12 @@ module.
 Note that the current IETF Password Policy proposal does not define
 how these operational attributes are expected to behave in a
 replication environment. In general, authentication attempts on
-a slave server only affect the copy of the operational attributes
-on that slave and will not affect any attributes for
-a user's entry on the master server. Operational attribute changes
-resulting from authentication attempts on a master server
-will usually replicate to the slaves (and also overwrite
-any changes that originated on the slave). 
+a replica server only affect the copy of the operational attributes
+on that replica and will not affect any attributes for
+a user's entry on the provider. Operational attribute changes
+resulting from authentication attempts on a provider
+will usually replicate to the replicas (and also overwrite
+any changes that originated on the replica). 
 These behaviors are not guaranteed and are subject to change
 when a formal specification emerges.
 
@@ -741,7 +750,7 @@ logins are known as "\fIgrace logins\fP".
 If too many
 .I grace logins
 have been used (please refer to the
-.B pwdGraceLoginLimit
+.B pwdGraceAuthnLimit
 password policy attribute), then the DN will no longer be allowed
 to be used to authenticate the user to the directory until the
 administrator changes the DN's

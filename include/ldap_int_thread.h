@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -180,10 +180,13 @@ typedef HANDLE	ldap_int_thread_mutex_t;
 typedef HANDLE	ldap_int_thread_cond_t;
 typedef DWORD	ldap_int_thread_key_t;
 
+LDAP_F( int )
+ldap_int_mutex_firstcreate LDAP_P(( ldap_int_thread_mutex_t *mutex ));
+
 #ifndef LDAP_INT_MUTEX_NULL
 #define LDAP_INT_MUTEX_NULL		((HANDLE)0)
 #define LDAP_INT_MUTEX_FIRSTCREATE(m) \
-		((void) ((m) || ldap_pvt_thread_mutex_init(&(m))))
+		ldap_int_mutex_firstcreate(&(m))
 #endif
 
 LDAP_END_DECL

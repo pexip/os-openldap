@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1500,7 +1500,7 @@ fe_acl_group(
 					 * or if filter parsing fails.
 					 * In the latter case,
 					 * we should give up. */
-					if ( ludp->lud_filter != NULL && ludp->lud_filter != '\0') {
+					if ( ludp->lud_filter != NULL && *ludp->lud_filter != '\0') {
 						filter = str2filter_x( op, ludp->lud_filter );
 						if ( filter == NULL ) {
 							/* give up... */

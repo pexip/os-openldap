@@ -1,5 +1,5 @@
 .TH SLAPD-META 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 1998-2018 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copyright 1998-2021 The OpenLDAP Foundation, All Rights Reserved.
 .\" Copying restrictions apply.  See the COPYRIGHT file.
 .\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
 .\" $OpenLDAP$
@@ -312,25 +312,6 @@ If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
 .TP
-.B client\-pr {accept-unsolicited|DISABLE|<size>}
-This feature allows one to use RFC 2696 Paged Results control when performing
-search operations with a specific target,
-irrespective of the client's request.
-When set to a numeric value, Paged Results control is always
-used with \fIsize\fP as the page size.
-When set to \fIaccept-unsolicited\fP, unsolicited Paged Results
-control responses are accepted and honored
-for compatibility with broken remote DSAs.
-The client is not exposed to paged results handling
-between
-.BR slapd\-meta (5)
-and the remote servers.
-By default (disabled), Paged Results control is not used
-and responses are not accepted.
-If set before any target specification, it affects all targets, unless
-overridden by any per-target directive.
-
-.TP
 .B default\-target [<target>]
 The "default\-target" directive can also be used during target specification.
 With no arguments it marks the current target as the default.
@@ -380,7 +361,9 @@ for details on the syntax of this field.
 .B [tls_cacert=<file>]
 .B [tls_cacertdir=<path>]
 .B [tls_reqcert=never|allow|try|demand]
+.B [tls_reqsan=never|allow|try|demand]
 .B [tls_cipher_suite=<ciphers>]
+.B [tls_ecname=<ciphers>]
 .B [tls_protocol_min=<major>[.<minor>]]
 .B [tls_crlcheck=none|peer|all]
 .RS
@@ -530,7 +513,9 @@ is recommended.
 The TLS settings default to the same as the main slapd TLS settings,
 except for
 .B tls_reqcert
-which defaults to "demand".
+which defaults to "demand", and
+.B tls_reqsan
+which defaults to "allow"..
 
 The identity associated to this directive is also used for privileged
 operations whenever \fBidassert\-bind\fP is defined and \fBacl\-bind\fP

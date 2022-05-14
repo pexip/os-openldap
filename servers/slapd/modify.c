@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -276,7 +276,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	/*
 	 * do the modify if 1 && (2 || 3)
 	 * 1) there is a modify function implemented in this backend;
-	 * 2) this backend is master for what it holds;
+	 * 2) this backend is the provider for what it holds;
 	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
 	if ( op->o_bd->be_modify ) {

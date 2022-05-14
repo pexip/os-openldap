@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1639,8 +1639,10 @@ typedef struct slap_bindconf {
 	char *sb_tls_cacert;
 	char *sb_tls_cacertdir;
 	char *sb_tls_reqcert;
+	char *sb_tls_reqsan;
 	char *sb_tls_cipher_suite;
 	char *sb_tls_protocol_min;
+	char *sb_tls_ecname;
 #ifdef HAVE_OPENSSL_CRL
 	char *sb_tls_crlcheck;
 #endif
@@ -1845,14 +1847,14 @@ struct BackendDB {
 #define SLAP_DBFLAG_DYNAMIC		0x0400U /* this db allows dynamicObjects */
 #define	SLAP_DBFLAG_MONITORING		0x0800U	/* custom monitoring enabled */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
-#define SLAP_DBFLAG_SINGLE_SHADOW	0x4000U	/* a single-master shadow */
+#define SLAP_DBFLAG_SINGLE_SHADOW	0x4000U	/* a single-provider shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
 #define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */
 #define SLAP_DBFLAG_SHADOW_MASK		(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SINGLE_SHADOW|SLAP_DBFLAG_SYNC_SHADOW|SLAP_DBFLAG_SLURP_SHADOW)
 #define SLAP_DBFLAG_CLEAN		0x10000U /* was cleanly shutdown */
 #define SLAP_DBFLAG_ACL_ADD		0x20000U /* check attr ACLs on adds */
 #define SLAP_DBFLAG_SYNC_SUBENTRY	0x40000U /* use subentry for context */
-#define SLAP_DBFLAG_MULTI_SHADOW	0x80000U /* uses mirrorMode/multi-master */
+#define SLAP_DBFLAG_MULTI_SHADOW	0x80000U /* uses multi-provider */
 	slap_mask_t	be_flags;
 #define SLAP_DBFLAGS(be)			((be)->be_flags)
 #define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
@@ -1958,7 +1960,7 @@ struct BackendDB {
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
 	AttributeName	*be_extra_anlist;	/* attributes that need to be added to search requests (ITS#6513) */
 
-	/* Replica Information */
+	/* Consumer Information */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
 	struct		be_pcl	*be_pending_csn_list;

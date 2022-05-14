@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2008-2018 The OpenLDAP Foundation.
+ * Copyright 2008-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,51 +67,10 @@ static int tlsg_cert_verify( tlsg_session *s );
 
 #ifdef LDAP_R_COMPILE
 
-static int
-tlsg_mutex_init( void **priv )
-{
-	int err = 0;
-	ldap_pvt_thread_mutex_t *lock = LDAP_MALLOC( sizeof( ldap_pvt_thread_mutex_t ));
-
-	if ( !lock )
-		err = ENOMEM;
-	if ( !err ) {
-		err = ldap_pvt_thread_mutex_init( lock );
-		if ( err )
-			LDAP_FREE( lock );
-		else
-			*priv = lock;
-	}
-	return err;
-}
-
-static int
-tlsg_mutex_destroy( void **lock )
-{
-	int err = ldap_pvt_thread_mutex_destroy( *lock );
-	LDAP_FREE( *lock );
-	return err;
-}
-
-static int
-tlsg_mutex_lock( void **lock )
-{
-	return ldap_pvt_thread_mutex_lock( *lock );
-}
-
-static int
-tlsg_mutex_unlock( void **lock )
-{
-	return ldap_pvt_thread_mutex_unlock( *lock );
-}
-
 static void
 tlsg_thr_init( void )
 {
-	gnutls_global_set_mutex (tlsg_mutex_init,
-		tlsg_mutex_destroy,
-		tlsg_mutex_lock,
-		tlsg_mutex_unlock);
+	/* do nothing */
 }
 #endif /* LDAP_R_COMPILE */
 
@@ -494,6 +453,7 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 {
 	tlsg_session *s = (tlsg_session *)session;
 	int i, ret;
+	int chkSAN = ld->ld_options.ldo_tls_require_san, gotSAN = 0;
 	const gnutls_datum_t *peer_cert_list;
 	unsigned int list_size;
 	char altname[NI_MAXHOST];
@@ -556,12 +516,14 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 		}
 	}
 
+	if (chkSAN) {
 	for ( i=0, ret=0; ret >= 0; i++ ) {
 		altnamesize = sizeof(altname);
 		ret = gnutls_x509_crt_get_subject_alt_name( cert, i, 
 			altname, &altnamesize, NULL );
 		if ( ret < 0 ) break;
 
+		gotSAN = 1;
 		/* ignore empty */
 		if ( altnamesize == 0 ) continue;
 
@@ -597,7 +559,44 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 	}
 	if ( ret >= 0 ) {
 		ret = LDAP_SUCCESS;
-	} else {
+	}
+	}
+	if (ret != LDAP_SUCCESS && chkSAN) {
+		switch(chkSAN) {
+		case LDAP_OPT_X_TLS_DEMAND:
+		case LDAP_OPT_X_TLS_HARD:
+			if (!gotSAN) {
+				Debug( LDAP_DEBUG_ANY,
+					"TLS: unable to get subjectAltName from peer certificate.\n", 0, 0, 0 );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: unable to get subjectAltName from peer certificate"));
+				goto done;
+			}
+			/* FALLTHRU */
+		case LDAP_OPT_X_TLS_TRY:
+			if (gotSAN) {
+				Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+					"subjectAltName in certificate.\n",
+					name, 0, 0 );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: hostname does not match subjectAltName in peer certificate"));
+				goto done;
+			}
+			break;
+		case LDAP_OPT_X_TLS_ALLOW:
+			break;
+		}
+	}
+
+	if ( ret != LDAP_SUCCESS ){
 		/* find the last CN */
 		i=0;
 		do {
@@ -652,9 +651,10 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 				LDAP_FREE( ld->ld_error );
 			}
 			ld->ld_error = LDAP_STRDUP(
-				_("TLS: hostname does not match CN in peer certificate"));
+				_("TLS: hostname does not match name in peer certificate"));
 		}
 	}
+done:
 	gnutls_x509_crt_deinit( cert );
 	return ret;
 }

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2018 The OpenLDAP Foundation.
+ * Copyright 2000-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -260,6 +260,7 @@ mdb_cf_cleanup( ConfigArgs *c )
 	}
 
 	if ( mdb->mi_flags & MDB_OPEN_INDEX ) {
+		mdb->mi_flags ^= MDB_OPEN_INDEX;
 		rc = mdb_attr_dbs_open( c->be, NULL, &c->reply );
 		if ( rc )
 			rc = LDAP_OTHER;
@@ -520,22 +521,22 @@ mdb_cf_gen( ConfigArgs *c )
 		}
 		break;
 	case MDB_CHKPT: {
-		long	l;
-		mdb->mi_txn_cp = 1;
-		if ( lutil_atolx( &l, c->argv[1], 0 ) != 0 ) {
+		unsigned cp_kbyte, cp_min;
+		if ( lutil_atoux( &cp_kbyte, c->argv[1], 0 ) != 0 ) {
 			fprintf( stderr, "%s: "
 				"invalid kbyte \"%s\" in \"checkpoint\".\n",
 				c->log, c->argv[1] );
 			return 1;
 		}
-		mdb->mi_txn_cp_kbyte = l;
-		if ( lutil_atolx( &l, c->argv[2], 0 ) != 0 ) {
+		if ( lutil_atoux( &cp_min, c->argv[2], 0 ) != 0 ) {
 			fprintf( stderr, "%s: "
 				"invalid minutes \"%s\" in \"checkpoint\".\n",
 				c->log, c->argv[2] );
 			return 1;
 		}
-		mdb->mi_txn_cp_min = l;
+		mdb->mi_txn_cp = 1;
+		mdb->mi_txn_cp_kbyte = cp_kbyte;
+		mdb->mi_txn_cp_min = cp_min;
 		/* If we're in server mode and time-based checkpointing is enabled,
 		 * submit a task to perform periodic checkpoints.
 		 */
@@ -593,7 +594,7 @@ mdb_cf_gen( ConfigArgs *c )
 		if ( c->value_int )
 			mdb->mi_dbenv_flags |= MDB_NOSYNC;
 		else
-			mdb->mi_dbenv_flags ^= MDB_NOSYNC;
+			mdb->mi_dbenv_flags &= ~MDB_NOSYNC;
 		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb_env_set_flags( mdb->mi_dbenv, MDB_NOSYNC,
 				c->value_int );
@@ -631,8 +632,8 @@ mdb_cf_gen( ConfigArgs *c )
 			c->argc - 1, &c->argv[1], &c->reply);
 
 		if( rc != LDAP_SUCCESS ) return 1;
-		mdb->mi_flags |= MDB_OPEN_INDEX;
 		if ( mdb->mi_flags & MDB_IS_OPEN ) {
+			mdb->mi_flags |= MDB_OPEN_INDEX;
 			c->cleanup = mdb_cf_cleanup;
 			if ( !mdb->mi_index_task ) {
 				/* Start the task as soon as we finish here. Set a long

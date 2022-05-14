@@ -364,6 +364,12 @@ memberof_value_modify(
 	struct berval	values[ 4 ], nvalues[ 4 ];
 	int		mcnt = 0;
 
+	if ( old_ndn != NULL && new_ndn != NULL &&
+		ber_bvcmp( old_ndn, new_ndn ) == 0 ) {
+	    /* DNs compare equal, it's a noop */
+	    return;
+	}
+
 	op2.o_tag = LDAP_REQ_MODIFY;
 
 	op2.o_req_dn = *ndn;
@@ -1895,15 +1901,11 @@ mo_cf_gen( ConfigArgs *c )
 			break;
 
 		case MO_MEMBER_AD:
-			if ( mo->mo_ad_member != NULL ){
-				value_add_one( &c->rvalue_vals, &mo->mo_ad_member->ad_cname );
-			}
+			c->value_ad = mo->mo_ad_member;
 			break;
 
 		case MO_MEMBER_OF_AD:
-			if ( mo->mo_ad_memberof != NULL ){
-				value_add_one( &c->rvalue_vals, &mo->mo_ad_memberof->ad_cname );
-			}
+			c->value_ad = mo->mo_ad_memberof;
 			break;
 
 		default:

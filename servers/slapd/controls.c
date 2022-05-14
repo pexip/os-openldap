@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -257,7 +257,7 @@ register_supported_control2(const char *controloid,
 	if ( num_known_controls >= SLAP_MAX_CIDS ) {
 		Debug( LDAP_DEBUG_ANY, "Too many controls registered."
 			" Recompile slapd with SLAP_MAX_CIDS defined > %d\n",
-		SLAP_MAX_CIDS, 0, 0 );
+		num_known_controls, 0, 0 );
 		return LDAP_OTHER;
 	}
 
@@ -1578,7 +1578,10 @@ static int parseValuesReturnFilter (
 		} else {
 			send_ldap_result( op, rs );
 		}
-		if( op->o_vrFilter != NULL) vrFilter_free( op, op->o_vrFilter ); 
+		if( op->o_vrFilter != NULL) {
+			vrFilter_free( op, op->o_vrFilter );
+			op->o_vrFilter = NULL;
+		}
 	}
 #ifdef LDAP_DEBUG
 	else {
@@ -1660,7 +1663,11 @@ static int parseDomainScope (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+	/* this should be checking BVISNULL, but M$ clients are broken
+	 * and include the value even though the M$ spec says it must be
+	 * omitted. ITS#9100.
+	 */
+	if ( !BER_BVISEMPTY( &ctrl->ldctl_value )) {
 		rs->sr_text = "domainScope control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
