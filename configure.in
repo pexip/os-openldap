@@ -1,7 +1,7 @@
 dnl $OpenLDAP$
 dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
-dnl Copyright 1998-2018 The OpenLDAP Foundation.
+dnl Copyright 1998-2021 The OpenLDAP Foundation.
 dnl All rights reserved.
 dnl
 dnl Redistribution and use in source and binary forms, with or without
@@ -23,9 +23,9 @@ define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
 define([AC_LIBTOOL_LANG_GCJ_CONFIG], [:])dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
-AC_COPYRIGHT([[Copyright 1998-2018 The OpenLDAP Foundation. All rights reserved.
+AC_COPYRIGHT([[Copyright 1998-2021 The OpenLDAP Foundation. All rights reserved.
 Restrictions apply, see COPYRIGHT and LICENSE files.]])
-AC_REVISION([$Id: 2a4d29f78fa5f6b25f2c5cecac2126fcc3bd8623 $])
+AC_REVISION([$Id: 0c7c0a9ee7af45f44c9f20258933ee4f03368876 $])
 AC_INIT([OpenLDAP],,[http://www.openldap.org/its/])
 m4_define([AC_PACKAGE_BUGREPORT],[<http://www.openldap.org/its/>])
 AC_CONFIG_SRCDIR(build/version.sh)dnl
@@ -98,7 +98,7 @@ AH_TOP([
 /* begin of portable.h.pre */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation
+ * Copyright 1998-2021 The OpenLDAP Foundation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -596,7 +596,6 @@ MODULES_LIBS=
 SLAPI_LIBS=
 LIBSLAPI=
 AUTH_LIBS=
-ICU_LIBS=
 
 SLAPD_SLP_LIBS=
 SLAPD_GMP_LIBS=
@@ -1165,6 +1164,13 @@ if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 	AC_CHECK_HEADERS(openssl/ssl.h)
 
 	if test $ac_cv_header_openssl_ssl_h = yes ; then
+		AC_PREPROC_IFELSE([AC_LANG_SOURCE(
+			[[#include <openssl/opensslv.h>]
+			[#if OPENSSL_VERSION_NUMBER < 0x1000200fL]
+			[#error "OpenSSL is too old"]
+			[#endif]])],
+			, [AC_MSG_FAILURE([OpenSSL 1.0.2a or newer required])])
+
 		AC_CHECK_LIB(ssl, SSL_CTX_set_msg_callback,
 			[have_openssl=yes
 			need_rsaref=no], [have_openssl=no],
@@ -1899,7 +1905,13 @@ if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
 		BDB_LIBS="$BDB_LIBS $ol_cv_lib_db"
 	fi
 
-	SLAPD_LIBS="$SLAPD_LIBS \$(BDB_LIBS)"
+	dnl link BDB library to slapd when there is a
+	dnl static BDB based backend in use
+	if test $ol_enable_bdb/$ol_enable_hdb != mod/mod ; then
+		if test $ol_enable_bdb = yes -o $ol_enable_hdb = yes ; then
+			SLAPD_LIBS="$SLAPD_LIBS \$(BDB_LIBS)"
+		fi
+	fi
 
 	ol_link_bdb=yes 
 fi
@@ -2083,14 +2095,6 @@ if test $ol_enable_ndb != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl International Components for Unicode
-OL_ICU
-if test "$ol_icu" = no ; then
-	AC_MSG_WARN([ICU not available])
-else
-	ICU_LIBS="$ol_icu"
-fi
-dnl ----------------------------------------------------------------
 dnl
 dnl Check for Cyrus SASL
 dnl
@@ -2262,6 +2266,9 @@ AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_TYPE([socklen_t],,, [$ac_includes_default
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+#ifdef HAVE_WINSOCK2
+#include <ws2tcpip.h>
 #endif])
 
 dnl socklen_t-like type in accept(), default socklen_t or int:
@@ -3160,7 +3167,6 @@ AC_SUBST(MODULES_LIBS)
 AC_SUBST(SLAPI_LIBS)
 AC_SUBST(LIBSLAPI)
 AC_SUBST(AUTH_LIBS)
-AC_SUBST(ICU_LIBS)
 
 AC_SUBST(SLAPD_SLP_LIBS)
 AC_SUBST(SLAPD_GMP_LIBS)
@@ -3229,7 +3235,7 @@ rm -f $BACKENDSC
 cat > $BACKENDSC << ENDX
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -3280,7 +3286,7 @@ rm -f $OVERLAYSC
 cat > $OVERLAYSC << ENDX
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

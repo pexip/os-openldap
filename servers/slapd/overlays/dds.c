@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2018 The OpenLDAP Foundation.
+ * Copyright 2005-2021 The OpenLDAP Foundation.
  * Portions Copyright 2005-2006 SysNet s.n.c.
  * All rights reserved.
  *
@@ -1102,7 +1102,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 			ttl = di->di_min_ttl;
 		}
 
-		/* This does not apply to multi-master case */
+		/* This does not apply to multi-provider case */
 		if ( !( !SLAP_SINGLE_SHADOW( op->o_bd ) || be_isupdate( op ) ) ) {
 			/* we SHOULD return a referral in this case */
 			BerVarray defref = op->o_bd->be_update_refs

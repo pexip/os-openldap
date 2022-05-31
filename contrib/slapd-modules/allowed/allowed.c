@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2006-2018 The OpenLDAP Foundation.
+ * Copyright 2006-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -338,7 +338,7 @@ do_oc:;
 
 		ObjectClass	*oc;
 
-		for ( oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
+		for ( i = 0, oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
 			/* we can only add AUXILIARY objectClasses */
 			if ( oc->soc_kind != LDAP_SCHEMA_AUXILIARY ) {
 				continue;

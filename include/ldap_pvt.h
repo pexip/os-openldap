@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,15 +20,11 @@
 #ifndef _LDAP_PVT_H
 #define _LDAP_PVT_H 1
 
+#include <openldap.h>				/* get public interfaces */
 #include <lber.h>				/* get ber_slen_t */
 #include <lber_pvt.h>				/* get Sockbuf_Buf */
 
 LDAP_BEGIN_DECL
-
-#define LDAP_PROTO_TCP 1 /* ldap://  */
-#define LDAP_PROTO_UDP 2 /* reserved */
-#define LDAP_PROTO_IPC 3 /* ldapi:// */
-#define LDAP_PROTO_EXT 4 /* user-defined socket/sockbuf */
 
 LDAP_F ( int )
 ldap_pvt_url_scheme2proto LDAP_P((
@@ -333,8 +329,6 @@ ldap_get_message_ber LDAP_P((
 /* open */
 LDAP_F (int) ldap_open_internal_connection LDAP_P((
 	struct ldap **ldp, ber_socket_t *fdp ));
-LDAP_F (int) ldap_init_fd LDAP_P((
-	ber_socket_t fd, int proto, LDAP_CONST char *url, struct ldap **ldp ));
 
 /* sasl.c */
 LDAP_F (int) ldap_pvt_sasl_generic_install LDAP_P(( Sockbuf *sb,

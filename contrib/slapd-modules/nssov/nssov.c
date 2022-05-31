@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>. 
  *
- * Copyright 2008-2018 The OpenLDAP Foundation.
+ * Copyright 2008-2021 The OpenLDAP Foundation.
  * Portions Copyright 2008 by Howard Chu, Symas Corp.
  * Portions Copyright 2013 by Ted C. Cheng, Symas Corp.
  * All rights reserved.
@@ -947,7 +947,7 @@ nssov_db_close(
 
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		/* close socket if it's still in use */
-		if (ni->ni_socket >= 0);
+		if (ni->ni_socket >= 0)
 		{
 			if (close(ni->ni_socket))
 				Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",strerror(errno),0,0);

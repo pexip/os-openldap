@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,17 @@ ldap_int_thread_initialize( void )
 int
 ldap_int_thread_destroy( void )
 {
+	return 0;
+}
+
+int
+ldap_int_mutex_firstcreate( ldap_int_thread_mutex_t *mutex )
+{
+	if ( *mutex == NULL ) {
+		HANDLE p = CreateMutex( NULL, 0, NULL );
+		if ( InterlockedCompareExchangePointer((PVOID*)mutex, (PVOID)p, NULL) != NULL)
+			CloseHandle( p );
+	}
 	return 0;
 }
 

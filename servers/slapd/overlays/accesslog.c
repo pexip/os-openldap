@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2018 The OpenLDAP Foundation.
+ * Copyright 2005-2021 The OpenLDAP Foundation.
  * Portions copyright 2004-2005 Symas Corporation.
  * All rights reserved.
  *
@@ -691,6 +691,7 @@ accesslog_purge( void *ctx, void *arg )
 		op->o_callback = &nullsc;
 		op->o_csn = pd.csn;
 		op->o_dont_replicate = 1;
+		op->o_csn = slap_empty_bv;
 
 		for (i=0; i<pd.used; i++) {
 			op->o_req_dn = pd.dn[i];
@@ -1522,7 +1523,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 	e = accesslog_entry( op, rs, li, logop, &op2 );
 
-	attr_merge_one( e, ad_reqDN, &op->o_req_dn, &op->o_req_ndn );
+	if ( !BER_BVISNULL( &op->o_req_ndn ))
+		attr_merge_one( e, ad_reqDN, &op->o_req_dn, &op->o_req_ndn );
 
 	if ( rs->sr_text ) {
 		ber_str2bv( rs->sr_text, 0, 0, &bv );
@@ -1586,6 +1588,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			if ( m->sml_values ) {
 				i += m->sml_numvals;
 			} else if ( m->sml_op == LDAP_MOD_DELETE ||
+				m->sml_op == SLAP_MOD_SOFTDEL ||
 				m->sml_op == LDAP_MOD_REPLACE )
 			{
 				i++;
@@ -1634,8 +1637,10 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 					char c_op;
 
 					switch ( m->sml_op ) {
-					case LDAP_MOD_ADD: c_op = '+'; break;
-					case LDAP_MOD_DELETE:	c_op = '-'; break;
+					case LDAP_MOD_ADD:	/* FALLTHRU */
+					case SLAP_MOD_SOFTADD: c_op = '+'; break;
+					case LDAP_MOD_DELETE: /* FALLTHRU */
+					case SLAP_MOD_SOFTDEL: c_op = '-'; break;
 					case LDAP_MOD_REPLACE:	c_op = '='; break;
 					case LDAP_MOD_INCREMENT:	c_op = '#'; break;
 
@@ -1648,6 +1653,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 					accesslog_val2val( m->sml_desc, b, c_op, &vals[i] );
 				}
 			} else if ( m->sml_op == LDAP_MOD_DELETE ||
+				m->sml_op == SLAP_MOD_SOFTDEL ||
 				m->sml_op == LDAP_MOD_REPLACE )
 			{
 				vals[i].bv_len = m->sml_desc->ad_cname.bv_len + 2;
@@ -1655,7 +1661,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 				ptr = lutil_strcopy( vals[i].bv_val,
 					m->sml_desc->ad_cname.bv_val );
 				*ptr++ = ':';
-				if ( m->sml_op == LDAP_MOD_DELETE ) {
+				if ( m->sml_op == LDAP_MOD_DELETE || m->sml_op == SLAP_MOD_SOFTDEL ) {
 					*ptr++ = '-';
 				} else {
 					*ptr++ = '=';
@@ -2291,9 +2297,167 @@ accesslog_db_open(
 	return 0;
 }
 
+enum { start = 0 };
+
+static int
+check_rdntime_syntax (struct berval *val,
+	int *parts,
+	struct berval *fraction)
+{
+	/*
+	 * GeneralizedTime YYYYmmddHH[MM[SS]][(./,)d...](Z|(+/-)HH[MM])
+	 * GeneralizedTime supports leap seconds, UTCTime does not.
+	 */
+	static const int ceiling[9] = { 100, 100, 12, 31, 24, 60, 60, 24, 60 };
+	static const int mdays[2][12] = {
+		/* non-leap years */
+		{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+		/* leap years */
+		{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	};
+	char *p, *e;
+	int part, c, c1, c2, tzoffset, leapyear = 0;
+
+	p = val->bv_val;
+	e = p + val->bv_len;
+
+	for (part = start; part < 7 && p < e; part++) {
+		c1 = *p;
+		if (!ASCII_DIGIT(c1)) {
+			break;
+		}
+		p++;
+		if (p == e) {
+			return LDAP_INVALID_SYNTAX;
+		}
+		c = *p++;
+		if (!ASCII_DIGIT(c)) {
+			return LDAP_INVALID_SYNTAX;
+		}
+		c += c1 * 10 - '0' * 11;
+		if ((part | 1) == 3) {
+			--c;
+			if (c < 0) {
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
+		if (c >= ceiling[part]) {
+			if (! (c == 60 && part == 6 && start == 0))
+				return LDAP_INVALID_SYNTAX;
+		}
+		parts[part] = c;
+	}
+	if (part < 5 + start) {
+		return LDAP_INVALID_SYNTAX;
+	}
+	for (; part < 9; part++) {
+		parts[part] = 0;
+	}
+
+	/* leapyear check for the Gregorian calendar (year>1581) */
+	if (parts[parts[1] == 0 ? 0 : 1] % 4 == 0) {
+		leapyear = 1;
+	}
+
+	if (parts[3] >= mdays[leapyear][parts[2]]) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if (start == 0) {
+		fraction->bv_val = p;
+		fraction->bv_len = 0;
+		if (p < e && (*p == '.' || *p == ',')) {
+			char *end_num;
+			while (++p < e && ASCII_DIGIT(*p)) {
+				/* EMPTY */;
+			}
+			if (p - fraction->bv_val == 1) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+#if 0		/* don't truncate trailing zeros */
+			for (end_num = p; end_num[-1] == '0'; --end_num) {
+				/* EMPTY */;
+			}
+			c = end_num - fraction->bv_val;
+#else
+			c = p - fraction->bv_val;
+#endif
+			if (c != 1) fraction->bv_len = c;
+		}
+	}
+
+	if (p == e) {
+		/* no time zone */
+		return start == 0 ? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
+	}
+
+	tzoffset = *p++;
+	switch (tzoffset) {
+	case 'Z':
+		/* UTC */
+		break;
+	default:
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return p != e ? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
+}
+
+static int
+rdnTimestampValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int parts[9];
+	struct berval fraction;
+	return check_rdntime_syntax(in, parts, &fraction);
+}
+
+static int
+rdnTimestampNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	int parts[9], rc;
+	unsigned int len;
+	struct berval fraction;
+
+	rc = check_rdntime_syntax(val, parts, &fraction);
+	if (rc != LDAP_SUCCESS) {
+		return rc;
+	}
+
+	len = STRLENOF("YYYYmmddHHMMSSZ") + fraction.bv_len;
+	normalized->bv_val = slap_sl_malloc( len + 1, ctx );
+	if ( BER_BVISNULL( normalized ) ) {
+		return LBER_ERROR_MEMORY;
+	}
+
+	sprintf( normalized->bv_val, "%02d%02d%02d%02d%02d%02d%02d",
+		parts[0], parts[1], parts[2] + 1, parts[3] + 1,
+		parts[4], parts[5], parts[6] );
+	if ( !BER_BVISEMPTY( &fraction ) ) {
+		memcpy( normalized->bv_val + STRLENOF("YYYYmmddHHMMSSZ")-1,
+			fraction.bv_val, fraction.bv_len );
+		normalized->bv_val[STRLENOF("YYYYmmddHHMMSSZ")-1] = '.';
+	}
+	strcpy( normalized->bv_val + len-1, "Z" );
+	normalized->bv_len = len;
+
+	return LDAP_SUCCESS;
+}
+
+
 int accesslog_initialize()
 {
 	int i, rc;
+	Syntax *rdnTimestampSyntax;
+	MatchingRule *rdnTimestampMatch;
 
 	accesslog.on_bi.bi_type = "accesslog";
 	accesslog.on_bi.bi_db_init = accesslog_db_init;
@@ -2359,6 +2523,25 @@ int accesslog_initialize()
 		(*lattrs[i].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
 #endif
 	}
+
+	/* Inject custom normalizer for reqStart/reqEnd */
+	rdnTimestampMatch = ch_malloc( sizeof( MatchingRule ));
+	rdnTimestampSyntax = ch_malloc( sizeof( Syntax ));
+	*rdnTimestampMatch = *ad_reqStart->ad_type->sat_equality;
+	rdnTimestampMatch->smr_normalize = rdnTimestampNormalize;
+	*rdnTimestampSyntax = *ad_reqStart->ad_type->sat_syntax;
+	rdnTimestampSyntax->ssyn_validate = rdnTimestampValidate;
+	ad_reqStart->ad_type->sat_equality = rdnTimestampMatch;
+	ad_reqStart->ad_type->sat_syntax = rdnTimestampSyntax;
+
+	rdnTimestampMatch = ch_malloc( sizeof( MatchingRule ));
+	rdnTimestampSyntax = ch_malloc( sizeof( Syntax ));
+	*rdnTimestampMatch = *ad_reqStart->ad_type->sat_equality;
+	rdnTimestampMatch->smr_normalize = rdnTimestampNormalize;
+	*rdnTimestampSyntax = *ad_reqStart->ad_type->sat_syntax;
+	rdnTimestampSyntax->ssyn_validate = rdnTimestampValidate;
+	ad_reqEnd->ad_type->sat_equality = rdnTimestampMatch;
+	ad_reqEnd->ad_type->sat_syntax = rdnTimestampSyntax;
 
 	for ( i=0; locs[i].ot; i++ ) {
 		int code;

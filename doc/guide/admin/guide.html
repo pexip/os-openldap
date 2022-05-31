@@ -23,7 +23,7 @@
 <DIV CLASS="title">
 <H1 CLASS="doc-title">OpenLDAP Software 2.4 Administrator's Guide</H1>
 <ADDRESS CLASS="doc-author">The OpenLDAP Project &lt;<A HREF="http://www.openldap.org/">http://www.openldap.org/</A>&gt;</ADDRESS>
-<ADDRESS CLASS="doc-modified">19 December 2018</ADDRESS>
+<ADDRESS CLASS="doc-modified">18 January 2021</ADDRESS>
 <BR CLEAR="All">
 </DIV>
 <DIV CLASS="contents">
@@ -528,7 +528,7 @@
 <A HREF="#Deployment Alternatives">18.2. Deployment Alternatives</A><UL>
 <A HREF="#Delta-syncrepl replication">18.2.1. Delta-syncrepl replication</A>
 <BR>
-<A HREF="#N-Way Multi-Master replication">18.2.2. N-Way Multi-Master replication</A>
+<A HREF="#N-Way Multi-Provider Replication">18.2.2. N-Way Multi-Provider Replication</A>
 <BR>
 <A HREF="#MirrorMode replication">18.2.3. MirrorMode replication</A>
 <BR>
@@ -539,7 +539,7 @@
 <BR>
 <A HREF="#Delta-syncrepl">18.3.2. Delta-syncrepl</A>
 <BR>
-<A HREF="#N-Way Multi-Master">18.3.3. N-Way Multi-Master</A>
+<A HREF="#N-Way Multi-Provider">18.3.3. N-Way Multi-Provider</A>
 <BR>
 <A HREF="#MirrorMode">18.3.4. MirrorMode</A>
 <BR>
@@ -650,7 +650,7 @@
 <BR>
 <A HREF="#More sophisticated Syncrepl configurations">A.2.3. More sophisticated Syncrepl configurations</A>
 <BR>
-<A HREF="#N-Way Multimaster Replication">A.2.4. N-Way Multimaster Replication</A>
+<A HREF="#N-Way Multiprovider Replication">A.2.4. N-Way Multiprovider Replication</A>
 <BR>
 <A HREF="#Replicating {{slapd}} Configuration (syncrepl and {{B:cn=config}})">A.2.5. Replicating <EM>slapd</EM> Configuration (syncrepl and <B>cn=config</B>)</A>
 <BR>
@@ -1012,9 +1012,9 @@ Support Pages
 <P><HR WIDTH="80%" ALIGN="Left">
 <STRONG>Note: </STRONG>A directory is defined by some as merely a database optimized for read access.  This definition, at best, is overly simplistic.
 <HR WIDTH="80%" ALIGN="Left"></P>
-<P>Directories tend to contain descriptive, attribute-based information and support sophisticated filtering capabilities.  Directories generally do not support complicated transaction or roll-back schemes found in database management systems designed for handling high-volume complex updates.  Directory updates are typically simple all-or-nothing changes, if they are allowed at all.  Directories are generally tuned to give quick response to high-volume lookup or search operations. They may have the ability to replicate information widely in order to increase availability and reliability, while reducing response time.  When directory information is replicated, temporary inconsistencies between the replicas may be okay, as long as inconsistencies are resolved in a timely manner.</P>
+<P>Directories tend to contain descriptive, attribute-based information and support sophisticated filtering capabilities.  Directories generally do not support complicated transaction or roll-back schemes found in database management systems designed for handling high-volume complex updates.  Directory updates are typically simple all-or-nothing changes, if they are allowed at all.  Directories are generally tuned to give quick response to high-volume lookup or search operations. They may have the ability to replicate information widely in order to increase availability and reliability, while reducing response time.  When directory information is replicated, temporary inconsistencies between the consumers may be okay, as long as inconsistencies are resolved in a timely manner.</P>
 <P>There are many different ways to provide a directory service. Different methods allow different kinds of information to be stored in the directory, place different requirements on how that information can be referenced, queried and updated, how it is protected from unauthorized access, etc.  Some directory services are <EM>local</EM>, providing service to a restricted context (e.g., the finger service on a single machine). Other services are global, providing service to a much broader context (e.g., the entire Internet).  Global services are usually <EM>distributed</EM>, meaning that the data they contain is spread across many machines, all of which cooperate to provide the directory service. Typically a global service defines a uniform <EM>namespace</EM> which gives the same view of the data no matter where you are in relation to the data itself.</P>
-<P>A web directory, such as provided by the <EM>Open Directory Project</EM> &lt;<A HREF="http://dmoz.org">http://dmoz.org</A>&gt;, is a good example of a directory service. These services catalog web pages and are specifically designed to support browsing and searching.</P>
+<P>A web directory, such as provided by the <EM>Curlie Project</EM> &lt;<A HREF="https://curlie.org">https://curlie.org</A>&gt;, is a good example of a directory service. These services catalog web pages and are specifically designed to support browsing and searching.</P>
 <P>While some consider the Internet <TERM>Domain Name System</TERM> (DNS) is an example of a globally distributed directory service, DNS is not browseable nor searchable.  It is more properly described as a globally distributed <EM>lookup</EM> service.</P>
 <H2><A NAME="What is LDAP">1.2. What is LDAP?</A></H2>
 <P><TERM>LDAP</TERM> stands for <TERM>Lightweight Directory Access Protocol</TERM>.  As the name suggests, it is a lightweight protocol for accessing directory services, specifically <TERM>X.500</TERM>-based directory services.  LDAP runs over <TERM>TCP</TERM>/<TERM>IP</TERM> or other connection oriented transfer services.  LDAP is an <A HREF="http://www.ietf.org/">IETF</A> Standard Track protocol and is specified in &quot;Lightweight Directory Access Protocol (LDAP) Technical Specification Road Map&quot; <A HREF="http://www.rfc-editor.org/rfc/rfc4510.txt">RFC4510</A>.</P>
@@ -1101,7 +1101,8 @@ Support Pages
 <P><B>Multiple database instances</B>: <EM>slapd</EM> can be configured to serve multiple databases at the same time. This means that a single <EM>slapd</EM> server can respond to requests for many logically different portions of the LDAP tree, using the same or different database backends.</P>
 <P><B>Generic modules API</B>:  If you require even more customization, <EM>slapd</EM> lets you write your own modules easily. <EM>slapd</EM> consists of two distinct parts: a front end that handles protocol communication with LDAP clients; and modules which handle specific tasks such as database operations.  Because these two pieces communicate via a well-defined <TERM>C</TERM> <TERM>API</TERM>, you can write your own customized modules which extend <EM>slapd</EM> in numerous ways.  Also, a number of <EM>programmable database</EM> modules are provided.  These allow you to expose external data sources to <EM>slapd</EM> using popular programming languages (<A HREF="http://www.perl.org/">Perl</A>, <EM>shell</EM>, and <TERM>SQL</TERM>).</P>
 <P><B>Threads</B>: <EM>slapd</EM> is threaded for high performance.  A single multi-threaded <EM>slapd</EM> process handles all incoming requests using a pool of threads.  This reduces the amount of system overhead required while providing high performance.</P>
-<P><B>Replication</B>: <EM>slapd</EM> can be configured to maintain shadow copies of directory information.  This <EM>single-master/multiple-slave</EM> replication scheme is vital in high-volume environments where a single <EM>slapd</EM> installation just doesn't provide the necessary availability or reliability.  For extremely demanding environments where a single point of failure is not acceptable, <EM>multi-master</EM> replication is also available.  <EM>slapd</EM> includes support for <EM>LDAP Sync</EM>-based replication.</P>
+<P><B>Replication</B>: <EM>slapd</EM> can be configured to maintain shadow copies of directory information.  This <EM>single-provider/multiple-consumer</EM> replication scheme is vital in high-volume environments where a single <EM>slapd</EM> installation just doesn't provide the necessary availability or reliability.  For extremely demanding environments where a single point of failure is not acceptable, <EM>multi-provider</EM> replication is also available. With <EM>multi-provider</EM> replication two or more nodes can accept write operations allowing for redundancy at the provider level.</P>
+<P><EM>slapd</EM> includes support for <EM>LDAP Sync</EM>-based replication.</P>
 <P><B>Proxy Cache</B>: <EM>slapd</EM> can be configured as a caching LDAP proxy service.</P>
 <P><B>Configuration</B>: <EM>slapd</EM> is highly configurable through a single configuration file which allows you to change just about everything you'd ever want to change.  Configuration options have reasonable defaults, making your job much easier. Configuration can also be performed dynamically using LDAP itself, which greatly improves manageability.</P>
 <P></P>
@@ -1347,7 +1348,7 @@ This command will search for and retrieve every entry in the database.</OL>
 <P ALIGN="Center">Figure 3.2: Local service with referrals</P>
 <P>Use this configuration if you want to provide local service and participate in the Global Directory,  or you want to delegate responsibility for <EM>subordinate</EM> entries to another server.</P>
 <H2><A NAME="Replicated Directory Service">3.3. Replicated Directory Service</A></H2>
-<P>slapd(8) includes support for <EM>LDAP Sync</EM>-based replication, called <EM>syncrepl</EM>, which may be used to maintain shadow copies of directory information on multiple directory servers.   In its most basic configuration, the <EM>master</EM> is a syncrepl provider and one or more <EM>slave</EM> (or <EM>shadow</EM>) are syncrepl consumers.  An example master-slave configuration is shown in figure 3.3. Multi-Master configurations are also supported.</P>
+<P>slapd(8) includes support for <EM>LDAP Sync</EM>-based replication, called <EM>syncrepl</EM>, which may be used to maintain shadow copies of directory information on multiple directory servers.   In its most basic configuration, the <EM>provider</EM> is a syncrepl provider and one or more <EM>consumer</EM> (or <EM>shadow</EM>) are syncrepl consumers.  An example provider-consumer configuration is shown in figure 3.3. Multi-Provider configurations are also supported.</P>
 <P><CENTER><IMG SRC="config_repl.png" ALIGN="center"></CENTER></P>
 <P ALIGN="Center">Figure 3.3: Replicated Directory Services</P>
 <P>This configuration can be used in conjunction with either of the first two configurations in situations where a single <EM>slapd</EM>(8) instance does not provide the required reliability or availability.</P>
@@ -2021,11 +2022,11 @@ SQL Programmable backend
 <P>This directive specifies the DN that is not subject to access control or administrative limit restrictions for operations on this database.  The DN need not refer to an entry in this database or even in the directory. The DN may refer to a SASL identity.</P>
 <P>Entry-based Example:</P>
 <PRE>
-        olcRootDN: &quot;cn=Manager,dc=example,dc=com&quot;
+        olcRootDN: cn=Manager,dc=example,dc=com
 </PRE>
 <P>SASL-based Example:</P>
 <PRE>
-        olcRootDN: &quot;uid=root,cn=example.com,cn=digest-md5,cn=auth&quot;
+        olcRootDN: uid=root,cn=example.com,cn=digest-md5,cn=auth
 </PRE>
 <P>See the <A HREF="#SASL Authentication">SASL Authentication</A> section for information on SASL authentication identities.</P>
 <H4><A NAME="olcRootPW: &lt;password&gt;">5.2.5.5. olcRootPW: &lt;password&gt;</A></H4>
@@ -2051,7 +2052,7 @@ SQL Programmable backend
 <P>This directive specifies the DN suffix of queries that will be passed to this backend database. Multiple suffix lines can be given, and usually at least one is required for each database definition. (Some backend types, such as <TT>frontend</TT> and <TT>monitor</TT> use a hard-coded suffix which may not be overridden in the configuration.)</P>
 <P>Example:</P>
 <PRE>
-        olcSuffix: &quot;dc=example,dc=com&quot;
+        olcSuffix: dc=example,dc=com
 </PRE>
 <P>Queries with a DN ending in &quot;dc=example,dc=com&quot; will be passed to this backend.</P>
 <P><HR WIDTH="80%" ALIGN="Left">
@@ -2092,14 +2093,14 @@ SQL Programmable backend
                 [logfilter=&lt;filter str&gt;]
                 [syncdata=default|accesslog|changelog]
 </PRE>
-<P>This directive specifies the current database as a replica of the master content by establishing the current <EM>slapd</EM>(8) as a replication consumer site running a syncrepl replication engine. The master database is located at the replication provider site specified by the <TT>provider</TT> parameter. The replica database is kept up-to-date with the master content using the LDAP Content Synchronization protocol. See <A HREF="http://www.rfc-editor.org/rfc/rfc4533.txt">RFC4533</A> for more information on the protocol.</P>
+<P>This directive specifies the current database as a consumer of the provider content by establishing the current <EM>slapd</EM>(8) as a replication consumer site running a syncrepl replication engine. The provider database is located at the provider site specified by the <TT>provider</TT> parameter. The consumer database is kept up-to-date with the provider content using the LDAP Content Synchronization protocol. See <A HREF="http://www.rfc-editor.org/rfc/rfc4533.txt">RFC4533</A> for more information on the protocol.</P>
 <P>The <TT>rid</TT> parameter is used for identification of the current <TT>syncrepl</TT> directive within the replication consumer server, where <TT>&lt;replica ID&gt;</TT> uniquely identifies the syncrepl specification described by the current <TT>syncrepl</TT> directive. <TT>&lt;replica ID&gt;</TT> is non-negative and is no more than three decimal digits in length.</P>
-<P>The <TT>provider</TT> parameter specifies the replication provider site containing the master content as an LDAP URI. The <TT>provider</TT> parameter specifies a scheme, a host and optionally a port where the provider slapd instance can be found. Either a domain name or IP address may be used for &lt;hostname&gt;. Examples are <TT>ldap://provider.example.com:389</TT> or <TT>ldaps://192.168.1.1:636</TT>. If &lt;port&gt; is not given, the standard LDAP port number (389 or 636) is used. Note that the syncrepl uses a consumer-initiated protocol, and hence its specification is located at the consumer site, whereas the <TT>replica</TT> specification is located at the provider site. <TT>syncrepl</TT> and <TT>replica</TT> directives define two independent replication mechanisms. They do not represent the replication peers of each other.</P>
-<P>The content of the syncrepl replica is defined using a search specification as its result set. The consumer slapd will send search requests to the provider slapd according to the search specification. The search specification includes <TT>searchbase</TT>, <TT>scope</TT>, <TT>filter</TT>, <TT>attrs</TT>, <TT>attrsonly</TT>, <TT>sizelimit</TT>, and <TT>timelimit</TT> parameters as in the normal search specification. The <TT>searchbase</TT> parameter has no default value and must always be specified. The <TT>scope</TT> defaults to <TT>sub</TT>, the <TT>filter</TT> defaults to <TT>(objectclass=*)</TT>, <TT>attrs</TT> defaults to <TT>&quot;*,+&quot;</TT> to replicate all user and operational attributes, and <TT>attrsonly</TT> is unset by default. Both <TT>sizelimit</TT> and <TT>timelimit</TT> default to &quot;unlimited&quot;, and only positive integers or &quot;unlimited&quot; may be specified.</P>
-<P>The <TERM>LDAP Content Synchronization</TERM> protocol has two operation types: <TT>refreshOnly</TT> and <TT>refreshAndPersist</TT>. The operation type is specified by the <TT>type</TT> parameter. In the <TT>refreshOnly</TT> operation, the next synchronization search operation is periodically rescheduled at an interval time after each synchronization operation finishes. The interval is specified by the <TT>interval</TT> parameter. It is set to one day by default. In the <TT>refreshAndPersist</TT> operation, a synchronization search remains persistent in the provider <EM>slapd</EM> instance. Further updates to the master replica will generate <TT>searchResultEntry</TT> to the consumer slapd as the search responses to the persistent synchronization search.</P>
+<P>The <TT>provider</TT> parameter specifies the replication provider site containing the provider content as an LDAP URI. The <TT>provider</TT> parameter specifies a scheme, a host and optionally a port where the provider slapd instance can be found. Either a domain name or IP address may be used for &lt;hostname&gt;. Examples are <TT>ldap://provider.example.com:389</TT> or <TT>ldaps://192.168.1.1:636</TT>. If &lt;port&gt; is not given, the standard LDAP port number (389 or 636) is used. Note that the syncrepl uses a consumer-initiated protocol, and hence its specification is located on the consumer.</P>
+<P>The content of the syncrepl consumer is defined using a search specification as its result set. The consumer slapd will send search requests to the provider slapd according to the search specification. The search specification includes <TT>searchbase</TT>, <TT>scope</TT>, <TT>filter</TT>, <TT>attrs</TT>, <TT>attrsonly</TT>, <TT>sizelimit</TT>, and <TT>timelimit</TT> parameters as in the normal search specification. The <TT>searchbase</TT> parameter has no default value and must always be specified. The <TT>scope</TT> defaults to <TT>sub</TT>, the <TT>filter</TT> defaults to <TT>(objectclass=*)</TT>, <TT>attrs</TT> defaults to <TT>&quot;*,+&quot;</TT> to replicate all user and operational attributes, and <TT>attrsonly</TT> is unset by default. Both <TT>sizelimit</TT> and <TT>timelimit</TT> default to &quot;unlimited&quot;, and only positive integers or &quot;unlimited&quot; may be specified.</P>
+<P>The <TERM>LDAP Content Synchronization</TERM> protocol has two operation types: <TT>refreshOnly</TT> and <TT>refreshAndPersist</TT>. The operation type is specified by the <TT>type</TT> parameter. In the <TT>refreshOnly</TT> operation, the next synchronization search operation is periodically rescheduled at an interval time after each synchronization operation finishes. The interval is specified by the <TT>interval</TT> parameter. It is set to one day by default. In the <TT>refreshAndPersist</TT> operation, a synchronization search remains persistent in the provider <EM>slapd</EM> instance. Further updates to the provider will generate <TT>searchResultEntry</TT> to the consumer slapd as the search responses to the persistent synchronization search.</P>
 <P>If an error occurs during replication, the consumer will attempt to reconnect according to the retry parameter which is a list of the &lt;retry interval&gt; and &lt;# of retries&gt; pairs. For example, retry=&quot;60 10 300 3&quot; lets the consumer retry every 60 seconds for the first 10 times and then retry every 300 seconds for the next three times before stop retrying. + in &lt;#  of retries&gt; means indefinite number of retries until success.</P>
-<P>The schema checking can be enforced at the LDAP Sync consumer site by turning on the <TT>schemachecking</TT> parameter. If it is turned on, every replicated entry will be checked for its schema as the entry is stored into the replica content. Every entry in the replica should contain those attributes required by the schema definition. If it is turned off, entries will be stored without checking schema conformance. The default is off.</P>
-<P>The <TT>binddn</TT> parameter gives the DN to bind as for the syncrepl searches to the provider slapd. It should be a DN which has read access to the replication content in the master database.</P>
+<P>The schema checking can be enforced at the LDAP Sync consumer site by turning on the <TT>schemachecking</TT> parameter. If it is turned on, every replicated entry will be checked for its schema as the entry is stored on the consumer. Every entry in the consumer should contain those attributes required by the schema definition. If it is turned off, entries will be stored without checking schema conformance. The default is off.</P>
+<P>The <TT>binddn</TT> parameter gives the DN to bind as for the syncrepl searches to the provider slapd. It should be a DN which has read access to the replication content in the provider database.</P>
 <P>The <TT>bindmethod</TT> is <TT>simple</TT> or <TT>sasl</TT>, depending on whether simple password-based authentication or <TERM>SASL</TERM> authentication is to be used when connecting to the provider <EM>slapd</EM> instance.</P>
 <P>Simple authentication should not be used unless adequate data integrity and confidentiality protections are in place (e.g. TLS or IPsec). Simple authentication requires specification of <TT>binddn</TT> and <TT>credentials</TT> parameters.</P>
 <P>SASL authentication is generally recommended.  SASL authentication requires specification of a mechanism using the <TT>saslmech</TT> parameter. Depending on the mechanism, an authentication identity and/or credentials can be specified using <TT>authcid</TT> and <TT>credentials</TT>, respectively.  The <TT>authzid</TT> parameter may be used to specify an authorization identity.</P>
@@ -2116,10 +2117,10 @@ SQL Programmable backend
 </PRE>
 <P>See the <A HREF="#Limits">Limits</A> section of this guide and slapd-config(5) for more details.</P>
 <H4><A NAME="olcUpdateref: &lt;URL&gt;">5.2.5.10. olcUpdateref: &lt;URL&gt;</A></H4>
-<P>This directive is only applicable in a slave slapd. It specifies the URL to return to clients which submit update requests upon the replica. If specified multiple times, each <TERM>URL</TERM> is provided.</P>
+<P>This directive is only applicable in a <EM>replica</EM> (or <EM>shadow</EM>) <EM>slapd</EM>(8) instance. It specifies the URL to return to clients which submit update requests upon the replica. If specified multiple times, each <TERM>URL</TERM> is provided.</P>
 <P>Example:</P>
 <PRE>
-        olcUpdateref:   ldap://master.example.net
+        olcUpdateref:   ldap://provider.example.net
 </PRE>
 <H4><A NAME="Sample Entries">5.2.5.11. Sample Entries</A></H4>
 <PRE>
@@ -2222,7 +2223,7 @@ dn: olcDatabase=hdb,cn=config
 objectClass: olcDatabaseConfig
 objectClass: olcHdbConfig
 olcDatabase: hdb
-olcSuffix: &quot;dc=example,dc=com&quot;
+olcSuffix: dc=example,dc=com
 olcDbDirectory: /usr/local/var/openldap-data
 olcDbCacheSize: 1000
 olcDbCheckpoint: 1024 10
@@ -2318,9 +2319,9 @@ olcDbIndex: objectClass eq
  53.    objectClass: olcDatabaseConfig
  54.    objectClass: olcBdbConfig
  55.    olcDatabase: bdb
- 56.    olcSuffix: &quot;dc=example,dc=net&quot;
+ 56.    olcSuffix: dc=example,dc=net
  57.    olcDbDirectory: /usr/local/var/openldap-data-net
- 58.    olcRootDN: &quot;cn=Manager,dc=example,dc=com&quot;
+ 58.    olcRootDN: cn=Manager,dc=example,dc=com
  59.    olcDbIndex: objectClass eq
  60.    olcAccess: to * by users read
 </PRE>
@@ -2747,18 +2748,18 @@ SQL Programmable backend
 
 <P>Example:</P>
 <PRE>
-        backend bdb
+        backend mdb
 </PRE>
-<P>This marks the beginning of a new <TERM>BDB</TERM> backend definition.</P>
+<P>This marks the beginning of a new <TERM>MDB</TERM> backend definition.</P>
 <H3><A NAME="General Database Directives">6.2.3. General Database Directives</A></H3>
 <P>Directives in this section apply only to the database in which they are defined. They are supported by every type of database.</P>
 <H4><A NAME="database &lt;type&gt;">6.2.3.1. database &lt;type&gt;</A></H4>
 <P>This directive marks the beginning of a database instance declaration. <TT>&lt;type&gt;</TT> should be one of the supported backend types listed in Table 6.2.</P>
 <P>Example:</P>
 <PRE>
-        database bdb
+        database mdb
 </PRE>
-<P>This marks the beginning of a new <TERM>BDB</TERM> database instance declaration.</P>
+<P>This marks the beginning of a new <TERM>MDB</TERM> database instance declaration.</P>
 <H4><A NAME="limits &lt;selector&gt; &lt;limit&gt; [&lt;limit&gt; [...]]">6.2.3.2. limits &lt;selector&gt; &lt;limit&gt; [&lt;limit&gt; [...]]</A></H4>
 <P>Specify time and size limits based on the operation's initiator or base DN.</P>
 <P>See the <A HREF="#Limits">Limits</A> section of this guide and <EM>slapd.conf</EM>(5) for more details.</P>
@@ -2842,15 +2843,15 @@ SQL Programmable backend
                 [logfilter=&lt;filter str&gt;]
                 [syncdata=default|accesslog|changelog]
 </PRE>
-<P>This directive specifies the current database as a replica of the master content by establishing the current <EM>slapd</EM>(8) as a replication consumer site running a syncrepl replication engine. The master database is located at the replication provider site specified by the <TT>provider</TT> parameter. The replica database is kept up-to-date with the master content using the LDAP Content Synchronization protocol. See <A HREF="http://www.rfc-editor.org/rfc/rfc4533.txt">RFC4533</A> for more information on the protocol.</P>
+<P>This directive specifies the current database as a consumer of the provider content by establishing the current <EM>slapd</EM>(8) as a replication consumer site running a syncrepl replication engine. The provider database is located at the replication provider site specified by the <TT>provider</TT> parameter. The consumer database is kept up-to-date with the provider content using the LDAP Content Synchronization protocol. See <A HREF="http://www.rfc-editor.org/rfc/rfc4533.txt">RFC4533</A> for more information on the protocol.</P>
 <P>The <TT>rid</TT> parameter is used for identification of the current <TT>syncrepl</TT> directive within the replication consumer server, where <TT>&lt;replica ID&gt;</TT> uniquely identifies the syncrepl specification described by the current <TT>syncrepl</TT> directive. <TT>&lt;replica ID&gt;</TT> is non-negative and is no more than three decimal digits in length.</P>
-<P>The <TT>provider</TT> parameter specifies the replication provider site containing the master content as an LDAP URI. The <TT>provider</TT> parameter specifies a scheme, a host and optionally a port where the provider slapd instance can be found. Either a domain name or IP address may be used for &lt;hostname&gt;. Examples are <TT>ldap://provider.example.com:389</TT> or <TT>ldaps://192.168.1.1:636</TT>. If &lt;port&gt; is not given, the standard LDAP port number (389 or 636) is used. Note that the syncrepl uses a consumer-initiated protocol, and hence its specification is located at the consumer site, whereas the <TT>replica</TT> specification is located at the provider site. <TT>syncrepl</TT> and <TT>replica</TT> directives define two independent replication mechanisms. They do not represent the replication peers of each other.</P>
-<P>The content of the syncrepl replica is defined using a search specification as its result set. The consumer slapd will send search requests to the provider slapd according to the search specification. The search specification includes <TT>searchbase</TT>, <TT>scope</TT>, <TT>filter</TT>, <TT>attrs</TT>, <TT>exattrs</TT>, <TT>attrsonly</TT>, <TT>sizelimit</TT>, and <TT>timelimit</TT> parameters as in the normal search specification. The <TT>searchbase</TT> parameter has no default value and must always be specified. The <TT>scope</TT> defaults to <TT>sub</TT>, the <TT>filter</TT> defaults to <TT>(objectclass=*)</TT>, <TT>attrs</TT> defaults to <TT>&quot;*,+&quot;</TT> to replicate all user and operational attributes, and <TT>attrsonly</TT> is unset by default. Both <TT>sizelimit</TT> and <TT>timelimit</TT> default to &quot;unlimited&quot;, and only positive integers or &quot;unlimited&quot; may be specified. The <TT>exattrs</TT> option may also be used to specify attributes that should be omitted from incoming entries.</P>
-<P>The <TERM>LDAP Content Synchronization</TERM> protocol has two operation types: <TT>refreshOnly</TT> and <TT>refreshAndPersist</TT>. The operation type is specified by the <TT>type</TT> parameter. In the <TT>refreshOnly</TT> operation, the next synchronization search operation is periodically rescheduled at an interval time after each synchronization operation finishes. The interval is specified by the <TT>interval</TT> parameter. It is set to one day by default. In the <TT>refreshAndPersist</TT> operation, a synchronization search remains persistent in the provider <EM>slapd</EM> instance. Further updates to the master replica will generate <TT>searchResultEntry</TT> to the consumer slapd as the search responses to the persistent synchronization search.</P>
+<P>The <TT>provider</TT> parameter specifies the replication provider site containing the provider content as an LDAP URI. The <TT>provider</TT> parameter specifies a scheme, a host and optionally a port where the provider slapd instance can be found. Either a domain name or IP address may be used for &lt;hostname&gt;. Examples are <TT>ldap://provider.example.com:389</TT> or <TT>ldaps://192.168.1.1:636</TT>. If &lt;port&gt; is not given, the standard LDAP port number (389 or 636) is used. Note that the syncrepl uses a consumer-initiated protocol, and hence its specification is located on the consumer.</P>
+<P>The content of the syncrepl consumer is defined using a search specification as its result set. The consumer slapd will send search requests to the provider slapd according to the search specification. The search specification includes <TT>searchbase</TT>, <TT>scope</TT>, <TT>filter</TT>, <TT>attrs</TT>, <TT>exattrs</TT>, <TT>attrsonly</TT>, <TT>sizelimit</TT>, and <TT>timelimit</TT> parameters as in the normal search specification. The <TT>searchbase</TT> parameter has no default value and must always be specified. The <TT>scope</TT> defaults to <TT>sub</TT>, the <TT>filter</TT> defaults to <TT>(objectclass=*)</TT>, <TT>attrs</TT> defaults to <TT>&quot;*,+&quot;</TT> to replicate all user and operational attributes, and <TT>attrsonly</TT> is unset by default. Both <TT>sizelimit</TT> and <TT>timelimit</TT> default to &quot;unlimited&quot;, and only positive integers or &quot;unlimited&quot; may be specified. The <TT>exattrs</TT> option may also be used to specify attributes that should be omitted from incoming entries.</P>
+<P>The <TERM>LDAP Content Synchronization</TERM> protocol has two operation types: <TT>refreshOnly</TT> and <TT>refreshAndPersist</TT>. The operation type is specified by the <TT>type</TT> parameter. In the <TT>refreshOnly</TT> operation, the next synchronization search operation is periodically rescheduled at an interval time after each synchronization operation finishes. The interval is specified by the <TT>interval</TT> parameter. It is set to one day by default. In the <TT>refreshAndPersist</TT> operation, a synchronization search remains persistent in the provider <EM>slapd</EM> instance. Further updates to the provider will generate <TT>searchResultEntry</TT> to the consumer slapd as the search responses to the persistent synchronization search.</P>
 <P>If an error occurs during replication, the consumer will attempt to reconnect according to the retry parameter which is a list of the &lt;retry interval&gt; and &lt;# of retries&gt; pairs. For example, retry=&quot;60 10 300 3&quot; lets the consumer retry every 60 seconds for the first 10 times and then retry every 300 seconds for the next three times before stop retrying. + in &lt;#  of retries&gt; means indefinite number of retries until success.</P>
-<P>The schema checking can be enforced at the LDAP Sync consumer site by turning on the <TT>schemachecking</TT> parameter. If it is turned on, every replicated entry will be checked for its schema as the entry is stored into the replica content. Every entry in the replica should contain those attributes required by the schema definition. If it is turned off, entries will be stored without checking schema conformance. The default is off.</P>
+<P>The schema checking can be enforced at the LDAP Sync consumer site by turning on the <TT>schemachecking</TT> parameter. If it is turned on, every replicated entry will be checked for its schema as the entry is stored on the consumer. Every entry in the consumer should contain those attributes required by the schema definition. If it is turned off, entries will be stored without checking schema conformance. The default is off.</P>
 <P>The <TT>network-timeout</TT> parameter sets how long the consumer will wait to establish a network connection to the provider.  Once a connection is established, the <TT>timeout</TT> parameter determines how long the consumer will wait for the initial Bind request to complete.  The defaults for these parameters come from <EM>ldap.conf</EM>(5).</P>
-<P>The <TT>binddn</TT> parameter gives the DN to bind as for the syncrepl searches to the provider slapd. It should be a DN which has read access to the replication content in the master database.</P>
+<P>The <TT>binddn</TT> parameter gives the DN to bind as for the syncrepl searches to the provider slapd. It should be a DN which has read access to the replication content in the provider database.</P>
 <P>The <TT>bindmethod</TT> is <TT>simple</TT> or <TT>sasl</TT>, depending on whether simple password-based authentication or <TERM>SASL</TERM> authentication is to be used when connecting to the provider <EM>slapd</EM> instance.</P>
 <P>Simple authentication should not be used unless adequate data integrity and confidentiality protections are in place (e.g. TLS or IPsec). Simple authentication requires specification of <TT>binddn</TT> and <TT>credentials</TT> parameters.</P>
 <P>SASL authentication is generally recommended.  SASL authentication requires specification of a mechanism using the <TT>saslmech</TT> parameter. Depending on the mechanism, an authentication identity and/or credentials can be specified using <TT>authcid</TT> and <TT>credentials</TT>, respectively.  The <TT>authzid</TT> parameter may be used to specify an authorization identity.</P>
@@ -2862,10 +2863,10 @@ SQL Programmable backend
 <P>The <EM>syncrepl</EM> replication mechanism is supported by the <EM>bdb</EM>, <EM>hdb</EM>, and <EM>mdb</EM> backends.</P>
 <P>See the <A HREF="#LDAP Sync Replication">LDAP Sync Replication</A> chapter of this guide for more information on how to use this directive.</P>
 <H4><A NAME="updateref &lt;URL&gt;">6.2.3.8. updateref &lt;URL&gt;</A></H4>
-<P>This directive is only applicable in a <EM>slave</EM> (or <EM>shadow</EM>) <EM>slapd</EM>(8) instance. It specifies the URL to return to clients which submit update requests upon the replica. If specified multiple times, each <TERM>URL</TERM> is provided.</P>
+<P>This directive is only applicable in a <EM>replica</EM> (or <EM>shadow</EM>) <EM>slapd</EM>(8) instance. It specifies the URL to return to clients which submit update requests upon the replica. If specified multiple times, each <TERM>URL</TERM> is provided.</P>
 <P>Example:</P>
 <PRE>
-        updateref       ldap://master.example.net
+        updateref       ldap://provider.example.net
 </PRE>
 <H3><A NAME="BDB and HDB Database Directives">6.2.4. BDB and HDB Database Directives</A></H3>
 <P>Directives in this category only apply to both the <TERM>BDB</TERM> and the <TERM>HDB</TERM> database. That is, they must follow a &quot;database bdb&quot; or &quot;database hdb&quot; line and come before any subsequent &quot;backend&quot; or &quot;database&quot; line.  For a complete reference of BDB/HDB configuration directives, see <EM>slapd-bdb</EM>(5).</P>
@@ -2885,7 +2886,7 @@ SQL Programmable backend
 </PRE>
 <P>Line 1 is a comment. Line 2 includes another config file which contains <EM>core</EM> schema definitions. The <TT>referral</TT> directive on line 3 means that queries not local to one of the databases defined below will be referred to the LDAP server running on the standard port (389) at the host <TT>root.openldap.org</TT>.</P>
 <P>Line 4 is a global access control.  It applies to all entries (after any applicable database-specific access controls).</P>
-<P>The next section of the configuration file defines a BDB backend that will handle queries for things in the &quot;dc=example,dc=com&quot; portion of the tree. The database is to be replicated to two slave slapds, one on truelies, the other on judgmentday. Indices are to be maintained for several attributes, and the <TT>userPassword</TT> attribute is to be protected from unauthorized access.</P>
+<P>The next section of the configuration file defines a BDB backend that will handle queries for things in the &quot;dc=example,dc=com&quot; portion of the tree. The database is to be replicated to two replica slapds, one on truelies, the other on judgmentday. Indices are to be maintained for several attributes, and the <TT>userPassword</TT> attribute is to be protected from unauthorized access.</P>
 <PRE>
   5.    # BDB definition for the example.com
   6.    database bdb
@@ -5055,21 +5056,23 @@ Members of a group
 <P>This allows all of the activity on a given database to be reviewed using arbitrary LDAP queries, instead of just logging to local flat text files. Configuration options are available for selecting a subset of operation types to log, and to automatically prune older log records from the logging database. Log records are stored with audit schema to assure their readability whether viewed as LDIF or in raw form.</P>
 <P>It is also used for <A HREF="#delta-syncrepl replication">delta-syncrepl replication</A></P>
 <P><HR WIDTH="80%" ALIGN="Left">
-<STRONG>Note: </STRONG>An accesslog database is unique to a given master. It should never be replicated.
+<STRONG>Note: </STRONG>An accesslog database is unique to a given provider. It should never be replicated.
 <HR WIDTH="80%" ALIGN="Left"></P>
 <H3><A NAME="Access Logging Configuration">12.1.2. Access Logging Configuration</A></H3>
 <P>The following is a basic example that implements Access Logging:</P>
 <PRE>
-        database bdb
+        database mdb
         suffix dc=example,dc=com
+        maxsize 85899345920
         ...
         overlay accesslog
         logdb cn=log
         logops writes reads
         logold (objectclass=person)
 
-        database bdb
+        database mdb
         suffix cn=log
+        maxsize 85899345920
         ...
         index reqStart eq
         access to *
@@ -5077,17 +5080,19 @@ Members of a group
 </PRE>
 <P>The following is an example used for <A HREF="#delta-syncrepl replication">delta-syncrepl replication</A>:</P>
 <PRE>
-        database hdb
+        database mdb
         suffix cn=accesslog
-        directory /usr/local/var/openldap-accesslog
         rootdn cn=accesslog
+        maxsize 85899345920
+        directory /usr/local/var/openldap-accesslog
         index default eq
-        index entryCSN,objectClass,reqEnd,reqResult,reqStart
+        index entryCSN,objectClass,reqEnd,reqResult,reqStart,reqDN
 </PRE>
 <P>Accesslog overlay definitions for the primary db</P>
 <PRE>
-        database bdb
+        database mdb
         suffix dc=example,dc=com
+        maxsize 85899345920
         ...
         overlay accesslog
         logdb cn=accesslog
@@ -5198,11 +5203,11 @@ Members of a group
 <P>What is chaining? It indicates the capability of a DSA to follow referrals on behalf of the client, so that distributed systems are viewed as a single virtual DSA by clients that are otherwise unable to &quot;chase&quot; (i.e. follow) referrals by themselves.</P>
 <P>The chain overlay is built on top of the ldap backend; it is compiled by default when <B>--enable-ldap</B>.</P>
 <H3><A NAME="Chaining Configuration">12.3.2. Chaining Configuration</A></H3>
-<P>In order to demonstrate how this overlay works, we shall discuss a typical scenario which might be one master server and three Syncrepl slaves.</P>
+<P>In order to demonstrate how this overlay works, we shall discuss a typical scenario which might be one provider server and three Syncrepl replicas.</P>
 <P>On each replica, add this near the top of the <EM>slapd.conf</EM>(5) file (global), before any database definitions:</P>
 <PRE>
         overlay                    chain
-        chain-uri                  &quot;ldap://ldapmaster.example.com&quot;
+        chain-uri                  &quot;ldap://ldapprovider.example.com&quot;
         chain-idassert-bind        bindmethod=&quot;simple&quot;
                                    binddn=&quot;cn=Manager,dc=example,dc=com&quot;
                                    credentials=&quot;&lt;secret&gt;&quot;
@@ -5212,38 +5217,38 @@ Members of a group
 </PRE>
 <P>Add this below your <EM>syncrepl</EM> statement:</P>
 <PRE>
-        updateref                  &quot;ldap://ldapmaster.example.com/&quot;
+        updateref                  &quot;ldap://ldapprovider.example.com/&quot;
 </PRE>
-<P>The <B>chain-tls</B> statement enables TLS from the slave to the ldap master. The DITs are exactly the same between these machines, therefore whatever user bound to the slave will also exist on the master. If that DN does not have update privileges on the master, nothing will happen.</P>
-<P>You will need to restart the slave after these <EM>slapd.conf</EM> changes. Then, if you are using <EM>loglevel stats</EM> (256), you can monitor an <EM>ldapmodify</EM> on the slave and the master. (If you're using <EM>cn=config</EM> no restart is required.)</P>
-<P>Now start an <EM>ldapmodify</EM> on the slave and watch the logs. You should expect something like:</P>
+<P>The <B>chain-tls</B> statement enables TLS from the replica to the ldap provider. The DITs are exactly the same between these machines, therefore whatever user bound to the replica will also exist on the provider. If that DN does not have update privileges on the provider, nothing will happen.</P>
+<P>You will need to restart the replica after these <EM>slapd.conf</EM> changes. Then, if you are using <EM>loglevel stats</EM> (256), you can monitor an <EM>ldapmodify</EM> on the replica and the provider. (If you're using <EM>cn=config</EM> no restart is required.)</P>
+<P>Now start an <EM>ldapmodify</EM> on the replica and watch the logs. You should expect something like:</P>
 <PRE>
-        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 fd=31 ACCEPT from IP=143.199.102.216:45181 (IP=143.199.102.216:389)
-        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 op=0 STARTTLS
-        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 op=0 RESULT oid= err=0 text=
-        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 fd=31 TLS established tls_ssf=256 ssf=256
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=1 BIND dn=&quot;uid=user1,ou=people,dc=example,dc=com&quot; method=128
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=1 BIND dn=&quot;uid=user1,ou=People,dc=example,dc=com&quot; mech=SIMPLE ssf=0
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=1 RESULT tag=97 err=0 text=
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=2 MOD dn=&quot;uid=user1,ou=People,dc=example,dc=com&quot;
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=2 MOD attr=mail
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=2 RESULT tag=103 err=0 text=
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=3 UNBIND
-        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 fd=31 closed
-        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_MODIFY)
-        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: be_search (0)
-        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: uid=user1,ou=People,dc=example,dc=com
-        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: be_modify (0)
+        Sep  6 09:27:25 replica1 slapd[29274]: conn=11 fd=31 ACCEPT from IP=143.199.102.216:45181 (IP=143.199.102.216:389)
+        Sep  6 09:27:25 replica1 slapd[29274]: conn=11 op=0 STARTTLS
+        Sep  6 09:27:25 replica1 slapd[29274]: conn=11 op=0 RESULT oid= err=0 text=
+        Sep  6 09:27:25 replica1 slapd[29274]: conn=11 fd=31 TLS established tls_ssf=256 ssf=256
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 op=1 BIND dn=&quot;uid=user1,ou=people,dc=example,dc=com&quot; method=128
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 op=1 BIND dn=&quot;uid=user1,ou=People,dc=example,dc=com&quot; mech=SIMPLE ssf=0
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 op=1 RESULT tag=97 err=0 text=
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 op=2 MOD dn=&quot;uid=user1,ou=People,dc=example,dc=com&quot;
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 op=2 MOD attr=mail
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 op=2 RESULT tag=103 err=0 text=
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 op=3 UNBIND
+        Sep  6 09:27:28 replica1 slapd[29274]: conn=11 fd=31 closed
+        Sep  6 09:27:28 replica1 slapd[29274]: syncrepl_entry: LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_MODIFY)
+        Sep  6 09:27:28 replica1 slapd[29274]: syncrepl_entry: be_search (0)
+        Sep  6 09:27:28 replica1 slapd[29274]: syncrepl_entry: uid=user1,ou=People,dc=example,dc=com
+        Sep  6 09:27:28 replica1 slapd[29274]: syncrepl_entry: be_modify (0)
 </PRE>
-<P>And on the master you will see this:</P>
+<P>And on the provider you will see this:</P>
 <PRE>
-        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 PROXYAUTHZ dn=&quot;uid=user1,ou=people,dc=example,dc=com&quot;
-        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 MOD dn=&quot;uid=user1,ou=People,dc=example,dc=com&quot;
-        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 MOD attr=mail
-        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 RESULT tag=103 err=0 text=
+        Sep  6 09:23:57 ldapprovider slapd[2961]: conn=55902 op=3 PROXYAUTHZ dn=&quot;uid=user1,ou=people,dc=example,dc=com&quot;
+        Sep  6 09:23:57 ldapprovider slapd[2961]: conn=55902 op=3 MOD dn=&quot;uid=user1,ou=People,dc=example,dc=com&quot;
+        Sep  6 09:23:57 ldapprovider slapd[2961]: conn=55902 op=3 MOD attr=mail
+        Sep  6 09:23:57 ldapprovider slapd[2961]: conn=55902 op=3 RESULT tag=103 err=0 text=
 </PRE>
 <P><HR WIDTH="80%" ALIGN="Left">
-<STRONG>Note: </STRONG>You can clearly see the PROXYAUTHZ line on the master, indicating the proper identity assertion for the update on the master. Also note the slave immediately receiving the Syncrepl update from the master.
+<STRONG>Note: </STRONG>You can clearly see the PROXYAUTHZ line on the provider, indicating the proper identity assertion for the update on the provider. Also note the replica immediately receiving the Syncrepl update from the provider.
 <HR WIDTH="80%" ALIGN="Left"></P>
 <H3><A NAME="Handling Chaining Errors">12.3.3. Handling Chaining Errors</A></H3>
 <P>By default, if chaining fails, the original referral is returned to the client under the assumption that the client might want to try and follow the referral.</P>
@@ -5418,10 +5423,11 @@ Members of a group
 
         authz-regexp &quot;gidNumber=0\\\+uidNumber=0,cn=peercred,cn=external,cn=auth&quot;
                 &quot;cn=Manager,dc=example,dc=com&quot;
-        database        bdb
+        database        mdb
         suffix          &quot;dc=example,dc=com&quot;
         rootdn          &quot;cn=Manager,dc=example,dc=com&quot;
         rootpw          secret
+        maxsize         85899345920
         directory       /var/lib/ldap2.4
         checkpoint 256 5
         index   objectClass   eq
@@ -5468,7 +5474,7 @@ Members of a group
 <H3><A NAME="Further Information">12.8.3. Further Information</A></H3>
 <P><EM>slapo-memberof(5)</EM></P>
 <H2><A NAME="The Proxy Cache Engine">12.9. The Proxy Cache Engine</A></H2>
-<P><TERM>LDAP</TERM> servers typically hold one or more subtrees of a <TERM>DIT</TERM>. Replica (or shadow) servers hold shadow copies of entries held by one or more master servers.  Changes are propagated from the master server to replica (slave) servers using LDAP Sync replication.  An LDAP cache is a special type of replica which holds entries corresponding to search filters instead of subtrees.</P>
+<P><TERM>LDAP</TERM> servers typically hold one or more subtrees of a <TERM>DIT</TERM>. Replica (or shadow) servers hold shadow copies of entries held by one or more provider servers.  Changes are propagated from the provider server to replica servers using LDAP Sync replication.  An LDAP cache is a special type of replica which holds entries corresponding to search filters instead of subtrees.</P>
 <H3><A NAME="Overview">12.9.1. Overview</A></H3>
 <P>The proxy cache extension of slapd is designed to improve the responsiveness of the ldap and meta backends. It handles a search request (query) by first determining whether it is contained in any cached search filter. Contained requests are answered from the proxy cache's local database. Other requests are passed on to the underlying ldap or meta backend and processed as usual.</P>
 <P>E.g. <TT>(shoesize&gt;=9)</TT> is contained in <TT>(shoesize&gt;=8)</TT> and <TT>(sn=Richardson)</TT> is contained in <TT>(sn=Richards*)</TT></P>
@@ -5482,7 +5488,7 @@ Members of a group
 <PRE>
  pcache &lt;DB&gt; &lt;maxentries&gt; &lt;nattrsets&gt; &lt;entrylimit&gt; &lt;period&gt;
 </PRE>
-<P>This directive enables proxy caching and sets general cache parameters.  The &lt;DB&gt; parameter specifies which underlying database is to be used to hold cached entries.  It should be set to <TT>bdb</TT> or <TT>hdb</TT>.  The &lt;maxentries&gt; parameter specifies the total number of entries which may be held in the cache.  The &lt;nattrsets&gt; parameter specifies the total number of attribute sets (as specified by the <TT>pcacheAttrset</TT> directive) that may be defined.  The &lt;entrylimit&gt; parameter specifies the maximum number of entries in a cacheable query.  The &lt;period&gt; specifies the consistency check period (in seconds).  In each period, queries with expired TTLs are removed.</P>
+<P>This directive enables proxy caching and sets general cache parameters.  The &lt;DB&gt; parameter specifies which underlying database is to be used to hold cached entries.  It should be set to <TT>mdb</TT>, <TT>hdb</TT>, or <TT>bdb</TT>.  The &lt;maxentries&gt; parameter specifies the total number of entries which may be held in the cache. The &lt;nattrsets&gt; parameter specifies the total number of attribute sets (as specified by the <TT>pcacheAttrset</TT> directive) that may be defined.  The &lt;entrylimit&gt; parameter specifies the maximum number of entries in a cacheable query.  The &lt;period&gt; specifies the consistency check period (in seconds).  In each period, queries with expired TTLs are removed.</P>
 <H4><A NAME="Defining attribute sets">12.9.2.2. Defining attribute sets</A></H4>
 <PRE>
  pcacheAttrset &lt;index&gt; &lt;attrs...&gt;
@@ -5501,7 +5507,7 @@ Members of a group
         rootdn          &quot;dc=example,dc=com&quot;
         uri             ldap://ldap.example.com/
         overlay pcache
-        pcache         hdb 100000 1 1000 100
+        pcache         mdb 100000 1 1000 100
         pcacheAttrset  0 mail postaladdress telephonenumber
         pcacheTemplate (sn=) 0 3600
         pcacheTemplate (&amp;(sn=)(givenName=)) 0 3600
@@ -5527,7 +5533,7 @@ Members of a group
    objectClass: olcOverlayConfig
    objectClass: olcPcacheConfig
    olcOverlay: {0}pcache
-   olcPcache: hdb 100000 1 1000 100
+   olcPcache: mdb 100000 1 1000 100
    olcPcacheAttrset: 0 mail postalAddress telephoneNumber
    olcPcacheTemplate: &quot;(sn=)&quot; 0 3600 0 0 0
    olcPcacheTemplate: &quot;(&amp;(sn=)(givenName=))&quot; 0 3600 0 0 0
@@ -5579,7 +5585,7 @@ Members of a group
 <H3><A NAME="Password Policy Configuration">12.10.2. Password Policy Configuration</A></H3>
 <P>Instantiate the module in the database where it will be used, after adding the new ppolicy schema and loading the ppolicy module. The following example shows the ppolicy module being added to the database that handles the naming context &quot;dc=example,dc=com&quot;. In this example we are also specifying the DN of a policy object to use if none other is specified in a user's object.</P>
 <PRE>
-       database bdb
+       database mdb
        suffix &quot;dc=example,dc=com&quot;
        [...additional database configuration directives go here...]
 
@@ -5643,7 +5649,7 @@ Members of a group
 <P><EM>slapo-ppolicy(5)</EM></P>
 <H2><A NAME="Referential Integrity">12.11. Referential Integrity</A></H2>
 <H3><A NAME="Overview">12.11.1. Overview</A></H3>
-<P>This overlay can be used with a backend database such as slapd-bdb(5) to maintain the cohesiveness of a schema which utilizes reference attributes.</P>
+<P>This overlay can be used with a backend database such as slapd-mdb(5) to maintain the cohesiveness of a schema which utilizes reference attributes.</P>
 <P>Whenever a <EM>modrdn</EM> or <EM>delete</EM> is performed, that is, when an entry's DN is renamed or an entry is removed, the server will search the directory for references to this DN (in selected attributes: see below) and update them accordingly. If it was a <EM>delete</EM> operation, the reference is deleted. If it was a <EM>modrdn</EM> operation, then the reference is updated with the new DN.</P>
 <P>For example, a very common administration task is to maintain group membership lists, specially when users are removed from the directory. When an user account is deleted or renamed, all groups this user is a member of have to be updated. LDAP administrators usually have scripts for that. But we can use the <TT>refint</TT> overlay to automate this task. In this example, if the user is removed from the directory, the overlay will take care to remove the user from all the groups he/she was a member of. No more scripting for this.</P>
 <H3><A NAME="Referential Integrity Configuration">12.11.2. Referential Integrity Configuration</A></H3>
@@ -5739,7 +5745,7 @@ Members of a group
 <P>The <EM>slapo-syncprov(5)</EM> man page and the <A HREF="#Configuring the different replication types">Configuring the different replication types</A> section</P>
 <H2><A NAME="Translucent Proxy">12.15. Translucent Proxy</A></H2>
 <H3><A NAME="Overview">12.15.1. Overview</A></H3>
-<P>This overlay can be used with a backend database such as <EM>slapd-bdb</EM>(5) to create a &quot;translucent proxy&quot;.</P>
+<P>This overlay can be used with a backend database such as <EM>slapd-mdb</EM>(5) to create a &quot;translucent proxy&quot;.</P>
 <P>Entries retrieved from a remote LDAP server may have some or all attributes overridden, or new attributes added, by entries in the local database before being presented to the client.</P>
 <P>A search operation is first populated with entries from the remote LDAP server, the attributes of which are then overridden with any attributes defined in the local database. Local overrides may be populated with the add, modify, and modrdn operations, the use of which is restricted to the root user of the translucent local database.</P>
 <P>A compare operation will perform a comparison with attributes defined in the local database record (if any) before any comparison is made with data in the remote database.</P>
@@ -5758,10 +5764,11 @@ Members of a group
        pidfile     ./slapd.pid
        argsfile    ./slapd.args
 
-       database    bdb
+       database    mdb
        suffix      &quot;dc=suretecsystems,dc=com&quot;
        rootdn      &quot;cn=trans,dc=suretecsystems,dc=com&quot;
        rootpw      secret
+       maxsize     85899345920
        directory   ./openldap-data
 
        index       objectClass eq
@@ -5836,7 +5843,7 @@ Members of a group
 <P><EM>slapo-translucent(5)</EM></P>
 <H2><A NAME="Attribute Uniqueness">12.16. Attribute Uniqueness</A></H2>
 <H3><A NAME="Overview">12.16.1. Overview</A></H3>
-<P>This overlay can be used with a backend database such as <EM>slapd-bdb(5)</EM> to enforce the uniqueness of some or all attributes within a subtree.</P>
+<P>This overlay can be used with a backend database such as <EM>slapd-mdb(5)</EM> to enforce the uniqueness of some or all attributes within a subtree.</P>
 <H3><A NAME="Attribute Uniqueness Configuration">12.16.2. Attribute Uniqueness Configuration</A></H3>
 <P>This overlay is only effective on new data from the point the overlay is enabled. To check uniqueness for existing data, you can export and import your data again via the LDAP Add operation, which will not be suitable for large amounts of data, unlike <B>slapcat</B>.</P>
 <P>For the following example, if uniqueness were enforced for the <B>mail</B> attribute, the subtree would be searched for any other records which also have a <B>mail</B> attribute containing the same value presented with an <B>add</B>, <B>modify</B> or <B>modrdn</B> operation which are unique within the configured scope. If any are found, the request is rejected.</P>
@@ -5886,7 +5893,7 @@ Members of a group
 <PRE>
        loglevel    sync stats
 
-       database    hdb
+       database    mdb
        suffix      &quot;dc=suretecsystems,dc=com&quot;
        directory   /usr/local/var/openldap-data
 
@@ -7096,7 +7103,13 @@ browser.  Press 'Enter' for the new password.</UL>
         certtool --generate-dh-params --bits &lt;numbits&gt; --outfile &lt;filename&gt;
 </PRE>
 <P>This directive is ignored with Mozilla NSS.</P>
-<H4><A NAME="TLSVerifyClient { never | allow | try | demand }">16.2.1.8. TLSVerifyClient { never | allow | try | demand }</A></H4>
+<H4><A NAME="TLSECName &lt;name&gt;">16.2.1.8. TLSECName &lt;name&gt;</A></H4>
+<P>This directive specifies the curve to use for Elliptic Curve Diffie-Hellman ephemeral key exchange.  This is required in order to use ECDHE-based cipher suites in OpenSSL.  The names of supported curves may be shown using the following command</P>
+<PRE>
+        openssl ecparam -list_curves
+</PRE>
+<P>This directive is not used for GnuTLS and is ignored with Mozilla NSS. For GnuTLS the curves may be specified in the ciphersuite.</P>
+<H4><A NAME="TLSVerifyClient { never | allow | try | demand }">16.2.1.9. TLSVerifyClient { never | allow | try | demand }</A></H4>
 <P>This directive specifies what checks to perform on client certificates in an incoming TLS session, if any. This option is set to <TT>never</TT> by default, in which case the server never asks the client for a certificate. With a setting of <TT>allow</TT> the server will ask for a client certificate; if none is provided the session proceeds normally. If a certificate is provided but the server is unable to verify it, the certificate is ignored and the session proceeds normally, as if no certificate had been provided. With a setting of <TT>try</TT> the certificate is requested, and if none is provided, the session proceeds normally. If a certificate is provided and it cannot be verified, the session is immediately terminated. With a setting of <TT>demand</TT> the certificate is requested and a valid certificate must be provided, otherwise the session is immediately terminated.</P>
 <P><HR WIDTH="80%" ALIGN="Left">
 <STRONG>Note: </STRONG>The server must request a client certificate in order to use the SASL EXTERNAL authentication mechanism with a TLS session. As such, a non-default <TT>TLSVerifyClient</TT> setting must be configured before SASL EXTERNAL authentication may be attempted, and the SASL EXTERNAL mechanism will only be offered to the client if a valid client certificate was received.
@@ -7186,17 +7199,17 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <HR>
 <H1><A NAME="Replication">18. Replication</A></H1>
 <P>Replicated directories are a fundamental requirement for delivering a resilient enterprise deployment.</P>
-<P><A HREF="http://www.openldap.org/">OpenLDAP</A> has various configuration options for creating a replicated directory. In previous releases, replication was discussed in terms of a <EM>master</EM> server and some number of <EM>slave</EM> servers. A master accepted directory updates from other clients, and a slave only accepted updates from a (single) master. The replication structure was rigidly defined and any particular database could only fulfill a single role, either master or slave.</P>
-<P>As OpenLDAP now supports a wide variety of replication topologies, these terms have been deprecated in favor of <EM>provider</EM> and <EM>consumer</EM>: A provider replicates directory updates to consumers; consumers receive replication updates from providers. Unlike the rigidly defined master/slave relationships, provider/consumer roles are quite fluid: replication updates received in a consumer can be further propagated by that consumer to other servers, so a consumer can also act simultaneously as a provider. Also, a consumer need not be an actual LDAP server; it may be just an LDAP client.</P>
+<P><A HREF="http://www.openldap.org/">OpenLDAP</A> has various configuration options for creating a replicated directory. In previous releases, replication was discussed in terms of a <EM>master</EM> server and some number of <EM>slave</EM> servers. A master accepted directory updates from other clients, and a slave only accepted updates from a (single) master. The replication structure was rigidly defined and any particular database could only fulfill a single role, either master or slave. Another historic term introduced with OpenLDAP 2.4 was multimaster.</P>
+<P>As OpenLDAP now supports a wide variety of replication topologies, these terms have been deprecated in favor of <EM>provider</EM>/<EM>multi-provider</EM> and <EM>consumer</EM>: A provider can accept external write operations and make them available for retrieval by consumers; consumers request replication updates from providers. Unlike the rigidly defined master/slave relationships, provider/consumer roles are quite fluid: replication updates received in a consumer can be further propagated by that consumer to other servers, so a consumer can also act simultaneously as a provider. Also, a consumer need not be an actual LDAP server; it may be just an LDAP client.</P>
 <P>The following sections will describe the replication technology and discuss the various replication options that are available.</P>
 <H2><A NAME="Replication Technology">18.1. Replication Technology</A></H2>
 <H3><A NAME="LDAP Sync Replication">18.1.1. LDAP Sync Replication</A></H3>
-<P>The <TERM>LDAP Sync</TERM> Replication engine, <TERM>syncrepl</TERM> for short, is a consumer-side replication engine that enables the consumer <TERM>LDAP</TERM> server to maintain a shadow copy of a <TERM>DIT</TERM> fragment. A syncrepl engine resides at the consumer and executes as one of the <EM>slapd</EM>(8) threads. It creates and maintains a consumer replica by connecting to the replication provider to perform the initial DIT content load followed either by periodic content polling or by timely updates upon content changes.</P>
-<P>Syncrepl uses the LDAP Content Synchronization protocol (or LDAP Sync for short) as the replica synchronization protocol.  LDAP Sync provides a stateful replication which supports both pull-based and push-based synchronization and does not mandate the use of a history store. In pull-based replication the consumer periodically polls the provider for updates. In push-based replication the consumer listens for updates that are sent by the provider in realtime. Since the protocol does not require a history store, the provider does not need to maintain any log of updates it has received (Note that the syncrepl engine is extensible and additional replication protocols may be supported in the future.).</P>
-<P>Syncrepl keeps track of the status of the replication content by maintaining and exchanging synchronization cookies. Because the syncrepl consumer and provider maintain their content status, the consumer can poll the provider content to perform incremental synchronization by asking for the entries required to make the consumer replica up-to-date with the provider content. Syncrepl also enables convenient management of replicas by maintaining replica status.  The consumer replica can be constructed from a consumer-side or a provider-side backup at any synchronization status. Syncrepl can automatically resynchronize the consumer replica up-to-date with the current provider content.</P>
+<P>The <TERM>LDAP Sync</TERM> Replication engine, <TERM>syncrepl</TERM> for short, is a consumer-side replication engine that enables the consumer <TERM>LDAP</TERM> server to maintain a shadow copy of a <TERM>DIT</TERM> fragment. A syncrepl engine resides at the consumer and executes as one of the <EM>slapd</EM>(8) threads. It creates and maintains a replica by connecting to the replication provider to perform the initial DIT content load followed either by periodic content polling or by timely updates upon content changes.</P>
+<P>Syncrepl uses the LDAP Content Synchronization protocol (or LDAP Sync for short) as the consumer synchronization protocol.  LDAP Sync provides a stateful replication which supports both pull-based and push-based synchronization and does not mandate the use of a history store. In pull-based replication the consumer periodically polls the provider for updates. In push-based replication the consumer listens for updates that are sent by the provider in realtime. Since the protocol does not require a history store, the provider does not need to maintain any log of updates it has received (Note that the syncrepl engine is extensible and additional replication protocols may be supported in the future.).</P>
+<P>Syncrepl keeps track of the status of the replication content by maintaining and exchanging synchronization cookies. Because the syncrepl consumer and provider maintain their content status, the consumer can poll the provider content to perform incremental synchronization by asking for the entries required to make the consumer up-to-date with the provider content. Syncrepl also enables convenient management of consumers by maintaining replication status.  The consumer database can be constructed from a consumer-side or a provider-side backup at any synchronization status. Syncrepl can automatically resynchronize the consumer database to be up-to-date with the current provider content.</P>
 <P>Syncrepl supports both pull-based and push-based synchronization. In its basic refreshOnly synchronization mode, the provider uses pull-based synchronization where the consumer servers need not be tracked and no history information is maintained.  The information required for the provider to process periodic polling requests is contained in the synchronization cookie of the request itself.  To optimize the pull-based synchronization, syncrepl utilizes the present phase of the LDAP Sync protocol as well as its delete phase, instead of falling back on frequent full reloads. To further optimize the pull-based synchronization, the provider can maintain a per-scope session log as a history store. In its refreshAndPersist mode of synchronization, the provider uses a push-based synchronization. The provider keeps track of the consumer servers that have requested a persistent search and sends them necessary updates as the provider replication content gets modified.</P>
-<P>With syncrepl, a consumer server can create a replica without changing the provider's configurations and without restarting the provider server, if the consumer server has appropriate access privileges for the DIT fragment to be replicated. The consumer server can stop the replication also without the need for provider-side changes and restart.</P>
-<P>Syncrepl supports partial, sparse, and fractional replications.  The shadow DIT fragment is defined by a general search criteria consisting of base, scope, filter, and attribute list.  The replica content is also subject to the access privileges of the bind identity of the syncrepl replication connection.</P>
+<P>With syncrepl, a consumer can create a replication agreement without changing the provider's configurations and without restarting the provider server, if the consumer server has appropriate access privileges for the DIT fragment to be replicated. The consumer server can stop the replication also without the need for provider-side changes and restart.</P>
+<P>Syncrepl supports partial, sparse, and fractional replications.  The shadow DIT fragment is defined by a general search criteria consisting of base, scope, filter, and attribute list.  The consumer content is also subject to the access privileges of the bind identity of the syncrepl replication connection.</P>
 <H4><A NAME="The LDAP Content Synchronization Protocol">18.1.1.1. The LDAP Content Synchronization Protocol</A></H4>
 <P>The LDAP Sync protocol allows a client to maintain a synchronized copy of a DIT fragment. The LDAP Sync operation is defined as a set of controls and other protocol elements which extend the LDAP search operation. This section introduces the LDAP Content Sync protocol only briefly.  For more information, refer to <A HREF="http://www.rfc-editor.org/rfc/rfc4533.txt">RFC4533</A>.</P>
 <P>The LDAP Sync protocol supports both polling and listening for changes by defining two respective synchronization operations: <EM>refreshOnly</EM> and <EM>refreshAndPersist</EM>.  Polling is implemented by the <EM>refreshOnly</EM> operation. The consumer polls the provider using an LDAP Search request with an LDAP Sync control attached. The consumer copy is synchronized to the provider copy at the time of polling using the information returned in the search.  The provider finishes the search operation by returning <EM>SearchResultDone</EM> at the end of the search operation as in the normal search.  Listening is implemented by the <EM>refreshAndPersist</EM> operation. As the name implies, it begins with a search, like refreshOnly. Instead of finishing the search after returning all entries currently matching the search criteria, the synchronization search remains persistent in the provider. Subsequent updates to the synchronization content in the provider cause additional entry updates to be sent to the consumer.</P>
@@ -7209,15 +7222,15 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <P>In the LDAP Sync protocol, entries are uniquely identified by the <TT>entryUUID</TT> attribute value. It can function as a reliable identifier of the entry. The DN of the entry, on the other hand, can be changed over time and hence cannot be considered as the reliable identifier.  The <TT>entryUUID</TT> is attached to each <EM>SearchResultEntry</EM> or <EM>SearchResultReference</EM> as a part of the synchronization control.</P>
 <H4><A NAME="Syncrepl Details">18.1.1.2. Syncrepl Details</A></H4>
 <P>The syncrepl engine utilizes both the <EM>refreshOnly</EM> and the <EM>refreshAndPersist</EM> operations of the LDAP Sync protocol.  If a syncrepl specification is included in a database definition, <EM>slapd</EM>(8) launches a syncrepl engine as a <EM>slapd</EM>(8) thread and schedules its execution. If the <EM>refreshOnly</EM> operation is specified, the syncrepl engine will be rescheduled at the interval time after a synchronization operation is completed.  If the <EM>refreshAndPersist</EM> operation is specified, the engine will remain active and process the persistent synchronization messages from the provider.</P>
-<P>The syncrepl engine utilizes both the present phase and the delete phase of the refresh synchronization. It is possible to configure a session log in the provider which stores the <TT>entryUUID</TT>s of a finite number of entries deleted from a database. Multiple replicas share the same session log. The syncrepl engine uses the delete phase if the session log is present and the state of the consumer server is recent enough that no session log entries are truncated after the last synchronization of the client.  The syncrepl engine uses the present phase if no session log is configured for the replication content or if the consumer replica is too outdated to be covered by the session log.  The current design of the session log store is memory based, so the information contained in the session log is not persistent over multiple provider invocations. It is not currently supported to access the session log store by using LDAP operations. It is also not currently supported to impose access control to the session log.</P>
+<P>The syncrepl engine utilizes both the present phase and the delete phase of the refresh synchronization. It is possible to configure a session log in the provider which stores the <TT>entryUUID</TT>s of a finite number of entries deleted from a database. Multiple consumers share the same session log. The syncrepl engine uses the delete phase if the session log is present and the state of the consumer server is recent enough that no session log entries are truncated after the last synchronization of the client.  The syncrepl engine uses the present phase if no session log is configured for the replication content or if the consumer is too outdated to be covered by the session log.  The current design of the session log store is memory based, so the information contained in the session log is not persistent over multiple provider invocations. It is not currently supported to access the session log store by using LDAP operations. It is also not currently supported to impose access control to the session log.</P>
 <P>As a further optimization, even in the case the synchronization search is not associated with any session log, no entries will be transmitted to the consumer server when there has been no update in the replication context.</P>
 <P>The syncrepl engine, which is a consumer-side replication engine, can work with any backends. The LDAP Sync provider can be configured as an overlay on any backend, but works best with the <EM>back-bdb</EM>, <EM>back-hdb</EM>, or <EM>back-mdb</EM> backends.</P>
 <P>The LDAP Sync provider maintains a <TT>contextCSN</TT> for each database as the current synchronization state indicator of the provider content.  It is the largest <TT>entryCSN</TT> in the provider context such that no transactions for an entry having smaller <TT>entryCSN</TT> value remains outstanding.  The <TT>contextCSN</TT> could not just be set to the largest issued <TT>entryCSN</TT> because <TT>entryCSN</TT> is obtained before a transaction starts and transactions are not committed in the issue order.</P>
 <P>The provider stores the <TT>contextCSN</TT> of a context in the <TT>contextCSN</TT> attribute of the context suffix entry. The attribute is not written to the database after every update operation though; instead it is maintained primarily in memory. At database start time the provider reads the last saved <TT>contextCSN</TT> into memory and uses the in-memory copy exclusively thereafter. By default, changes to the <TT>contextCSN</TT> as a result of database updates will not be written to the database until the server is cleanly shut down. A checkpoint facility exists to cause the <TT>contextCSN</TT> to be written out more frequently if desired.</P>
 <P>Note that at startup time, if the provider is unable to read a <TT>contextCSN</TT> from the suffix entry, it will scan the entire database to determine the value, and this scan may take quite a long time on a large database. When a <TT>contextCSN</TT> value is read, the database will still be scanned for any <TT>entryCSN</TT> values greater than it, to make sure the <TT>contextCSN</TT> value truly reflects the greatest committed <TT>entryCSN</TT> in the database. On databases which support inequality indexing, setting an eq index on the <TT>entryCSN</TT> attribute and configuring <EM>contextCSN</EM> checkpoints will greatly speed up this scanning step.</P>
 <P>If no <TT>contextCSN</TT> can be determined by reading and scanning the database, a new value will be generated. Also, if scanning the database yielded a greater <TT>entryCSN</TT> than was previously recorded in the suffix entry's <TT>contextCSN</TT> attribute, a checkpoint will be immediately written with the new value.</P>
-<P>The consumer also stores its replica state, which is the provider's <TT>contextCSN</TT> received as a synchronization cookie, in the <TT>contextCSN</TT> attribute of the suffix entry.  The replica state maintained by a consumer server is used as the synchronization state indicator when it performs subsequent incremental synchronization with the provider server. It is also used as a provider-side synchronization state indicator when it functions as a secondary provider server in a cascading replication configuration.  Since the consumer and provider state information are maintained in the same location within their respective databases, any consumer can be promoted to a provider (and vice versa) without any special actions.</P>
-<P>Because a general search filter can be used in the syncrepl specification, some entries in the context may be omitted from the synchronization content.  The syncrepl engine creates a glue entry to fill in the holes in the replica context if any part of the replica content is subordinate to the holes. The glue entries will not be returned in the search result unless <EM>ManageDsaIT</EM> control is provided.</P>
+<P>The consumer also stores its replication state, which is the provider's <TT>contextCSN</TT> received as a synchronization cookie, in the <TT>contextCSN</TT> attribute of the suffix entry.  The replication state maintained by a consumer server is used as the synchronization state indicator when it performs subsequent incremental synchronization with the provider server. It is also used as a provider-side synchronization state indicator when it functions as a secondary provider server in a cascading replication configuration.  Since the consumer and provider state information are maintained in the same location within their respective databases, any consumer can be promoted to a provider (and vice versa) without any special actions.</P>
+<P>Because a general search filter can be used in the syncrepl specification, some entries in the context may be omitted from the synchronization content.  The syncrepl engine creates a glue entry to fill in the holes in the consumer context if any part of the consumer content is subordinate to the holes. The glue entries will not be returned in the search result unless <EM>ManageDsaIT</EM> control is provided.</P>
 <P>Also as a consequence of the search filter used in the syncrepl specification, it is possible for a modification to remove an entry from the replication scope even though the entry has not been deleted on the provider. Logically the entry must be deleted on the consumer but in <EM>refreshOnly</EM> mode the provider cannot detect and propagate this change without the use of the session log on the provider.</P>
 <P>For configuration, please see the <A HREF="#Syncrepl">Syncrepl</A> section.</P>
 <H2><A NAME="Deployment Alternatives">18.2. Deployment Alternatives</A></H2>
@@ -7226,39 +7239,39 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <UL>
 <LI>Disadvantages of LDAP Sync replication:</UL>
 <P>LDAP Sync replication is an object-based replication mechanism. When any attribute value in a replicated object is changed on the provider, each consumer fetches and processes the complete changed object, including <B>both the changed and unchanged attribute values</B> during replication. One advantage of this approach is that when multiple changes occur to a single object, the precise sequence of those changes need not be preserved; only the final state of the entry is significant. But this approach may have drawbacks when the usage pattern involves single changes to multiple objects.</P>
-<P>For example, suppose you have a database consisting of 102,400 objects of 1 KB each. Further, suppose you routinely run a batch job to change the value of a single two-byte attribute value that appears in each of the 102,400 objects on the master. Not counting LDAP and TCP/IP protocol overhead, each time you run this job each consumer will transfer and process <B>100 MB</B> of data to process <B>200KB of changes!</B></P>
+<P>For example, suppose you have a database consisting of 102,400 objects of 1 KB each. Further, suppose you routinely run a batch job to change the value of a single two-byte attribute value that appears in each of the 102,400 objects on the provider. Not counting LDAP and TCP/IP protocol overhead, each time you run this job each consumer will transfer and process <B>100 MB</B> of data to process <B>200KB of changes!</B></P>
 <P>99.98% of the data that is transmitted and processed in a case like this will be redundant, since it represents values that did not change. This is a waste of valuable transmission and processing bandwidth and can cause an unacceptable replication backlog to develop. While this situation is extreme, it serves to demonstrate a very real problem that is encountered in some LDAP deployments.</P>
 <UL>
 <LI>Where Delta-syncrepl comes in:</UL>
-<P>Delta-syncrepl, a changelog-based variant of syncrepl, is designed to address situations like the one described above. Delta-syncrepl works by maintaining a changelog of a selectable depth in a separate database on the provider. The replication consumer checks the changelog for the changes it needs and, as long as the changelog contains the needed changes, the consumer fetches the changes from the changelog and applies them to its database. If, however, a replica is too far out of sync (or completely empty), conventional syncrepl is used to bring it up to date and replication then switches back to the delta-syncrepl mode.</P>
+<P>Delta-syncrepl, a changelog-based variant of syncrepl, is designed to address situations like the one described above. Delta-syncrepl works by maintaining a changelog of a selectable depth in a separate database on the provider. The replication consumer checks the changelog for the changes it needs and, as long as the changelog contains the needed changes, the consumer fetches the changes from the changelog and applies them to its database. If, however, a consumer is too far out of sync (or completely empty), conventional syncrepl is used to bring it up to date and replication then switches back to the delta-syncrepl mode.</P>
 <P><HR WIDTH="80%" ALIGN="Left">
 <STRONG>Note: </STRONG>since the database state is stored in both the changelog DB and the main DB on the provider, it is important to backup/restore both the changelog DB and the main DB using slapcat/slapadd when restoring a DB or copying it to another machine.
 <HR WIDTH="80%" ALIGN="Left"></P>
 <P>For configuration, please see the <A HREF="#Delta-syncrepl">Delta-syncrepl</A> section.</P>
-<H3><A NAME="N-Way Multi-Master replication">18.2.2. N-Way Multi-Master replication</A></H3>
-<P>Multi-Master replication is a replication technique using Syncrepl to replicate data to multiple provider (&quot;Master&quot;) Directory servers.</P>
-<H4><A NAME="Valid Arguments for Multi-Master replication">18.2.2.1. Valid Arguments for Multi-Master replication</A></H4>
+<H3><A NAME="N-Way Multi-Provider Replication">18.2.2. N-Way Multi-Provider Replication</A></H3>
+<P>Multi-Provider replication is a replication technique using Syncrepl to replicate data to multiple provider (&quot;Provider&quot;) Directory servers.</P>
+<H4><A NAME="Valid Arguments for Multi-Provider replication">18.2.2.1. Valid Arguments for Multi-Provider replication</A></H4>
 <UL>
 <LI>If any provider fails, other providers will continue to accept updates
 <LI>Avoids a single point of failure
 <LI>Providers can be located in several physical sites i.e. distributed across the network/globe.
 <LI>Good for Automatic failover/High Availability</UL>
-<H4><A NAME="Invalid Arguments for Multi-Master replication">18.2.2.2. Invalid Arguments for Multi-Master replication</A></H4>
-<P>(These are often claimed to be advantages of Multi-Master replication but those claims are false):</P>
+<H4><A NAME="Invalid Arguments for Multi-Provider replication">18.2.2.2. Invalid Arguments for Multi-Provider replication</A></H4>
+<P>(These are often claimed to be advantages of Multi-Provider replication but those claims are false):</P>
 <UL>
 <LI>It has <B>NOTHING</B> to do with load balancing
-<LI>Providers <B>must</B> propagate writes to <B>all</B> the other servers, which means the network traffic and write load spreads across all of the servers the same as for single-master.
-<LI>Server utilization and performance are at best identical for Multi-Master and Single-Master replication; at worst Single-Master is superior because indexing can be tuned differently to optimize for the different usage patterns between the provider and the consumers.</UL>
-<H4><A NAME="Arguments against Multi-Master replication">18.2.2.3. Arguments against Multi-Master replication</A></H4>
+<LI>Providers <B>must</B> propagate writes to <B>all</B> the other servers, which means the network traffic and write load spreads across all of the servers the same as for single-provider.
+<LI>Server utilization and performance are at best identical for Multi-Provider and Single-Provider replication; at worst Single-Provider is superior because indexing can be tuned differently to optimize for the different usage patterns between the provider and the consumers.</UL>
+<H4><A NAME="Arguments against Multi-Provider replication">18.2.2.3. Arguments against Multi-Provider replication</A></H4>
 <UL>
 <LI>Breaks the data consistency guarantees of the directory model
 <LI><A HREF="http://www.openldap.org/faq/data/cache/1240.html">http://www.openldap.org/faq/data/cache/1240.html</A>
 <LI>If connectivity with a provider is lost because of a network partition, then &quot;automatic failover&quot; can just compound the problem
 <LI>Typically, a particular machine cannot distinguish between losing contact with a peer because that peer crashed, or because the network link has failed
-<LI>If a network is partitioned and multiple clients start writing to each of the &quot;masters&quot; then reconciliation will be a pain; it may be best to simply deny writes to the clients that are partitioned from the single provider</UL>
-<P>For configuration, please see the <A HREF="#N-Way Multi-Master">N-Way Multi-Master</A> section below</P>
+<LI>If a network is partitioned and multiple clients start writing to each of the &quot;providers&quot; then reconciliation will be a pain; it may be best to simply deny writes to the clients that are partitioned from the single provider</UL>
+<P>For configuration, please see the <A HREF="#N-Way Multi-Provider">N-Way Multi-Provider</A> section below</P>
 <H3><A NAME="MirrorMode replication">18.2.3. MirrorMode replication</A></H3>
-<P>MirrorMode is a hybrid configuration that provides all of the consistency guarantees of single-master replication, while also providing the high availability of multi-master. In MirrorMode two providers are set up to replicate from each other (as a multi-master configuration), but an external frontend is employed to direct all writes to only one of the two servers. The second provider will only be used for writes if the first provider crashes, at which point the frontend will switch to directing all writes to the second provider. When a crashed provider is repaired and restarted it will automatically catch up to any changes on the running provider and resync.</P>
+<P>MirrorMode is a hybrid configuration that provides all of the consistency guarantees of single-provider replication, while also providing the high availability of multi-provider. In MirrorMode two providers are set up to replicate from each other (as a multi-provider configuration), but an external frontend is employed to direct all writes to only one of the two servers. The second provider will only be used for writes if the first provider crashes, at which point the frontend will switch to directing all writes to the second provider. When a crashed provider is repaired and restarted it will automatically catch up to any changes on the running provider and resync.</P>
 <H4><A NAME="Arguments for MirrorMode">18.2.3.1. Arguments for MirrorMode</A></H4>
 <UL>
 <LI>Provides a high-availability (HA) solution for directory writes (replicas handle reads)
@@ -7267,7 +7280,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <LI>Syncrepl also allows the provider nodes to re-synchronize after any downtime</UL>
 <H4><A NAME="Arguments against MirrorMode">18.2.3.2. Arguments against MirrorMode</A></H4>
 <UL>
-<LI>MirrorMode is not what is termed as a Multi-Master solution. This is because writes have to go to just one of the mirror nodes at a time
+<LI>MirrorMode is not what is termed as a Multi-Provider solution. This is because writes have to go to just one of the mirror nodes at a time
 <LI>MirrorMode can be termed as Active-Active Hot-Standby, therefore an external server (slapd in proxy mode) or device (hardware load balancer) is needed to manage which provider is currently active
 <LI>Backups are managed slightly differently<UL>
 <LI>If backing up the Berkeley database itself and periodically backing up the transaction log files, then the same member of the mirror pair needs to be used to collect logfiles until the next database backup is taken</UL></UL>
@@ -7278,15 +7291,15 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <P>For configuration, please see the <A HREF="#Syncrepl Proxy">Syncrepl Proxy</A> section.</P>
 <H4><A NAME="Replacing Slurpd">18.2.4.1. Replacing Slurpd</A></H4>
 <P>The old <EM>slurpd</EM> mechanism only operated in provider-initiated push mode.  Slurpd replication was deprecated in favor of Syncrepl replication and has been completely removed from OpenLDAP 2.4.</P>
-<P>The slurpd daemon was the original replication mechanism inherited from UMich's LDAP and operated in push mode: the master pushed changes to the slaves. It was replaced for many reasons, in brief:</P>
+<P>The slurpd daemon was the original replication mechanism inherited from UMich's LDAP and operated in push mode: the provider pushed changes to the replicas. It was replaced for many reasons, in brief:</P>
 <UL>
 <LI>It was not reliable<UL>
 <LI>It was extremely sensitive to the ordering of records in the replog
-<LI>It could easily go out of sync, at which point manual intervention was required to resync the slave database with the master directory
-<LI>It wasn't very tolerant of unavailable servers. If a slave went down for a long time, the replog could grow to a size that was too large for slurpd to process</UL>
+<LI>It could easily go out of sync, at which point manual intervention was required to resync the replica database with the provider directory
+<LI>It wasn't very tolerant of unavailable servers. If a replica went down for a long time, the replog could grow to a size that was too large for slurpd to process</UL>
 <LI>It only worked in push mode
-<LI>It required stopping and restarting the master to add new slaves
-<LI>It only supported single master replication</UL>
+<LI>It required stopping and restarting the provider to add new replicas
+<LI>It only supported single provider replication</UL>
 <P>Syncrepl has none of those weaknesses:</P>
 <UL>
 <LI>Syncrepl is self-synchronizing; you can start with a consumer database in any state from totally empty to fully synced and it will automatically do the right thing to achieve and maintain synchronization<UL>
@@ -7295,13 +7308,13 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <LI>It can resynchronize regardless of how long a consumer stays out of contact with the provider</UL>
 <LI>Syncrepl can operate in either direction
 <LI>Consumers can be added at any time without touching anything on the provider
-<LI>Multi-master replication is supported</UL>
+<LI>Multi-provider replication is supported</UL>
 <H2><A NAME="Configuring the different replication types">18.3. Configuring the different replication types</A></H2>
 <H3><A NAME="Syncrepl">18.3.1. Syncrepl</A></H3>
 <H4><A NAME="Syncrepl configuration">18.3.1.1. Syncrepl configuration</A></H4>
-<P>Because syncrepl is a consumer-side replication engine, the syncrepl specification is defined in <EM>slapd.conf</EM>(5) of the consumer server, not in the provider server's configuration file.  The initial loading of the replica content can be performed either by starting the syncrepl engine with no synchronization cookie or by populating the consumer replica by loading an <TERM>LDIF</TERM> file dumped as a backup at the provider.</P>
-<P>When loading from a backup, it is not required to perform the initial loading from the up-to-date backup of the provider content. The syncrepl engine will automatically synchronize the initial consumer replica to the current provider content. As a result, it is not required to stop the provider server in order to avoid the replica inconsistency caused by the updates to the provider content during the content backup and loading process.</P>
-<P>When replicating a large scale directory, especially in a bandwidth constrained environment, it is advised to load the consumer replica from a backup instead of performing a full initial load using syncrepl.</P>
+<P>Because syncrepl is a consumer-side replication engine, the syncrepl specification is defined in <EM>slapd.conf</EM>(5) of the consumer server, not in the provider server's configuration file.  The initial loading of the consumer content can be performed either by starting the syncrepl engine with no synchronization cookie or by populating the consumer by loading an <TERM>LDIF</TERM> file dumped as a backup at the provider.</P>
+<P>When loading from a backup, it is not required to perform the initial loading from the up-to-date backup of the provider content. The syncrepl engine will automatically synchronize the initial consumer to the current provider content. As a result, it is not required to stop the provider server in order to avoid the replication inconsistency caused by the updates to the provider content during the content backup and loading process.</P>
+<P>When replicating a large scale directory, especially in a bandwidth constrained environment, it is advised to load the consumer from a backup instead of performing a full initial load using syncrepl.</P>
 <H4><A NAME="Set up the provider slapd">18.3.1.2. Set up the provider slapd</A></H4>
 <P>The provider is implemented as an overlay, so the overlay itself must first be configured in <EM>slapd.conf</EM>(5) before it can be used. The provider has two primary configuration directives and two secondary directives for when delta-syncrepl is being used. Because the LDAP Sync search is subject to access control, proper access control privileges should be set up for the replicated content.</P>
 <P>The two primary options to configure are the checkpoint and sessionlog behaviors.</P>
@@ -7330,9 +7343,9 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <P>A more complete example of the <EM>slapd.conf</EM>(5) content is thus:</P>
 <PRE>
         database mdb
-        maxsize 1073741824
-        suffix dc=Example,dc=com
-        rootdn dc=Example,dc=com
+        maxsize 85899345920
+        suffix dc=example,dc=com
+        rootdn dc=example,dc=com
         directory /var/ldap/db
         index objectclass,entryCSN,entryUUID eq
 
@@ -7341,12 +7354,12 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
         syncprov-sessionlog 100
 </PRE>
 <H4><A NAME="Set up the consumer slapd">18.3.1.3. Set up the consumer slapd</A></H4>
-<P>The syncrepl replication is specified in the database section of <EM>slapd.conf</EM>(5) for the replica context. The syncrepl engine is backend independent and the directive can be defined with any database type.</P>
+<P>The syncrepl directive is specified in the database section of <EM>slapd.conf</EM>(5) for the consumer context. The syncrepl engine is backend independent and the directive can be defined with any database type.</P>
 <PRE>
         database mdb
-        maxsize 1073741824
-        suffix dc=Example,dc=com
-        rootdn dc=Example,dc=com
+        maxsize 85899345920
+        suffix dc=example,dc=com
+        rootdn dc=example,dc=com
         directory /var/ldap/db
         index objectclass,entryCSN,entryUUID eq
 
@@ -7368,24 +7381,24 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <P>For more detailed information on the syncrepl directive, see the <A HREF="#syncrepl">syncrepl</A> section of <A HREF="#The slapd Configuration File">The slapd Configuration File</A> chapter of this admin guide.</P>
 <H4><A NAME="Start the provider and the consumer slapd">18.3.1.4. Start the provider and the consumer slapd</A></H4>
 <P>The provider <EM>slapd</EM>(8) is not required to be restarted. <EM>contextCSN</EM> is automatically generated as needed: it might be originally contained in the <TERM>LDIF</TERM> file, generated by <EM>slapadd</EM> (8), generated upon changes in the context, or generated when the first LDAP Sync search arrives at the provider.  If an LDIF file is being loaded which did not previously contain the <EM>contextCSN</EM>, the <EM>-w</EM> option should be used with <EM>slapadd</EM> (8) to cause it to be generated. This will allow the server to startup a little quicker the first time it runs.</P>
-<P>When starting a consumer <EM>slapd</EM>(8), it is possible to provide a synchronization cookie as the <EM>-c cookie</EM> command line option in order to start the synchronization from a specific state.  The cookie is a comma separated list of name=value pairs. Currently supported syncrepl cookie fields are <EM>csn=&lt;csn&gt;</EM> and <EM>rid=&lt;rid&gt;</EM>. <EM>&lt;csn&gt;</EM> represents the current synchronization state of the consumer replica.  <EM>&lt;rid&gt;</EM> identifies a consumer replica locally within the consumer server. It is used to relate the cookie to the syncrepl definition in <EM>slapd.conf</EM>(5) which has the matching replica identifier.  The <EM>&lt;rid&gt;</EM> must have no more than 3 decimal digits.  The command line cookie overrides the synchronization cookie stored in the consumer replica database.</P>
+<P>When starting a consumer <EM>slapd</EM>(8), it is possible to provide a synchronization cookie as the <EM>-c cookie</EM> command line option in order to start the synchronization from a specific state.  The cookie is a comma separated list of name=value pairs. Currently supported syncrepl cookie fields are <EM>csn=&lt;csn&gt;</EM> and <EM>rid=&lt;rid&gt;</EM>. <EM>&lt;csn&gt;</EM> represents the current synchronization state of the consumer. <EM>&lt;rid&gt;</EM> identifies a consumer locally within the consumer server. It is used to relate the cookie to the syncrepl definition in <EM>slapd.conf</EM>(5) which has the matching <EM>&lt;rid&gt;</EM>.  The <EM>&lt;rid&gt;</EM> must have no more than 3 decimal digits.  The command line cookie overrides the synchronization cookie stored in the consumer database.</P>
 <H3><A NAME="Delta-syncrepl">18.3.2. Delta-syncrepl</A></H3>
 <H4><A NAME="Delta-syncrepl Provider configuration">18.3.2.1. Delta-syncrepl Provider configuration</A></H4>
-<P>Setting up delta-syncrepl requires configuration changes on both the master and replica servers:</P>
+<P>Setting up delta-syncrepl requires configuration changes on both the provider and replica servers:</P>
 <PRE>
-     # Give the replica DN unlimited read access.  This ACL needs to be
+     # Give the replicator DN unlimited read access.  This ACL needs to be
      # merged with other ACL statements, and/or moved within the scope
      # of a database.  The &quot;by * break&quot; portion causes evaluation of
      # subsequent rules.  See slapd.access(5) for details.
      access to *
-        by dn.base=&quot;cn=replicator,dc=symas,dc=com&quot; read
+        by dn.base=&quot;cn=replicator,dc=example,dc=com&quot; read
         by * break
 
      # Set the module path location
-     modulepath /opt/symas/lib/openldap
+     modulepath /usr/lib/openldap
 
-     # Load the hdb backend
-     moduleload back_hdb.la
+     # Load the mdb backend
+     moduleload back_mdb.la
 
      # Load the accesslog overlay
      moduleload accesslog.la
@@ -7394,24 +7407,26 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
      moduleload syncprov.la
 
      # Accesslog database definitions
-     database hdb
+     database mdb
      suffix cn=accesslog
-     directory /db/accesslog
      rootdn cn=accesslog
+     directory /var/lib/db/accesslog
+     maxsize 85899345920
      index default eq
-     index entryCSN,objectClass,reqEnd,reqResult,reqStart
+     index entryCSN,objectClass,reqEnd,reqResult,reqStart,reqDN
 
      overlay syncprov
      syncprov-nopresent TRUE
      syncprov-reloadhint TRUE
 
-     # Let the replica DN have limitless searches
-     limits dn.exact=&quot;cn=replicator,dc=symas,dc=com&quot; time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
+     # Let the replicator DN have limitless searches
+     limits dn.exact=&quot;cn=replicator,dc=example,dc=com&quot; time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
 
      # Primary database definitions
-     database hdb
-     suffix &quot;dc=symas,dc=com&quot;
-     rootdn &quot;cn=manager,dc=symas,dc=com&quot;
+     database mdb
+     suffix &quot;dc=example,dc=com&quot;
+     rootdn &quot;cn=manager,dc=example,dc=com&quot;
+     maxsize 85899345920
 
      ## Whatever other configuration options are desired
 
@@ -7431,16 +7446,17 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
      # scan the accesslog DB every day, and purge entries older than 7 days
      logpurge 07+00:00 01+00:00
 
-     # Let the replica DN have limitless searches
-     limits dn.exact=&quot;cn=replicator,dc=symas,dc=com&quot; time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
+     # Let the replicator DN have limitless searches
+     limits dn.exact=&quot;cn=replicator,dc=example,dc=com&quot; time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
 </PRE>
 <P>For more information, always consult the relevant man pages (<EM>slapo-accesslog</EM>(5) and <EM>slapd.conf</EM>(5))</P>
 <H4><A NAME="Delta-syncrepl Consumer configuration">18.3.2.2. Delta-syncrepl Consumer configuration</A></H4>
 <PRE>
      # Replica database configuration
-     database hdb
-     suffix &quot;dc=symas,dc=com&quot;
-     rootdn &quot;cn=manager,dc=symas,dc=com&quot;
+     database mdb
+     suffix &quot;dc=example,dc=com&quot;
+     rootdn &quot;cn=manager,dc=example,dc=com&quot;
+     maxsize 85899345920
 
      ## Whatever other configuration bits for the replica, like indexing
      ## that you want
@@ -7450,11 +7466,11 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 
      # syncrepl directives
      syncrepl  rid=0
-               provider=ldap://ldapmaster.symas.com:389
+               provider=ldap://ldapprovider.example.com:389
                bindmethod=simple
-               binddn=&quot;cn=replicator,dc=symas,dc=com&quot;
+               binddn=&quot;cn=replicator,dc=example,dc=com&quot;
                credentials=secret
-               searchbase=&quot;dc=symas,dc=com&quot;
+               searchbase=&quot;dc=example,dc=com&quot;
                logbase=&quot;cn=accesslog&quot;
                logfilter=&quot;(&amp;(objectClass=auditWriteObject)(reqResult=0))&quot;
                schemachecking=on
@@ -7462,15 +7478,15 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
                retry=&quot;60 +&quot;
                syncdata=accesslog
 
-     # Refer updates to the master
-     updateref               ldap://ldapmaster.symas.com
+     # Refer updates to the provider
+     updateref               ldap://ldapprovider.example.com
 </PRE>
-<P>The above configuration assumes that you have a replicator identity defined in your database that can be used to bind to the provider. In addition, all of the databases (primary, replica, and the accesslog storage database) should also have properly tuned <EM>DB_CONFIG</EM> files that meet your needs.</P>
+<P>The above configuration assumes that you have a replicator identity defined in your database that can be used to bind to the provider. In addition, all of the databases (primary, replica, and the accesslog storage database) should also have properly tuned <EM>DB_CONFIG</EM> files that meet your needs if using the bdb or hdb backends.</P>
 <P><HR WIDTH="80%" ALIGN="Left">
-<STRONG>Note: </STRONG>An accesslog database is unique to a given master. It should never be replicated.
+<STRONG>Note: </STRONG>An accesslog database is unique to a given provider. It should never be replicated.
 <HR WIDTH="80%" ALIGN="Left"></P>
-<H3><A NAME="N-Way Multi-Master">18.3.3. N-Way Multi-Master</A></H3>
-<P>For the following example we will be using 3 Master nodes. Keeping in line with <B>test050-syncrepl-multimaster</B> of the OpenLDAP test suite, we will be configuring <EM>slapd(8)</EM> via <B>cn=config</B></P>
+<H3><A NAME="N-Way Multi-Provider">18.3.3. N-Way Multi-Provider</A></H3>
+<P>For the following example we will be using 3 Provider nodes. Keeping in line with <B>test050-syncrepl-multiprovider</B> of the OpenLDAP test suite, we will be configuring <EM>slapd(8)</EM> via <B>cn=config</B></P>
 <P>This sets up the config database:</P>
 <PRE>
      dn: cn=config
@@ -7495,7 +7511,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
      olcDatabase: {0}config
      olcRootPW: secret
 </PRE>
-<P>This sets up syncrepl as a provider (since these are all masters):</P>
+<P>This sets up syncrepl as a provider (since these are all providers):</P>
 <PRE>
      dn: cn=module,cn=config
      objectClass: olcModuleList
@@ -7503,7 +7519,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
      olcModulePath: /usr/local/libexec/openldap
      olcModuleLoad: syncprov.la
 </PRE>
-<P>Now we setup the first Master Node (replace $URI1, $URI2 and $URI3 etc. with your actual ldap urls):</P>
+<P>Now we setup the first Provider Node (replace $URI1, $URI2 and $URI3 etc. with your actual ldap urls):</P>
 <PRE>
      dn: cn=config
      changetype: modify
@@ -7534,8 +7550,8 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
      add: olcMirrorMode
      olcMirrorMode: TRUE
 </PRE>
-<P>Now start up the Master and a consumer/s, also add the above LDIF to the first consumer, second consumer etc. It will then replicate <B>cn=config</B>. You now have N-Way Multimaster on the config database.</P>
-<P>We still have to replicate the actual data, not just the config, so add to the master (all active and configured consumers/masters will pull down this config, as they are all syncing). Also, replace all <EM>${</EM>} variables with whatever is applicable to your setup:</P>
+<P>Now start up the provider and a consumer/s, also add the above LDIF to the first consumer, second consumer etc. It will then replicate <B>cn=config</B>. You now have N-Way Multi-Provider on the config database.</P>
+<P>We still have to replicate the actual data, not just the config, so add to the provider (all active and configured consumers/providers will pull down this config, as they are all syncing). Also, replace all <EM>${</EM>} variables with whatever is applicable to your setup:</P>
 <PRE>
      dn: olcDatabase={1}$BACKEND,cn=config
      objectClass: olcDatabaseConfig
@@ -7628,14 +7644,14 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <H5><A NAME="Normal Consumer Configuration">18.3.4.1.2. Normal Consumer Configuration</A></H5>
 <P>This is exactly the same as the <A HREF="#Set up the consumer slapd">Set up the consumer slapd</A> section. It can either setup in normal <A HREF="#syncrepl replication">syncrepl replication</A> mode, or in <A HREF="#delta-syncrepl replication">delta-syncrepl replication</A> mode.</P>
 <H4><A NAME="MirrorMode Summary">18.3.4.2. MirrorMode Summary</A></H4>
-<P>You will now have a directory architecture that provides all of the consistency guarantees of single-master replication, while also providing the high availability of multi-master replication.</P>
+<P>You will now have a directory architecture that provides all of the consistency guarantees of single-provider replication, while also providing the high availability of multi-provider replication.</P>
 <H3><A NAME="Syncrepl Proxy">18.3.5. Syncrepl Proxy</A></H3>
 <P><CENTER><IMG SRC="push-based-complete.png" ALIGN="center"></CENTER></P>
 <P ALIGN="Center">Figure X.Y: Replacing slurpd</P>
 <P>The following example is for a self-contained push-based replication solution:</P>
 <PRE>
         #######################################################################
-        # Standard OpenLDAP Master/Provider
+        # Standard OpenLDAP Provider
         #######################################################################
 
         include     /usr/local/etc/openldap/schema/core.schema
@@ -7646,7 +7662,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
         include     /usr/local/etc/openldap/slapd.acl
 
         modulepath  /usr/local/libexec/openldap
-        moduleload  back_hdb.la
+        moduleload  back_mdb.la
         moduleload  syncprov.la
         moduleload  back_monitor.la
         moduleload  back_ldap.la
@@ -7656,13 +7672,12 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 
         loglevel    sync stats
 
-        database    hdb
+        database    mdb
         suffix      &quot;dc=suretecsystems,dc=com&quot;
         directory   /usr/local/var/openldap-data
+        maxsize     85899345920
 
         checkpoint      1024 5
-        cachesize       10000
-        idlcachesize    10000
 
         index       objectClass eq
         # rest of indexes
@@ -7679,7 +7694,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
         overlay syncprov
         syncprov-checkpoint 1000 60
 
-        # Let the replica DN have limitless searches
+        # Let the replicator DN have limitless searches
         limits dn.exact=&quot;cn=replicator,dc=suretecsystems,dc=com&quot; time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
 
         database    monitor
@@ -7721,7 +7736,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <P>A replica configuration for this type of setup could be:</P>
 <PRE>
         #######################################################################
-        # Standard OpenLDAP Slave without Syncrepl
+        # Standard OpenLDAP Replica without Syncrepl
         #######################################################################
 
         include     /usr/local/etc/openldap/schema/core.schema
@@ -7732,7 +7747,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
         include     /usr/local/etc/openldap/slapd.acl
 
         modulepath  /usr/local/libexec/openldap
-        moduleload  back_hdb.la
+        moduleload  back_mdb.la
         moduleload  syncprov.la
         moduleload  back_monitor.la
         moduleload  back_ldap.la
@@ -7742,13 +7757,12 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 
         loglevel    sync stats
 
-        database    hdb
+        database    mdb
         suffix      &quot;dc=suretecsystems,dc=com&quot;
-        directory   /usr/local/var/openldap-slave/data
+        directory   /usr/local/var/openldap-consumer/data
 
+        maxsize         85899345920
         checkpoint      1024 5
-        cachesize       10000
-        idlcachesize    10000
 
         index       objectClass eq
         # rest of indexes
@@ -7757,12 +7771,12 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
         rootdn          &quot;cn=admin,dc=suretecsystems,dc=com&quot;
         rootpw          testing
 
-        # Let the replica DN have limitless searches
+        # Let the replicator DN have limitless searches
         limits dn.exact=&quot;cn=replicator,dc=suretecsystems,dc=com&quot; time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
 
         updatedn &quot;cn=replicator,dc=suretecsystems,dc=com&quot;
 
-        # Refer updates to the master
+        # Refer updates to the provider
         updateref   ldap://localhost:9011
 
         database    monitor
@@ -7772,7 +7786,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 </PRE>
 <P>You can see we use the <EM>updatedn</EM> directive here and example ACLs (<TT>usr/local/etc/openldap/slapd.acl</TT>) for this could be:</P>
 <PRE>
-        # Give the replica DN unlimited read access.  This ACL may need to be
+        # Give the replicator DN unlimited read access.  This ACL may need to be
         # merged with other ACL statements.
 
         access to *
@@ -7796,9 +7810,9 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 </PRE>
 <P>In order to support more replicas, just add more <EM>database ldap</EM> sections and increment the <EM>syncrepl rid</EM> number accordingly.</P>
 <P><HR WIDTH="80%" ALIGN="Left">
-<STRONG>Note: </STRONG>You must populate the Master and Slave directories with the same data, unlike when using normal Syncrepl
+<STRONG>Note: </STRONG>You must populate the Provider and Replica directories with the same data, unlike when using normal Syncrepl
 <HR WIDTH="80%" ALIGN="Left"></P>
-<P>If you do not have access to modify the master directory configuration you can configure a standalone ldap proxy, which might look like:</P>
+<P>If you do not have access to modify the provider directory configuration you can configure a standalone ldap proxy, which might look like:</P>
 <P><CENTER><IMG SRC="push-based-standalone.png" ALIGN="center"></CENTER></P>
 <P ALIGN="Center">Figure X.Y: Replacing slurpd with a standalone version</P>
 <P>The following configuration is an example of a standalone LDAP Proxy:</P>
@@ -7916,7 +7930,7 @@ Use <TT>certutil -L</TT> to list the certificates by name:</UL>
 <BR>
 &nbsp;
 <LI><B>Start the server</B></OL>
-<P>Obviously this doesn't cater for any complicated deployments like <A HREF="#MirrorMode">MirrorMode</A> or <A HREF="#N-Way Multi-Master">N-Way Multi-Master</A>, but following the above sections and using either commercial support or community support should help. Also check the <A HREF="#Troubleshooting">Troubleshooting</A> section.</P>
+<P>Obviously this doesn't cater for any complicated deployments like <A HREF="#MirrorMode">MirrorMode</A> or <A HREF="#N-Way Multi-Provider">N-Way Multi-Provider</A>, but following the above sections and using either commercial support or community support should help. Also check the <A HREF="#Troubleshooting">Troubleshooting</A> section.</P>
 <P></P>
 <HR>
 <H1><A NAME="Monitoring">20. Monitoring</A></H1>
@@ -8511,9 +8525,9 @@ Database objects of instances of this backend
 <H3><A NAME="More sophisticated Syncrepl configurations">A.2.3. More sophisticated Syncrepl configurations</A></H3>
 <P>The original implementation of Syncrepl in OpenLDAP 2.2 was intended to support multiple consumers within the same database, but that feature never worked and was removed from OpenLDAP 2.3; you could only configure a single consumer in any database.</P>
 <P>In 2.4 you can configure multiple consumers in a single database. The configuration possibilities here are quite complex and numerous. You can configure consumers over arbitrary subtrees of a database (disjoint or overlapping). Any portion of the database may in turn be provided to other consumers using the Syncprov overlay. The Syncprov overlay works with any number of consumers over a single database or over arbitrarily many glued databases.</P>
-<H3><A NAME="N-Way Multimaster Replication">A.2.4. N-Way Multimaster Replication</A></H3>
-<P>As a consequence of the work to support multiple consumer contexts, the syncrepl system now supports full N-Way multimaster replication with entry-level conflict resolution. There are some important constraints, of course: In order to maintain consistent results across all servers, you must maintain tightly synchronized clocks across all participating servers (e.g., you must use NTP on all servers).</P>
-<P>The entryCSNs used for replication now record timestamps with microsecond resolution, instead of just seconds. The delta-syncrepl code has not been updated to support multimaster usage yet, that will come later in the 2.4 cycle.</P>
+<H3><A NAME="N-Way Multiprovider Replication">A.2.4. N-Way Multiprovider Replication</A></H3>
+<P>As a consequence of the work to support multiple consumer contexts, the syncrepl system now supports full N-Way multiprovider replication with entry-level conflict resolution. There are some important constraints, of course: In order to maintain consistent results across all servers, you must maintain tightly synchronized clocks across all participating servers (e.g., you must use NTP on all servers).</P>
+<P>The entryCSNs used for replication now record timestamps with microsecond resolution, instead of just seconds.</P>
 <H3><A NAME="Replicating {{slapd}} Configuration (syncrepl and {{B:cn=config}})">A.2.5. Replicating <EM>slapd</EM> Configuration (syncrepl and <B>cn=config</B>)</A></H3>
 <P>Syncrepl was explicitly disabled on cn=config in 2.3. It is now fully supported in 2.4; you can use syncrepl to replicate an entire server configuration from one server to arbitrarily many other servers. It's possible to clone an entire running slapd using just a small (less than 10 lines) seed configuration, or you can just replicate the schema subtrees, etc. Tests 049 and 050 in the test suite provide working examples of these capabilities.</P>
 <H3><A NAME="Push-Mode Replication">A.2.6. Push-Mode Replication</A></H3>
@@ -8968,7 +8982,7 @@ Database objects of instances of this backend
 <TT>&nbsp;<A HREF="http://www.openssl.org/">OpenSSL</A></TT>
 </TD>
 <TD>
-<TT>0.9.7+</TT>
+<TT>1.0.2+</TT>
 </TD>
 </TR>
 <TR>

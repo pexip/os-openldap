@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -158,6 +158,8 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_NEWCTX		0x600f
 #define LDAP_OPT_X_TLS_CRLFILE		0x6010	/* GNUtls only */
 #define LDAP_OPT_X_TLS_PACKAGE		0x6011
+#define LDAP_OPT_X_TLS_ECNAME		0x6012
+#define LDAP_OPT_X_TLS_REQUIRE_SAN	0x601a
 
 #define LDAP_OPT_X_TLS_NEVER	0
 #define LDAP_OPT_X_TLS_HARD		1
@@ -363,6 +365,11 @@ typedef struct ldapcontrol {
 /* LDAP VLV */
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
+
+/* Netscape Password policy response controls */
+/* <draft-vchu-ldap-pwd-policy> */
+#define LDAP_CONTROL_X_PASSWORD_EXPIRED		"2.16.840.1.113730.3.4.4"
+#define LDAP_CONTROL_X_PASSWORD_EXPIRING	"2.16.840.1.113730.3.4.5"
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 4511 */
@@ -2041,6 +2048,12 @@ LDAP_F( int )
 ldap_is_ldapi_url LDAP_P((
 	LDAP_CONST char *url ));
 
+#ifdef LDAP_CONNECTIONLESS
+LDAP_F( int )
+ldap_is_ldapc_url LDAP_P((
+	LDAP_CONST char *url ));
+#endif
+
 LDAP_F( int )
 ldap_url_parse LDAP_P((
 	LDAP_CONST char *url,
@@ -2306,6 +2319,12 @@ ldap_parse_passwordpolicy_control LDAP_P((
 LDAP_F( const char * )
 ldap_passwordpolicy_err2txt LDAP_P(( LDAPPasswordPolicyError ));
 #endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
+
+LDAP_F( int )
+ldap_parse_password_expiring_control LDAP_P((
+	LDAP           *ld,
+	LDAPControl    *ctrl,
+	long           *secondsp ));
 
 /*
  * LDAP Dynamic Directory Services Refresh -- RFC 2589

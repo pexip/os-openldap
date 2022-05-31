@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2018 The OpenLDAP Foundation.
+ * Copyright 1999-2021 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -746,7 +746,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	assert( li->li_uri_mutex_do_not_lock == 0 );
 	li->li_uri_mutex_do_not_lock = 1;
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,
-			li->li_uri, flags, li->li_timeout[ SLAP_OP_EXTENDED ], &rs->sr_text );
+			li->li_uri, flags, li->li_timeout[ SLAP_OP_BIND ], &rs->sr_text );
 	li->li_uri_mutex_do_not_lock = 0;
 	ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -1642,7 +1642,7 @@ ldap_back_default_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 		const char	*text = NULL;
 
 		rc = ldap_back_start_tls( ld, 0, &is_tls, url, lc->lc_flags,
-			lc->lc_ldapinfo->li_timeout[ SLAP_OP_EXTENDED ], &text );
+			lc->lc_ldapinfo->li_timeout[ SLAP_OP_BIND ], &text );
 		if ( rc != LDAP_SUCCESS ) {
 			return rc;
 		}
@@ -2120,7 +2120,7 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 	}
 
 	if ( !( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )) {
-		if ( op->o_tag == LDAP_REQ_BIND ) {
+		if ( op->o_tag == LDAP_REQ_BIND && ( sendok & LDAP_BACK_SENDERR )) {
 			if ( !BER_BVISEMPTY( &ndn )) {
 				dobind = 0;
 				goto done;

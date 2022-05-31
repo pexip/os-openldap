@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2018 The OpenLDAP Foundation.
+ * Copyright 2003-2021 The OpenLDAP Foundation.
  * Portions Copyright 2003 Howard Chu.
  * All rights reserved.
  *
@@ -975,6 +975,9 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	if ( rs->sr_err != LDAP_REFERRAL && rs->sr_type != REP_SEARCHREF ) {
 		return SLAP_CB_CONTINUE;
 	}
+	if ( !rs->sr_ref ) {
+		return SLAP_CB_CONTINUE;
+	}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	if ( rs->sr_err == LDAP_REFERRAL && get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
@@ -1278,7 +1281,7 @@ static ConfigOCs chainocs[] = {
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
 		"AUXILIARY )",
-		Cft_Misc, olcDatabaseDummy, chain_ldadd
+		Cft_Misc, NULL, chain_ldadd
 #ifdef SLAP_CONFIG_DELETE
 		, NULL, chain_lddel
 #endif
@@ -1332,7 +1335,7 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 	} else
 #endif
-	if ( lc->lc_common_li != NULL && at == NULL ) {
+	if ( lc->lc_common_li != NULL && lc->lc_common_li != lc->lc_cfg_li && at == NULL ) {
 		/* FIXME: we should generate an empty default entry
 		 * if none is supplied */
 		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
@@ -1352,6 +1355,7 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 	}
 	rc = ldap_chain_db_init_one( ca->be );
+	lc->lc_cfg_li = NULL;
 
 	if ( rc != 0 ) {
 fail:
@@ -1364,6 +1368,19 @@ fail:
 	li = ca->be->be_private;
 
 	if ( at ) {
+		char **urls;
+
+		urls = ldap_str2charray( at->a_vals[ 0 ].bv_val, ", \t" );
+		if ( !urls || !urls[0] || urls[1] ) {
+			ldap_charray_free( urls );
+			Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+				"olcDbURI must contain exactly one url, got %s\n",
+				at->a_vals[ 0 ].bv_val, 0, 0 );
+			rc = LDAP_CONSTRAINT_VIOLATION;
+			goto done;
+		}
+		ldap_charray_free( urls );
+
 		li->li_uri = ch_strdup( at->a_vals[ 0 ].bv_val );
 		value_add_one( &li->li_bvuri, &at->a_vals[ 0 ] );
 		if ( avl_insert( &lc->lc_lai.lai_tree, (caddr_t)li,
@@ -1443,6 +1460,8 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 
 		ca->be->be_private = priv;
 	}
+
+	lc->lc_cfg_li = NULL;
 
 	return 0;
 }
@@ -2297,6 +2316,12 @@ chain_initialize( void )
 
 	/* Make sure we don't exceed the bits reserved for userland */
 	config_check_userland( CH_LAST );
+
+	/* olcDatabaseDummy is defined in slapd, and Windows
+	   will not let us initialize a struct element with a data pointer
+	   from another library, so we have to initialize this element
+	   "by hand".  */
+	chainocs[1].co_table = olcDatabaseDummy;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2018 The OpenLDAP Foundation.
+ * Copyright 2000-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -627,4 +627,15 @@ int mdb_ad_get( struct mdb_info *mdb, MDB_txn *txn, AttributeDescription *ad )
 	}
 
 	return rc;
+}
+
+void mdb_ad_unwind( struct mdb_info *mdb, int prev_ads )
+{
+	int i;
+
+	for (i=mdb->mi_numads; i>prev_ads; i--) {
+		mdb->mi_adxs[mdb->mi_ads[i]->ad_index] = 0;
+		mdb->mi_ads[i] = NULL;
+	}
+	mdb->mi_numads = i;
 }

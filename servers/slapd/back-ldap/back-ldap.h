@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2018 The OpenLDAP Foundation.
+ * Copyright 1999-2021 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -288,7 +288,7 @@ typedef struct ldapinfo_t {
 
 	unsigned		li_flags;
 
-/* 0xFFF00000U are reserved for back-meta */
+/* 0xFF000000U are reserved for back-meta */
 
 #define LDAP_BACK_F_NONE		(0x00000000U)
 #define LDAP_BACK_F_SAVECRED		(0x00000001U)
@@ -332,7 +332,7 @@ typedef struct ldapinfo_t {
 #define LDAP_BACK_F_NOUNDEFFILTER	(0x00100000U)
 #define LDAP_BACK_F_OMIT_UNKNOWN_SCHEMA (0x00200000U)
 
-#define LDAP_BACK_F_ONERR_STOP		(0x00200000U)
+#define LDAP_BACK_F_ONERR_STOP		(0x00400000U)
 
 #define	LDAP_BACK_ISSET_F(ff,f)		( ( (ff) & (f) ) == (f) )
 #define	LDAP_BACK_ISMASK_F(ff,m,f)	( ( (ff) & (m) ) == (f) )

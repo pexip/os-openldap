@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -219,8 +219,8 @@ syn_add(
 			}
 
 			assert( (*lsei)->lsei_values != NULL );
-			if ( (*lsei)->lsei_values[0] == '\0'
-				|| (*lsei)->lsei_values[1] != '\0' )
+			if ( (*lsei)->lsei_values[0] == NULL
+				|| (*lsei)->lsei_values[1] != NULL )
 			{
 				Debug( LDAP_DEBUG_ANY, "syn_add(%s): exactly one substitute syntax must be present\n",
 					ssyn->ssyn_syn.syn_oid, 0, 0 );

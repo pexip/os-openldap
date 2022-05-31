@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -145,7 +145,7 @@ static char *strchrlen(
 {
 	const char *p;
 
-	for( p=beg; *p && p < end; p++ ) {
+	for( p=beg; p < end && *p; p++ ) {
 		if( *p == ch ) {
 			*len = p - beg;
 			return (char *) p;
