@@ -24,7 +24,7 @@ Standards-Version: 4.3.0
 Homepage: http://www.openldap.org/
 Vcs-Git: https://salsa.debian.org/openldap-team/openldap.git
 Vcs-Browser: https://salsa.debian.org/openldap-team/openldap
-XS-Pexip-Upstream: http://ftp.debian.org/debian/ buster
+XS-Pexip-Upstream: http://deb.debian.org/debian/ bullseye
 
 Package: slapd
 Architecture: any
