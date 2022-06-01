@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 1998-2001 Net Boolean Incorporated.
  * Portions Copyright 2001-2003 IBM Corporation.
@@ -1420,6 +1420,7 @@ static int dosearch(
 		tv_timelimitp = &tv_timelimit;
 	}
 
+again:
 	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
 		sctrls, cctrls, tv_timelimitp, sizelimit, &msgid );
 
@@ -1441,6 +1442,21 @@ static int dosearch(
 		tv.tv_sec = -1;
 		tv.tv_usec = 0;
 		tvp = &tv;
+	}
+
+	if ( backlog == 1 ) {
+		printf( _("\nWaiting for responses to accumulate, press Enter to continue: "));
+		fflush( stdout );
+		getchar();
+		printf( _("Abandoning msgid %d\n"), msgid );
+		ldap_abandon_ext( ld, msgid, NULL, NULL );
+		/* turn off syncrepl control */
+		ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, NULL );
+		backlog = 2;
+		scope = LDAP_SCOPE_BASE;
+		goto again;
+	} else if ( backlog == 2 ) {
+		tv.tv_sec = timelimit;
 	}
 
 	while ((rc = ldap_result( ld, LDAP_RES_ANY,
@@ -1511,7 +1527,7 @@ static int dosearch(
 				nresponses_psearch = 0;
 
 				if ( strcmp( retoid, LDAP_SYNC_INFO ) == 0 ) {
-					printf(_("SyncInfo Received\n"));
+					printf(_("# SyncInfo Received\n"));
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );
 					break;

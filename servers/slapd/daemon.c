@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * Portions Copyright 2007 by Howard Chu, Symas Corporation.
  * All rights reserved.
  *
@@ -304,7 +304,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 # define SLAP_EVENT_WAIT(t, tvp, nsp)	do { \
 	*(nsp) = epoll_wait( slap_daemon[t].sd_epfd, revents, \
-		dtblsize, (tvp) ? (tvp)->tv_sec * 1000 : -1 ); \
+		dtblsize, (tvp) ? ((tvp)->tv_sec * 1000 + (tvp)->tv_usec / 1000) : -1 ); \
 } while (0)
 
 #elif defined(SLAP_X_DEVPOLL) && defined(HAVE_DEVPOLL)
@@ -480,7 +480,7 @@ static slap_daemon_st slap_daemon[SLAPD_MAX_DAEMON_THREADS];
 
 # define SLAP_EVENT_WAIT(t, tvp, nsp)	do { \
 	struct dvpoll		sd_dvpoll; \
-	sd_dvpoll.dp_timeout = (tvp) ? (tvp)->tv_sec * 1000 : -1; \
+	sd_dvpoll.dp_timeout = (tvp) ? ((tvp)->tv_sec * 1000 + (tvp)->tv_usec / 1000) : -1; \
 	sd_dvpoll.dp_nfds = dtblsize; \
 	sd_dvpoll.dp_fds = revents; \
 	*(nsp) = ioctl( slap_daemon[t].sd_dpfd, DP_POLL, &sd_dvpoll ); \
@@ -840,6 +840,50 @@ slapd_sock2fd( ber_socket_t s )
 }
 #endif
 
+#ifdef DEBUG_CLOSE
+/* Was used to find a bug causing slapd's descriptors to be closed
+ * out from under it. Tracked it down to a long-standing (from 2009)
+ * bug in Heimdal https://github.com/heimdal/heimdal/issues/431 .
+ * Leaving this here for future use, if necessary.
+ */
+#include <dlfcn.h>
+#ifndef RTLD_NEXT
+#define RTLD_NEXT	(void *)-1L
+#endif
+static char *newconns;
+typedef int (closefunc)(int fd);
+static closefunc *close_ptr;
+int close( int s )
+{
+	if (newconns) {
+		Debug( LDAP_DEBUG_CONNS,
+			"daemon: close(%ld)\n", s, 0, 0 );
+		if (s >= 0 && s < dtblsize && newconns[s])
+			assert(newconns[s] == 2);
+	}
+	return close_ptr ? close_ptr(s) : -1;
+}
+
+void slapd_debug_close()
+{
+	if (dtblsize)
+		newconns = ch_calloc(1, dtblsize);
+	close_ptr = dlsym(RTLD_NEXT, "close");
+}
+
+void slapd_set_close(int fd)
+{
+	newconns[fd] = 3;
+}
+#define SETUP_CLOSE()	slapd_debug_close()
+#define SET_CLOSE(fd)	slapd_set_close(fd)
+#define CLR_CLOSE(fd)	if (newconns[fd]) newconns[fd]--
+#else
+#define SETUP_CLOSE(fd)
+#define SET_CLOSE(fd)
+#define CLR_CLOSE(fd)
+#endif
+
 /*
  * Add a descriptor to daemon control
  *
@@ -903,6 +947,7 @@ slapd_remove(
 	if ( waswriter ) slap_daemon[id].sd_nwriters--;
 
 	SLAP_SOCK_DEL(id, s);
+	CLR_CLOSE(s);
 
 	if ( sb )
 		ber_sockbuf_free(sb);
@@ -1035,6 +1080,7 @@ slapd_close( ber_socket_t s )
 {
 	Debug( LDAP_DEBUG_CONNS, "daemon: closing %ld\n",
 		(long) s, 0, 0 );
+	CLR_CLOSE( SLAP_FD2SOCK(s) );
 	tcp_close( SLAP_FD2SOCK(s) );
 #ifdef HAVE_WINSOCK
 	slapd_sockdel( s );
@@ -1377,6 +1423,14 @@ slap_open_listener(
 	}
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
+	if ( lud->lud_dn && lud->lud_dn[0] ) {
+		sprintf( (char *)url, "%s://%s/", lud->lud_scheme, lud->lud_host );
+		Debug( LDAP_DEBUG_ANY, "daemon: listener URL %s<junk> DN must be absent (%s)\n",
+			url, lud->lud_dn, 0 );
+		ldap_free_urldesc( lud );
+		return -1;
+	}
+
 	ldap_free_urldesc( lud );
 	if ( err ) {
 		slap_free_listener_addresses(sal);
@@ -1636,6 +1690,8 @@ slapd_daemon_init( const char *urls )
 	dtblsize = FD_SETSIZE;
 #endif /* ! HAVE_SYSCONF && ! HAVE_GETDTABLESIZE */
 
+	SETUP_CLOSE();
+
 	/* open a pipe (or something equivalent connected to itself).
 	 * we write a byte on this fd whenever we catch a signal. The main
 	 * loop will be select'ing on this socket, and will wake up when
@@ -1844,6 +1900,11 @@ slap_listener(
 #  endif /* LDAP_PF_LOCAL */
 
 	s = accept( SLAP_FD2SOCK( sl->sl_sd ), (struct sockaddr *) &from, &len );
+	if ( s != AC_SOCKET_INVALID ) {
+		SET_CLOSE(s);
+	}
+	Debug( LDAP_DEBUG_CONNS,
+		"daemon: accept() = %ld\n", s, 0, 0 );
 
 	/* Resume the listener FD to allow concurrent-processing of
 	 * additional incoming connections.
@@ -1915,6 +1976,8 @@ slap_listener(
 			Debug( LDAP_DEBUG_ANY,
 				"slapd(%ld): setsockopt(SO_KEEPALIVE) failed "
 				"errno=%d (%s)\n", (long) sfd, err, sock_errstr(err) );
+			slapd_close(sfd);
+			return 0;
 		}
 #endif /* SO_KEEPALIVE */
 #ifdef TCP_NODELAY
@@ -1927,6 +1990,8 @@ slap_listener(
 			Debug( LDAP_DEBUG_ANY,
 				"slapd(%ld): setsockopt(TCP_NODELAY) failed "
 				"errno=%d (%s)\n", (long) sfd, err, sock_errstr(err) );
+			slapd_close(sfd);
+			return 0;
 		}
 #endif /* TCP_NODELAY */
 	}
@@ -3046,6 +3111,9 @@ slap_sig_wake( int sig )
 void
 slapd_add_internal( ber_socket_t s, int isactive )
 {
+	if (!isactive) {
+		SET_CLOSE(s);
+	}
 	slapd_add( s, isactive, NULL, -1 );
 }
 

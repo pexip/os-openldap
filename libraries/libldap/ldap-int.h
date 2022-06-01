@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -165,6 +165,7 @@ struct ldaptls {
 	char		*lt_ciphersuite;
 	char		*lt_crlfile;
 	char		*lt_randfile;	/* OpenSSL only */
+	char		*lt_ecname;		/* OpenSSL only */
 	int		lt_protocol_min;
 };
 #endif
@@ -250,6 +251,7 @@ struct ldapoptions {
 #define ldo_tls_certfile	ldo_tls_info.lt_certfile
 #define ldo_tls_keyfile	ldo_tls_info.lt_keyfile
 #define ldo_tls_dhfile	ldo_tls_info.lt_dhfile
+#define ldo_tls_ecname	ldo_tls_info.lt_ecname
 #define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
 #define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
 #define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
@@ -260,7 +262,8 @@ struct ldapoptions {
    	int			ldo_tls_require_cert;
 	int			ldo_tls_impl;
    	int			ldo_tls_crlcheck;
-#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0
+	int			ldo_tls_require_san;
+#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0,0
 #else
 #define LDAP_LDO_TLS_NULLARG
 #endif

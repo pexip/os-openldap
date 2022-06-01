@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,6 +97,9 @@ extern int		chaining;
 extern ber_int_t	vlvPos;
 extern ber_int_t	vlvCount;
 extern struct berval	*vlvContext;
+
+/* features */
+extern int		backlog;
 
 /* options */
 extern struct timeval	nettimeout;

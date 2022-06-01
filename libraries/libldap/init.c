@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -127,9 +127,11 @@ static const struct ol_attribute {
   	{0, ATTR_TLS,	"TLS_CACERT",		NULL,	LDAP_OPT_X_TLS_CACERTFILE},
   	{0, ATTR_TLS,	"TLS_CACERTDIR",	NULL,	LDAP_OPT_X_TLS_CACERTDIR},
   	{0, ATTR_TLS,	"TLS_REQCERT",		NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+	{0, ATTR_TLS,	"TLS_REQSAN",		NULL,	LDAP_OPT_X_TLS_REQUIRE_SAN},
 	{0, ATTR_TLS,	"TLS_RANDFILE",		NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
 	{0, ATTR_TLS,	"TLS_CIPHER_SUITE",	NULL,	LDAP_OPT_X_TLS_CIPHER_SUITE},
 	{0, ATTR_TLS,	"TLS_PROTOCOL_MIN",	NULL,	LDAP_OPT_X_TLS_PROTOCOL_MIN},
+	{0, ATTR_TLS,	"TLS_ECNAME",		NULL,	LDAP_OPT_X_TLS_ECNAME},
 
 #ifdef HAVE_OPENSSL_CRL
 	{0, ATTR_TLS,	"TLS_CRLCHECK",		NULL,	LDAP_OPT_X_TLS_CRLCHECK},
@@ -516,15 +518,6 @@ ldap_int_destroy_global_options(void)
  */
 void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl )
 {
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_MUTEX_FIRSTCREATE(gopts->ldo_mutex);
-#endif
-	LDAP_MUTEX_LOCK( &gopts->ldo_mutex );
-	if (gopts->ldo_valid == LDAP_INITIALIZED) {
-		/* someone else got here first */
-		LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
-		return;
-	}
 	if (dbglvl)
 	    gopts->ldo_debug = *dbglvl;
 	else
@@ -582,13 +575,13 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_tls_connect_cb = NULL;
 	gopts->ldo_tls_connect_arg = NULL;
 	gopts->ldo_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
+	gopts->ldo_tls_require_san = LDAP_OPT_X_TLS_ALLOW;
 #endif
 	gopts->ldo_keepalive_probes = 0;
 	gopts->ldo_keepalive_interval = 0;
 	gopts->ldo_keepalive_idle = 0;
 
 	gopts->ldo_valid = LDAP_INITIALIZED;
-	LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
    	return;
 }
 
@@ -598,8 +591,15 @@ char * ldap_int_hostname = NULL;
 
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 {
+#ifdef LDAP_R_COMPILE
+	static ldap_pvt_thread_mutex_t init_mutex;
+	LDAP_PVT_MUTEX_FIRSTCREATE( init_mutex );
+
+	LDAP_MUTEX_LOCK( &init_mutex );
+#endif
 	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
-		return;
+		/* someone else got here first */
+		goto done;
 	}
 
 	ldap_int_error_init();
@@ -614,7 +614,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
 		/* Tell the user that we couldn't find a usable */
 		/* WinSock DLL.                                  */
-		return;
+		goto done;
 	}
  
 	/* Confirm that the WinSock DLL supports 2.0.*/
@@ -629,13 +629,13 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	    /* Tell the user that we couldn't find a usable */
 	    /* WinSock DLL.                                  */
 	    WSACleanup( );
-	    return; 
+	    goto done;
 	}
 }	/* The WinSock DLL is acceptable. Proceed. */
 #elif defined(HAVE_WINSOCK)
 {	WSADATA wsaData;
 	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return;
+	    goto done;
 	}
 }
 #endif
@@ -660,14 +660,14 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 #ifdef HAVE_CYRUS_SASL
 	if ( ldap_int_sasl_init() != 0 ) {
-		return;
+		goto done;
 	}
 #endif
 
 	ldap_int_initialize_global_options(gopts, dbglvl);
 
 	if( getenv("LDAPNOINIT") != NULL ) {
-		return;
+		goto done;
 	}
 
 #ifdef HAVE_CYRUS_SASL
@@ -688,7 +688,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 #ifdef HAVE_GETEUID
 	if ( geteuid() != getuid() )
-		return;
+		goto done;
 #endif
 
 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);
@@ -720,4 +720,9 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	}
 
 	openldap_ldap_init_w_env(gopts, NULL);
+
+done:;
+#ifdef LDAP_R_COMPILE
+	LDAP_MUTEX_UNLOCK( &init_mutex );
+#endif
 }

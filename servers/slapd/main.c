@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -400,11 +400,16 @@ int main( int argc, char **argv )
 
 	slap_sl_mem_init();
 
+
 	(void) ldap_pvt_thread_initialize();
 
 	serverName = lutil_progname( "slapd", argc, argv );
 
 	if ( strcmp( serverName, "slapd" ) ) {
+#ifdef DEBUG_CLOSE
+		extern void slapd_debug_close();
+		slapd_debug_close();
+#endif
 		for (i=0; tools[i].name; i++) {
 			if ( !strcmp( serverName, tools[i].name ) ) {
 				rc = tools[i].func(argc, argv);
@@ -491,7 +496,7 @@ int main( int argc, char **argv )
 			urls = ch_strdup( optarg );
 			break;
 
-		case 'c':	/* provide sync cookie, override if exist in replica */
+		case 'c':	/* provide sync cookie, override if exist in consumer */
 			scp = (struct sync_cookie *) ch_calloc( 1,
 										sizeof( struct sync_cookie ));
 			ber_str2bv( optarg, 0, 1, &scp->octet_str );
@@ -649,6 +654,10 @@ int main( int argc, char **argv )
 					optarg );
 			}
 
+#ifdef DEBUG_CLOSE
+			extern void slapd_debug_close();
+			slapd_debug_close();
+#endif
 			/* try full option string first */
 			for ( i = 0; tools[i].name; i++ ) {
 				if ( strcmp( optarg, &tools[i].name[4] ) == 0 ) {

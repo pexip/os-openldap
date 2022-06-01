@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * Portions Copyright 2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -147,6 +147,10 @@ static int print_deref( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_X_WHATFAILED
 static int print_whatfailed( LDAP *ld, LDAPControl *ctrl );
 #endif
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+static int print_netscape_pwexpired( LDAP *ld, LDAPControl *ctrl );
+static int print_netscape_pwexpiring( LDAP *ld, LDAPControl *ctrl );
+#endif
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -167,12 +171,18 @@ static struct tool_ctrls_t {
 #ifdef LDAP_CONTROL_X_WHATFAILED
 	{ LDAP_CONTROL_X_WHATFAILED,			TOOL_ALL,	print_whatfailed },
 #endif
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+	{ LDAP_CONTROL_X_PASSWORD_EXPIRED,		TOOL_ALL,	print_netscape_pwexpired },
+	{ LDAP_CONTROL_X_PASSWORD_EXPIRING,		TOOL_ALL,	print_netscape_pwexpiring },
+#endif
 	{ NULL,						0,		NULL }
 };
 
 /* "features" */
 enum { Intr_None = 0, Intr_Abandon, Intr_Cancel, Intr_Ignore }; 
 static volatile sig_atomic_t	gotintr, abcan;
+
+int backlog;
 
 
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
@@ -663,6 +673,13 @@ tool_args( int argc, char **argv )
 				if ( crit ) {
 					gotintr = abcan;
 				}
+
+			} else if ( strcasecmp( control, "backlog" ) == 0 ) {
+				/* special search: accumulate lots of responses
+				 * but don't read any, force slapd writer to wait.
+				 * Then abandon the search and issue a new one.
+				 */
+				backlog = 1;
 
 			} else if ( tool_is_oid( control ) ) {
 				LDAPControl	*tmpctrls, ctrl;
@@ -1561,6 +1578,23 @@ tool_bind( LDAP *ld )
 		}
 #endif
 
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+		if ( ctrls ) {
+			LDAPControl *ctrl;
+			ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRED,
+				ctrls, NULL );
+			if ( !ctrl )
+				ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRING,
+					ctrls, NULL );
+			if ( ctrl ) {
+				LDAPControl *ctmp[2];
+				ctmp[0] = ctrl;
+				ctmp[1] = NULL;
+				tool_print_ctrls( ld, ctmp );
+			}
+		}
+#endif
+
 		if ( ctrls ) {
 			ldap_controls_free( ctrls );
 		}
@@ -1877,16 +1911,17 @@ int
 tool_check_abandon( LDAP *ld, int msgid )
 {
 	int	rc;
+	LDAPControl *sctrls[1] = { NULL };
 
 	switch ( gotintr ) {
 	case Intr_Cancel:
-		rc = ldap_cancel_s( ld, msgid, NULL, NULL );
+		rc = ldap_cancel_s( ld, msgid, sctrls, NULL );
 		fprintf( stderr, "got interrupt, cancel got %d: %s\n",
 				rc, ldap_err2string( rc ) );
 		return -1;
 
 	case Intr_Abandon:
-		rc = ldap_abandon_ext( ld, msgid, NULL, NULL );
+		rc = ldap_abandon_ext( ld, msgid, sctrls, NULL );
 		fprintf( stderr, "got interrupt, abandon got %d: %s\n",
 				rc, ldap_err2string( rc ) );
 		return -1;
@@ -2256,6 +2291,28 @@ print_ppolicy( LDAP *ld, LDAPControl *ctrl )
 }
 #endif
 
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+static int
+print_netscape_pwexpired( LDAP *ld, LDAPControl *ctrl )
+{
+	printf(_("# PasswordExpired control\n") );
+	return 0;
+}
+
+static int
+print_netscape_pwexpiring( LDAP *ld, LDAPControl *ctrl )
+{
+	long expiring = 0;
+	int rc;
+
+	rc = ldap_parse_password_expiring_control( ld, ctrl, &expiring );
+	if ( rc == LDAP_SUCCESS ) {
+		printf(_("# PasswordExpiring control seconds=%ld\n"), expiring );
+	}
+	return rc;
+}
+#endif
+
 void tool_print_ctrls(
 	LDAP		*ld,
 	LDAPControl	**ctrls )
@@ -2326,7 +2383,7 @@ void tool_print_ctrls(
 		/* known controls */
 		for ( j = 0; tool_ctrl_response[j].oid != NULL; j++ ) {
 			if ( strcmp( tool_ctrl_response[j].oid, ctrls[i]->ldctl_oid ) == 0 ) {
-				if ( !tool_ctrl_response[j].mask & tool_type ) {
+				if ( !(tool_ctrl_response[j].mask & tool_type )) {
 					/* this control should not appear
 					 * with this tool; warning? */
 				}

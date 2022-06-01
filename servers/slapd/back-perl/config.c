@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2018 The OpenLDAP Foundation.
+ * Copyright 1999-2021 The OpenLDAP Foundation.
  * Portions Copyright 1999 John C. Quillan.
  * Portions Copyright 2002 myinternet Limited.
  * All rights reserved.
@@ -171,6 +171,7 @@ perl_cf(
 			break;
 		}
 	} else {
+		PERL_SET_CONTEXT( PERL_INTERPRETER );
 		switch( c->type ) {
 		case PERL_MODULE:
 			snprintf( eval_str, EVAL_BUF_SIZE, "use %s;", c->argv[1] );

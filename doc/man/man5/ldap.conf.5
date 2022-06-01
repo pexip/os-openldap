@@ -1,6 +1,6 @@
 .TH LDAP.CONF 5 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
-.\" Copyright 1998-2018 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2021 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap.conf, .ldaprc \- LDAP configuration file/environment variables
@@ -206,6 +206,7 @@ Specifies a time limit (in seconds) to use when performing searches.
 The number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
 specifies unlimited search time to be used.  Please note that the server
 may still apply any server-side limit on the duration of a search operation.
+.TP
 .B VERSION {2|3}
 Specifies what version of the LDAP protocol should be used.
 .TP
@@ -344,6 +345,12 @@ Use certutil \-L to list the certificates by name:
 	certutil \-d /path/to/certdbdir \-L
 .fi
 .TP
+.B TLS_ECNAME <name>
+Specify the name of the curve(s) to use for Elliptic curve Diffie-Hellman
+ephemeral key exchange.  This option is only used for OpenSSL.
+This option is not used with GnuTLS; the curves may be
+chosen in the GnuTLS ciphersuite specification.
+.TP
 .B TLS_KEY <filename>
 Specifies the file that contains the private key that matches the certificate
 stored in the
@@ -455,6 +462,37 @@ the session is immediately terminated.
 These keywords are equivalent. The server certificate is requested. If no
 certificate is provided, or a bad certificate is provided, the session
 is immediately terminated. This is the default setting.
+.RE
+.TP
+.B TLS_REQSAN <level>
+Specifies what checks to perform on the subjectAlternativeName
+(SAN) extensions in a server certificate when validating the certificate
+name against the specified hostname of the server. The
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+The client will not check any SAN in the certificate.
+.TP
+.B allow
+The SAN is checked against the specified hostname. If a SAN is
+present but none match the specified hostname, the SANs are ignored
+and the usual check against the certificate DN is used.
+This is the default setting.
+.TP
+.B try
+The SAN is checked against the specified hostname. If no SAN is present
+in the server certificate, the usual check against the certificate DN
+is used. If a SAN is present but doesn't match the specified hostname,
+the session is immediately terminated. This setting may be preferred
+when a mix of certs with and without SANs are in use.
+.TP
+.B demand | hard
+These keywords are equivalent. The SAN is checked against the specified
+hostname. If no SAN is present in the server certificate, or no SANs
+match, the session is immediately terminated. This setting should be
+used when only certificates with SANs are in use.
 .RE
 .TP
 .B TLS_CRLCHECK <level>

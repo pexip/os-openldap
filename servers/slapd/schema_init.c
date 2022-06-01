@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2018 The OpenLDAP Foundation.
+ * Copyright 1998-2021 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -282,6 +282,9 @@ certificateValidate( Syntax *syntax, struct berval *in )
 	ber_len_t len;
 	ber_int_t version = SLAP_X509_V1;
 
+	if ( BER_BVISNULL( in ) || BER_BVISEMPTY( in ))
+		return LDAP_INVALID_SYNTAX;
+
 	ber_init2( ber, in, LBER_USE_DER );
 	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
@@ -371,8 +374,7 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 	/* Optional version */
 	if ( tag == LBER_INTEGER ) {
 		tag = ber_get_int( ber, &version );
-		assert( tag == LBER_INTEGER );
-		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+		if ( tag != LBER_INTEGER || version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
 	}
 	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
@@ -2235,7 +2237,8 @@ telephoneNumberNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	char *p, *q;
+	char *q;
+	ber_len_t c;
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
@@ -2247,9 +2250,9 @@ telephoneNumberNormalize(
 
 	q = normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
-	for( p = val->bv_val; *p; p++ ) {
-		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
-			*q++ = *p;
+	for( c = 0; c < val->bv_len; c++ ) {
+		if ( ! ( ASCII_SPACE( val->bv_val[c] ) || val->bv_val[c] == '-' )) {
+			*q++ = val->bv_val[c];
 		}
 	}
 	if ( q == normalized->bv_val ) {
@@ -2790,18 +2793,19 @@ IA5StringNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	char *p, *q;
+	char *p, *q, *end;
 	int casefold = !SLAP_MR_ASSOCIATED( mr,
 		slap_schema.si_mr_caseExactIA5Match );
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ) != 0 );
 
 	p = val->bv_val;
+	end = val->bv_val + val->bv_len;
 
 	/* Ignore initial whitespace */
-	while ( ASCII_SPACE( *p ) ) p++;
+	while ( p < end && ASCII_SPACE( *p ) ) p++;
 
-	normalized->bv_len = val->bv_len - ( p - val->bv_val );
+	normalized->bv_len = p < end ? (val->bv_len - ( p - val->bv_val )) : 0;
 	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
 	AC_MEMCPY( normalized->bv_val, p, normalized->bv_len );
 	normalized->bv_val[normalized->bv_len] = '\0';
@@ -2939,12 +2943,14 @@ UUIDNormalize(
 
 	if ( SLAP_MR_IS_DENORMALIZE( usage ) ) {
 		/* NOTE: must be a normalized UUID */
-		assert( val->bv_len == 16 );
+		if( val->bv_len != 16 )
+			return LDAP_INVALID_SYNTAX;
 
 		normalized->bv_val = slap_sl_malloc( LDAP_LUTIL_UUIDSTR_BUFSIZE, ctx );
 		normalized->bv_len = lutil_uuidstr_from_normalized( val->bv_val,
 			val->bv_len, normalized->bv_val, LDAP_LUTIL_UUIDSTR_BUFSIZE );
-		assert( normalized->bv_len == STRLENOF( "BADBADBA-DBAD-0123-4567-BADBADBADBAD" ) );
+		if( normalized->bv_len != STRLENOF( "BADBADBA-DBAD-0123-4567-BADBADBADBAD" ) )
+			return LDAP_INVALID_SYNTAX;
 
 		return LDAP_SUCCESS;
 	}
@@ -3190,7 +3196,7 @@ serialNumberAndIssuerCheck(
 
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	if( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+	if( in->bv_val[0] != '{' || in->bv_val[in->bv_len-1] != '}' ) {
 		/* Parse old format */
 		is->bv_val = ber_bvchr( in, '$' );
 		if( BER_BVISNULL( is ) ) return LDAP_INVALID_SYNTAX;
@@ -3221,7 +3227,7 @@ serialNumberAndIssuerCheck(
 			HAVE_ALL = ( HAVE_ISSUER | HAVE_SN )
 		} have = HAVE_NONE;
 
-		int numdquotes = 0;
+		int numdquotes = 0, gotquote;
 		struct berval x = *in;
 		struct berval ni;
 		x.bv_val++;
@@ -3263,11 +3269,12 @@ serialNumberAndIssuerCheck(
 				is->bv_val = x.bv_val;
 				is->bv_len = 0;
 
-				for ( ; is->bv_len < x.bv_len; ) {
+				for ( gotquote=0; is->bv_len < x.bv_len; ) {
 					if ( is->bv_val[is->bv_len] != '"' ) {
 						is->bv_len++;
 						continue;
 					}
+					gotquote = 1;
 					if ( is->bv_val[is->bv_len+1] == '"' ) {
 						/* double dquote */
 						numdquotes++;
@@ -3276,6 +3283,8 @@ serialNumberAndIssuerCheck(
 					}
 					break;
 				}
+				if ( !gotquote ) return LDAP_INVALID_SYNTAX;
+
 				x.bv_val += is->bv_len + 1;
 				x.bv_len -= is->bv_len + 1;
 
@@ -3680,7 +3689,10 @@ certificateExactNormalize(
 		bvdn.bv_len = val->bv_len - len;
 
 		rc = dnX509normalize( &bvdn, &issuer_dn );
-		if ( rc != LDAP_SUCCESS ) goto done;
+		if ( rc != LDAP_SUCCESS ) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
 	}
 
 	normalized->bv_len = STRLENOF( "{ serialNumber , issuer rdnSequence:\"\" }" )
@@ -3797,7 +3809,7 @@ issuerAndThisUpdateCheck(
 
 	if ( in->bv_len < STRLENOF( "{issuer \"\",thisUpdate \"YYMMDDhhmmssZ\"}" ) ) return LDAP_INVALID_SYNTAX;
 
-	if ( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+	if ( in->bv_val[0] != '{' || in->bv_val[in->bv_len-1] != '}' ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -3876,7 +3888,7 @@ issuerAndThisUpdateCheck(
 				/* empty */;
 			}
 
-			if ( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			if ( !x.bv_len || x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
 			x.bv_val++;
 			x.bv_len--;
 
@@ -4168,7 +4180,10 @@ certificateListExactNormalize(
 	bvtu.bv_len = len;
 
 	rc = dnX509normalize( &bvdn, &issuer_dn );
-	if ( rc != LDAP_SUCCESS ) goto done;
+	if ( rc != LDAP_SUCCESS ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
 
 	thisUpdate.bv_val = tubuf;
 	thisUpdate.bv_len = sizeof(tubuf);
@@ -4287,7 +4302,7 @@ serialNumberAndIssuerSerialCheck(
 	if ( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
 	/* no old format */
-	if ( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) return LDAP_INVALID_SYNTAX;
+	if ( in->bv_val[0] != '{' || in->bv_val[in->bv_len-1] != '}' ) return LDAP_INVALID_SYNTAX;
 
 	x.bv_val++;
 	x.bv_len -= 2;
@@ -4820,7 +4835,10 @@ attributeCertificateExactNormalize(
 	bvdn.bv_val = val->bv_val + len;
 	bvdn.bv_len = val->bv_len - len;
 	rc = dnX509normalize( &bvdn, &issuer_dn );
-	if ( rc != LDAP_SUCCESS ) goto done;
+	if ( rc != LDAP_SUCCESS ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
 	
 	tag = ber_skip_tag( ber, &len );	/* sequence of RDN */
 	ber_skip_data( ber, len ); 
@@ -5054,9 +5072,8 @@ csnValidate(
 	int		rc;
 
 	assert( in != NULL );
-	assert( !BER_BVISNULL( in ) );
 
-	if ( BER_BVISEMPTY( in ) ) {
+	if ( BER_BVISNULL( in ) || BER_BVISEMPTY( in ) ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -5316,8 +5333,8 @@ csnNormalize23(
 	}
 	*ptr = '\0';
 
-	assert( ptr == &bv.bv_val[bv.bv_len] );
-	if ( csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
+	if ( ptr != &bv.bv_val[bv.bv_len] ||
+		csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -5943,18 +5960,18 @@ again:
 	if( BER_BVISEMPTY( &tmp ) ) return LDAP_SUCCESS;
 
 	while( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == ' ' ) ) {
-		tmp.bv_len++;
-		tmp.bv_val--;
+		tmp.bv_len--;
+		tmp.bv_val++;
 	}
 	if( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == '$' ) ) {
-		tmp.bv_len++;
-		tmp.bv_val--;
+		tmp.bv_len--;
+		tmp.bv_val++;
 	} else {
 		return LDAP_INVALID_SYNTAX;
 	}
 	while( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == ' ' ) ) {
-		tmp.bv_len++;
-		tmp.bv_val--;
+		tmp.bv_len--;
+		tmp.bv_val++;
 	}
 
 	goto again;

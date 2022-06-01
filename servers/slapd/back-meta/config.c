@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2018 The OpenLDAP Foundation.
+ * Copyright 1999-2021 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -2192,7 +2192,7 @@ meta_back_cf_gen( ConfigArgs *c )
 
 	case LDAP_BACK_CFG_FILTER: {
 		metafilter_t *mf, **m2;
-		mf = ch_malloc( sizeof( metafilter_t ));
+		mf = ch_calloc( 1, sizeof( metafilter_t ));
 		rc = regcomp( &mf->mf_regex, c->argv[1], REG_EXTENDED );
 		if ( rc ) {
 			char regerr[ SLAP_TEXT_BUFLEN ];
