@@ -1,4 +1,4 @@
-openldap (2.4.57+dfsg-3+deb11u1pexip4) pexip-bullseye; urgency=medium
+openldap (2.4.57+dfsg-3+deb11u1pexip4) pexip-bullseye-openssl3; urgency=medium
 
   * Build-Depend on libssl3-dev
   * debian/patches/openssl3-support.patch: Remove use of API deprecated in
