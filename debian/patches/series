@@ -25,3 +25,4 @@ ITS-9815-slapd-sql-escape-filter-values.patch
 
 no-openssl-locking-callbacks
 openssl3-support.patch
+tls10-support.patch
