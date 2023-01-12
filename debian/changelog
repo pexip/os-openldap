@@ -1,3 +1,10 @@
+openldap (2.4.57+dfsg-3+deb11u1pexip5) pexip-bullseye-openssl3; urgency=medium
+
+  * debian/patches/tls10-support.patch: Configure security level and minimum
+    protocol version when creating the TLS context
+
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 12 Jan 2023 21:01:44 +0000
+
 openldap (2.4.57+dfsg-3+deb11u1pexip4) pexip-bullseye-openssl3; urgency=medium
 
   * Build-Depend on libssl3-dev
