@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2021 The OpenLDAP Foundation.
+ * Copyright 1998-2022 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,7 +20,7 @@
 
 /*
  *  LDAP URLs look like this:
- *    ldap[is]://host[:port][/[dn[?[attributes][?[scope][?[filter][?exts]]]]]]
+ *    [p]ldap[is]://host[:port][/[dn[?[attributes][?[scope][?[filter][?exts]]]]]]
  *
  *  where:
  *   attributes is a comma separated list
@@ -59,7 +59,7 @@ int ldap_pvt_url_scheme2proto( const char *scheme )
 		return -1;
 	}
 
-	if( strcmp("ldap", scheme) == 0 ) {
+	if( strcmp("ldap", scheme) == 0 || strcmp("pldap", scheme) == 0 ) {
 		return LDAP_PROTO_TCP;
 	}
 
@@ -67,7 +67,7 @@ int ldap_pvt_url_scheme2proto( const char *scheme )
 		return LDAP_PROTO_IPC;
 	}
 
-	if( strcmp("ldaps", scheme) == 0 ) {
+	if( strcmp("ldaps", scheme) == 0 || strcmp("pldaps", scheme) == 0 ) {
 		return LDAP_PROTO_TCP;
 	}
 #ifdef LDAP_CONNECTIONLESS
@@ -86,7 +86,7 @@ int ldap_pvt_url_scheme_port( const char *scheme, int port )
 	if( port ) return port;
 	if( scheme == NULL ) return port;
 
-	if( strcmp("ldap", scheme) == 0 ) {
+	if( strcmp("ldap", scheme) == 0 || strcmp("pldap", scheme) == 0 ) {
 		return LDAP_PORT;
 	}
 
@@ -94,7 +94,7 @@ int ldap_pvt_url_scheme_port( const char *scheme, int port )
 		return -1;
 	}
 
-	if( strcmp("ldaps", scheme) == 0 ) {
+	if( strcmp("ldaps", scheme) == 0 || strcmp("pldaps", scheme) == 0 ) {
 		return LDAPS_PORT;
 	}
 
@@ -116,7 +116,19 @@ ldap_pvt_url_scheme2tls( const char *scheme )
 		return -1;
 	}
 
-	return strcmp("ldaps", scheme) == 0;
+	return strcmp("ldaps", scheme) == 0 || strcmp("pldaps", scheme) == 0;
+}
+
+int
+ldap_pvt_url_scheme2proxied( const char *scheme )
+{
+	assert( scheme != NULL );
+
+	if( scheme == NULL ) {
+		return -1;
+	}
+
+	return strcmp("pldap", scheme) == 0 || strcmp("pldaps", scheme) == 0;
 }
 
 int
@@ -150,7 +162,7 @@ ldap_is_ldaps_url( LDAP_CONST char *url )
 		return 0;
 	}
 
-	return strcmp(scheme, "ldaps") == 0;
+	return strcmp(scheme, "ldaps") == 0 || strcmp(scheme, "pldaps") == 0;
 }
 
 int
@@ -228,11 +240,27 @@ skip_url_prefix(
 		return( p );
 	}
 
+	/* check for "pldap://" prefix */
+	if ( strncasecmp( p, PLDAP_URL_PREFIX, PLDAP_URL_PREFIX_LEN ) == 0 ) {
+		/* skip over "pldap://" prefix and return success */
+		p += PLDAP_URL_PREFIX_LEN;
+		*scheme = "pldap";
+		return( p );
+	}
+
 	/* check for "ldaps://" prefix */
 	if ( strncasecmp( p, LDAPS_URL_PREFIX, LDAPS_URL_PREFIX_LEN ) == 0 ) {
 		/* skip over "ldaps://" prefix and return success */
 		p += LDAPS_URL_PREFIX_LEN;
 		*scheme = "ldaps";
+		return( p );
+	}
+
+	/* check for "pldaps://" prefix */
+	if ( strncasecmp( p, PLDAPS_URL_PREFIX, PLDAPS_URL_PREFIX_LEN ) == 0 ) {
+		/* skip over "pldaps://" prefix and return success */
+		p += PLDAPS_URL_PREFIX_LEN;
+		*scheme = "pldaps";
 		return( p );
 	}
 
@@ -814,7 +842,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp, unsigned flags
 	 * because a call to LDAP_INT_GLOBAL_OPT() will try to allocate
 	 * the options and cause infinite recursion
 	 */
-	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse_ext(%s)\n", url_in, 0, 0 );
+	Debug1( LDAP_DEBUG_TRACE, "ldap_url_parse_ext(%s)\n", url_in );
 #endif
 
 	*ludpp = NULL;	/* pessimistic */

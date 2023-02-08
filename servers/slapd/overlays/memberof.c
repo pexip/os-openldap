@@ -28,7 +28,7 @@
 #include "ac/socket.h"
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "lutil.h"
 
 /*
@@ -436,12 +436,10 @@ memberof_value_modify(
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
-			char buf[ SLAP_TEXT_BUFLEN ];
-			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d",
-				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf, 0 );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s: memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d\n",
+			      op->o_log_prefix, op2.o_req_dn.bv_val,
+			      ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -478,12 +476,10 @@ memberof_value_modify(
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
-			char buf[ SLAP_TEXT_BUFLEN ];
-			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d",
-				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf, 0 );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s: memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d\n",
+			      op->o_log_prefix, op2.o_req_dn.bv_val,
+			      ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -549,7 +545,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ANY, "%s: memberof_op_add(\"%s\"): "
 			"consistency checks not implemented when overlay "
 			"is instantiated as global.\n",
-			op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+			op->o_log_prefix, op->o_req_dn.bv_val );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1655,7 +1651,7 @@ memberof_db_init(
 			Debug( LDAP_DEBUG_ANY,
 					"memberof_db_init: "
 					"unable to find objectClass=\"%s\"\n",
-					SLAPD_GROUP_CLASS, 0, 0 );
+					SLAPD_GROUP_CLASS );
 			return 1;
 		}
 	}
@@ -1692,9 +1688,10 @@ static ConfigDriver mo_cf_gen;
 
 static ConfigTable mo_cfg[] = {
 	{ "memberof-dn", "modifiersName",
-		2, 2, 0, ARG_MAGIC|ARG_DN|MO_DN, mo_cf_gen,
+		2, 2, 0, ARG_MAGIC|ARG_QUOTE|ARG_DN|MO_DN, mo_cf_gen,
 		"( OLcfgOvAt:18.0 NAME 'olcMemberOfDN' "
 			"DESC 'DN to be used as modifiersName' "
+			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1703,6 +1700,7 @@ static ConfigTable mo_cfg[] = {
 		"( OLcfgOvAt:18.1 NAME 'olcMemberOfDangling' "
 			"DESC 'Behavior with respect to dangling members, "
 				"constrained to ignore, drop, error' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1710,6 +1708,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|MO_REFINT, mo_cf_gen,
 		"( OLcfgOvAt:18.2 NAME 'olcMemberOfRefInt' "
 			"DESC 'Take care of referential integrity' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1717,6 +1716,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|MO_GROUP_OC, mo_cf_gen,
 		"( OLcfgOvAt:18.3 NAME 'olcMemberOfGroupOC' "
 			"DESC 'Group objectClass' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1724,6 +1724,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ATDESC|MO_MEMBER_AD, mo_cf_gen,
 		"( OLcfgOvAt:18.4 NAME 'olcMemberOfMemberAD' "
 			"DESC 'member attribute' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1731,6 +1732,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ATDESC|MO_MEMBER_OF_AD, mo_cf_gen,
 		"( OLcfgOvAt:18.5 NAME 'olcMemberOfMemberOfAD' "
 			"DESC 'memberOf attribute' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1748,6 +1750,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|MO_DANGLING_ERROR, mo_cf_gen,
 		"( OLcfgOvAt:18.7 NAME 'olcMemberOfDanglingError' "
 			"DESC 'Error code returned in case of dangling back reference' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1756,7 +1759,7 @@ static ConfigTable mo_cfg[] = {
 
 static ConfigOCs mo_ocs[] = {
 	{ "( OLcfgOvOc:18.1 "
-		"NAME 'olcMemberOf' "
+		"NAME ( 'olcMemberOfConfig' 'olcMemberOf' ) "
 		"DESC 'Member-of configuration' "
 		"SUP olcOverlayConfig "
 		"MAY ( "
@@ -2022,7 +2025,7 @@ mo_cf_gen( ConfigArgs *c )
 					"unable to find group objectClass=\"%s\"",
 					c->argv[ 1 ] );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -2041,7 +2044,7 @@ mo_cf_gen( ConfigArgs *c )
 					"have DN (%s) or nameUID (%s) syntax",
 					c->argv[ 1 ], SLAPD_DN_SYNTAX, SLAPD_NAMEUID_SYNTAX );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -2059,7 +2062,7 @@ mo_cf_gen( ConfigArgs *c )
 					"have DN (%s) or nameUID (%s) syntax",
 					c->argv[ 1 ], SLAPD_DN_SYNTAX, SLAPD_NAMEUID_SYNTAX );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -2152,7 +2155,7 @@ static struct {
 		"SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' "
 		"EQUALITY distinguishedNameMatch "	/* added */
 		"USAGE dSAOperation "			/* added; questioned */
-		/* "NO-USER-MODIFICATION " */		/* add? */
+		"NO-USER-MODIFICATION " 		/* added */
 		"X-ORIGIN 'iPlanet Delegated Administrator' )",
 		&ad_memberOf },
 	{ NULL }
@@ -2167,11 +2170,11 @@ memberof_initialize( void )
 	int			code, i;
 
 	for ( i = 0; as[ i ].desc != NULL; i++ ) {
-		code = register_at( as[ i ].desc, as[ i ].adp, 0 );
-		if ( code ) {
+		code = register_at( as[ i ].desc, as[ i ].adp, 1 );
+		if ( code && code != SLAP_SCHERR_ATTR_DUP ) {
 			Debug( LDAP_DEBUG_ANY,
 				"memberof_initialize: register_at #%d failed\n",
-				i, 0, 0 );
+				i );
 			return code;
 		}
 	}

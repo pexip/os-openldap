@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2021 The OpenLDAP Foundation.
+## Copyright 1998-2022 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -55,9 +55,9 @@ esac
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $DYNAMICCONF > $CONFLDIF
+. $CONFFILTER $BACKEND < $DYNAMICCONF > $CONFLDIF
 $SLAPADD -F $CFPRO -n 0 -l $CONFLDIF
-$SLAPD -F $CFPRO -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F $CFPRO -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -120,7 +120,7 @@ fi
 # Instead, they will use an alternate DB so that they may be
 # configured differently from the provider. This alternate DB
 # will also be a consumer for the real cn=schema,cn=config tree.
-# It has MirrorMode enabled so that it can be written directly
+# It has multi-provider enabled so that it can be written directly
 # while being a consumer of the main schema.
 echo "Configuring consumer config DB on provider..."
 $LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
@@ -151,11 +151,6 @@ changetype: add
 objectClass: olcGlobal
 cn: consumerconfig
 
-dn: cn=schema,cn=config,cn=consumer
-changetype: add
-objectClass: olcSchemaConfig
-cn: schema
-
 dn: olcDatabase={0}config,cn=config,cn=consumer
 changetype: add
 objectClass: olcDatabaseConfig
@@ -174,8 +169,8 @@ olcSyncrepl: {0}rid=001 provider=$URI1 binddn="cn=config"
   $SYNCTYPE retry="3 5 300 5" timeout=3
   suffixmassage="cn=schema,cn=config,cn=consumer"
 -
-add: olcMirrorMode
-olcMirrorMode: TRUE
+add: olcMultiProvider
+olcMultiProvider: TRUE
 
 EOF
 RC=$?
@@ -187,7 +182,7 @@ fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
 $SLAPADD -F $CFCON -n 0 -l $CONFLDIF
-$SLAPD -F $CFCON -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -F $CFCON -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID
@@ -229,8 +224,7 @@ add: olcUpdateRef
 olcUpdateRef: $URI1
 EOF
 
-echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
-sleep $SLEEP1
+sleep 1
 
 echo "Using ldapsearch to check that syncrepl received config changes..."
 RC=32
@@ -275,8 +269,8 @@ echo "Using ldapsearch to check that syncrepl received the schema changes..."
 RC=32
 for i in 0 1 2 3 4 5; do
 	RESULT=`$LDAPSEARCH -H $URI2 -D cn=config -y $CONFIGPWF \
-		-s base -b "cn=schema,cn=config" \
-		'(cn=openldap)' 2>&1 | awk '/^dn:/ {print "OK"}'`
+		-s sub -b "cn=schema,cn=config" \
+		'(cn=*openldap)' 2>&1 | awk '/^dn:/ {print "OK"}'`
 	if test "x$RESULT" = "xOK" ; then
 		RC=0
 		break

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2021 The OpenLDAP Foundation.
+ * Copyright 1998-2022 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 1998-2001 Net Boolean Incorporated.
  * Portions Copyright 2001-2003 IBM Corporation.
@@ -122,7 +122,7 @@ handle_private_option( int i )
 			optarg++;
 		}
 
-		control = strdup( optarg );
+		control = optarg;
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -140,7 +140,7 @@ handle_private_option( int i )
 				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
-		newSuperior = strdup( optarg );
+		newSuperior = optarg;
 		protocol = LDAP_VERSION3;
 		break;
 
