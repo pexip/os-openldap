@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2021 The OpenLDAP Foundation.
+ * Copyright 2000-2022 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -351,7 +351,7 @@ rewrite_subst_apply(
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_ANY, "Not Implemented\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "Not Implemented\n" );
 			rc = REWRITE_ERR;
 			break;
 		}

@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2021 The OpenLDAP Foundation.
+## Copyright 1998-2022 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ fi
 # 3. keep making changes on all servers to see things still work
 
 echo "This test tracks a case where slapd deadlocks during a significant write load"
-echo "See http://www.openldap.org/its/index.cgi/?findid=8752 for more information."
+echo "See https://bugs.openldap.org/show_bug.cgi?id=8752 for more information."
 
 MPR=4
 iterations=20000
@@ -68,8 +68,8 @@ done
 KILLPIDS=
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+. $CONFFILTER $BACKEND < $ITSDIR/slapd.conf > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
 	echo PID $PID
@@ -81,7 +81,7 @@ sleep $SLEEP0
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -170,7 +170,7 @@ while [ $n -le $MPR ]; do
 	MYLOG=`eval echo '$LOG'$n`
 	MYCONF=`eval echo '$CONF'$n`
 	echo "Starting provider slapd on TCP/IP URI $MYURI"
-	. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
+	. $CONFFILTER $BACKEND < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
 	sed -e "s/MPR/$n/g" -e "s/wronglog/log/" -e "s/@MAPSIZE@/$MAPSIZE/" $TESTDIR/slapd.conf > $MYCONF
 	j=1
 	while [ $j -le $MPR ]; do
@@ -182,7 +182,7 @@ while [ $n -le $MPR ]; do
 	if [ -f $TESTDIR/slapd.conf ]; then
 		rm -f $TESTDIR/slapd.conf
 	fi
-	$SLAPD -f $MYCONF -h $MYURI  -d $LVL $TIMING >> $MYLOG 2>&1 &
+	$SLAPD -f $MYCONF -h $MYURI  -d $LVL >> $MYLOG 2>&1 &
 	PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $PID
@@ -388,7 +388,7 @@ while [ $n -le $MPR ]; do
     MYLOG=`eval echo '$LOG'$n`
     MYCONF=`eval echo '$CONF'$n`
     echo "Starting provider slapd on TCP/IP URI $MYURI"
-    . $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
+    . $CONFFILTER $BACKEND < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
     sed -e "s/MPR/$n/g" -e "s/@MAPSIZE@/$MAPSIZE/" $TESTDIR/slapd.conf > $MYCONF
     j=1
     while [ $j -le $MPR ]; do
@@ -400,7 +400,7 @@ while [ $n -le $MPR ]; do
     if [ -f $TESTDIR/slapd.conf ]; then
         rm -f $TESTDIR/slapd.conf
     fi
-    $SLAPD -f $MYCONF -h $MYURI  -d $LVL $TIMING >> $MYLOG 2>&1 &
+    $SLAPD -f $MYCONF -h $MYURI  -d $LVL >> $MYLOG 2>&1 &
     PID=$!
     if test $WAIT != 0 ; then
         echo PID $PID

@@ -36,7 +36,7 @@
 #include <ac/time.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
-#include "config.h"
+#include "slap-config.h"
 
 /* Per-instance configuration information */
 typedef struct lastbind_info {
@@ -74,12 +74,14 @@ static ConfigTable lastbindcfg[] = {
 	  "( OLcfgCtAt:5.1 "
 	  "NAME 'olcLastBindPrecision' "
 	  "DESC 'Precision of authTimestamp attribute' "
+	  "EQUALITY integerMatch "
 	  "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "lastbind_forward_updates", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET,
 	  (void *)offsetof(lastbind_info,forward_updates),
 	  "( OLcfgAt:5.2 NAME 'olcLastBindForwardUpdates' "
 	  "DESC 'Allow authTimestamp updates to be forwarded via updateref' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -223,7 +225,7 @@ done:
 			*/
 		}
 
-		rc = op->o_bd->be_modify( &op2, &r2 );
+		rc = op2.o_bd->be_modify( &op2, &r2 );
 		slap_mods_free( mod, 1 );
 	}
 
@@ -288,7 +290,7 @@ int lastbind_initialize()
 		code = register_at( lastBind_OpSchema[i].def, lastBind_OpSchema[i].ad, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"lastbind_initialize: register_at failed\n", 0, 0, 0 );
+				"lastbind_initialize: register_at failed\n" );
 			return code;
 		}
 	}
@@ -296,6 +298,7 @@ int lastbind_initialize()
 	ad_authTimestamp->ad_type->sat_flags |= SLAP_AT_MANAGEABLE;
 
 	lastbind.on_bi.bi_type = "lastbind";
+	lastbind.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	lastbind.on_bi.bi_db_init = lastbind_db_init;
 	lastbind.on_bi.bi_db_close = lastbind_db_close;
 	lastbind.on_bi.bi_op_bind = lastbind_bind;

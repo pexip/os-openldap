@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2021 The OpenLDAP Foundation.
+ * Copyright 2000-2022 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  * the same key. Also, the first item under the key contains the entry's own
  * rdn and the ID of the node's parent, to allow bottom-up tree traversal as
  * well as top-down. To keep this info first in the list, the high bit of all
- * subsequent nrdnlen's is always set. This means we can only accomodate
+ * subsequent nrdnlen's is always set. This means we can only accommodate
  * RDNs up to length 32767, but that's fine since full DNs are already
  * restricted to 8192.
  *
@@ -97,7 +97,7 @@ mdb_dn2id_add(
 	char *ptr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id_add 0x%lx: \"%s\"\n",
-		e->e_id, e->e_ndn ? e->e_ndn : "", 0 );
+		e->e_id, e->e_ndn ? e->e_ndn : "" );
 
 	nrlen = dn_rdnlen( op->o_bd, &e->e_nname );
 	if (nrlen) {
@@ -194,7 +194,7 @@ mdb_dn2id_add(
 		} while ( nid );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_add 0x%lx: %d\n", e->e_id, rc, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_add 0x%lx: %d\n", e->e_id, rc );
 
 	return rc;
 }
@@ -212,7 +212,7 @@ mdb_dn2id_delete(
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id_delete 0x%lx\n",
-		id, 0, 0 );
+		id );
 
 	/* Delete our ID from the parent's list */
 	rc = mdb_cursor_del( mc, 0 );
@@ -276,7 +276,7 @@ mdb_dn2id_delete(
 		} while ( nid );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_delete 0x%lx: %d\n", id, rc, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id_delete 0x%lx: %d\n", id, rc );
 	return rc;
 }
 
@@ -307,7 +307,7 @@ mdb_dn2id(
 	ID pid, nid;
 	struct berval tmp;
 
-	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id(\"%s\")\n", in->bv_val ? in->bv_val : "", 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2id(\"%s\")\n", in->bv_val ? in->bv_val : "" );
 
 	if ( matched ) {
 		matched->bv_val = dn + sizeof(dn) - 1;
@@ -428,10 +428,10 @@ done:
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id: get failed: %s (%d)\n",
-			mdb_strerror( rc ), rc, 0 );
+			mdb_strerror( rc ), rc );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2id: got id=0x%lx\n",
-			nid, 0, 0 );
+			nid );
 	}
 
 	return rc;
@@ -455,7 +455,7 @@ mdb_dn2sups(
 	ID pid, nid;
 	struct berval tmp;
 
-	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2sups(\"%s\")\n", in->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> mdb_dn2sups(\"%s\")\n", in->bv_val );
 
 	if ( !in->bv_len ) {
 		goto done;
@@ -509,7 +509,7 @@ mdb_dn2sups(
 done:
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2sups: get failed: %s (%d)\n",
-			mdb_strerror( rc ), rc, 0 );
+			mdb_strerror( rc ), rc );
 	}
 
 	return rc;
@@ -678,7 +678,7 @@ mdb_idscope(
 			ptr += data.mv_size - sizeof(ID);
 			memcpy( &id, ptr, sizeof(ID) );
 			if ( id == base ) {
-				if ( res[0] >= MDB_IDL_DB_SIZE-1 ) {
+				if ( res[0] >= MDB_idl_db_max ) {
 					/* too many aliases in scope. Fallback to range */
 					MDB_IDL_RANGE( res, MDB_IDL_FIRST( ids ), MDB_IDL_LAST( ids ));
 					goto leave;

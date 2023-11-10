@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2021 The OpenLDAP Foundation.
+## Copyright 1998-2022 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ if [ $RC != 0 ]; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $NIS_CONF -p $PORT -d $LVL $TIMING > $PROVIDERLOG 2>&1 &
+$SLAPD -f $NIS_CONF -p $PORT -d $LVL > $PROVIDERLOG 2>&1 &
 PID=$!
 
 echo ">>>>> LDAP server with NIS schema is up! PID=$PID"
