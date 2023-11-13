@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2021 The OpenLDAP Foundation.
+ * Copyright 1998-2022 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,10 +43,6 @@ static tls_impl *tls_imp = &ldap_int_tls_impl;
 
 #endif /* HAVE_TLS */
 
-#ifdef LDAP_DEVEL
-#define LDAP_USE_NON_BLOCKING_TLS
-#endif /* LDAP_DEVEL */
-
 /* RFC2459 minimum required set of supported attribute types
  * in a certificate DN
  */
@@ -75,6 +71,9 @@ static oid_name oids[] = {
 };
 
 #ifdef HAVE_TLS
+
+LDAP_F(int) ldap_pvt_tls_check_hostname LDAP_P(( LDAP *ld, void *s, const char *name_in ));
+LDAP_F(int) ldap_pvt_tls_get_peercert LDAP_P(( void *s, struct berval *der ));
 
 void
 ldap_pvt_tls_ctx_free ( void *c )
@@ -138,6 +137,14 @@ ldap_int_tls_destroy( struct ldapoptions *lo )
 		LDAP_FREE( lo->ldo_tls_crlfile );
 		lo->ldo_tls_crlfile = NULL;
 	}
+	/* tls_pin_hashalg and tls_pin share the same buffer */
+	if ( lo->ldo_tls_pin_hashalg ) {
+		LDAP_FREE( lo->ldo_tls_pin_hashalg );
+		lo->ldo_tls_pin_hashalg = NULL;
+	} else {
+		LDAP_FREE( lo->ldo_tls_pin.bv_val );
+	}
+	BER_BVZERO( &lo->ldo_tls_pin );
 }
 
 /*
@@ -158,7 +165,7 @@ ldap_pvt_tls_destroy( void )
  * Called once per implementation.
  */
 static int
-tls_init(tls_impl *impl )
+tls_init(tls_impl *impl, int do_threads )
 {
 	static int tls_initialized = 0;
 
@@ -170,9 +177,12 @@ tls_init(tls_impl *impl )
 
 	if ( impl->ti_inited++ ) return 0;
 
+	if ( do_threads ) {
 #ifdef LDAP_R_COMPILE
-	impl->ti_thr_init();
+		impl->ti_thr_init();
 #endif
+	}
+
 	return impl->ti_tls_init();
 }
 
@@ -180,9 +190,9 @@ tls_init(tls_impl *impl )
  * Initialize TLS subsystem. Called once per implementation.
  */
 int
-ldap_pvt_tls_init( void )
+ldap_pvt_tls_init( int do_threads )
 {
-	return tls_init( tls_imp );
+	return tls_init( tls_imp, do_threads );
 }
 
 /*
@@ -198,10 +208,12 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 	if ( lo->ldo_tls_ctx )
 		return 0;
 
-	tls_init( ti );
+	tls_init( ti, 0 );
 
 	if ( is_server && !lts.lt_certfile && !lts.lt_keyfile &&
-		!lts.lt_cacertfile && !lts.lt_cacertdir ) {
+		!lts.lt_cacertfile && !lts.lt_cacertdir &&
+		!lts.lt_cacert.bv_val && !lts.lt_cert.bv_val &&
+		!lts.lt_key.bv_val ) {
 		/* minimum configuration not provided */
 		return LDAP_NOT_SUPPORTED;
 	}
@@ -243,9 +255,8 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 #endif
 	lo->ldo_tls_ctx = ti->ti_ctx_new( lo );
 	if ( lo->ldo_tls_ctx == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-		   "TLS: could not allocate default ctx.\n",
-			0,0,0);
+		Debug0( LDAP_DEBUG_ANY,
+		   "TLS: could not allocate default ctx.\n" );
 		rc = -1;
 		goto error_exit;
 	}
@@ -300,7 +311,7 @@ alloc_handle( void *ctx_arg, int is_server )
 
 	ssl = tls_imp->ti_session_new( ctx, is_server );
 	if ( ssl == NULL ) {
-		Debug( LDAP_DEBUG_ANY,"TLS: can't create ssl handle.\n",0,0,0);
+		Debug0( LDAP_DEBUG_ANY,"TLS: can't create ssl handle.\n" );
 		return NULL;
 	}
 	return ssl;
@@ -334,6 +345,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 	Sockbuf *sb = conn->lconn_sb;
 	int	err;
 	tls_session	*ssl = NULL;
+	const char *sni = host;
 
 	if ( HAS_TLS( sb )) {
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
@@ -368,7 +380,26 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 	}
 
-	err = tls_imp->ti_session_connect( ld, ssl );
+	/* pass hostname for SNI, but only if it's an actual name
+	 * and not a numeric address
+	 */
+	{
+		int numeric = 1;
+		unsigned char *c;
+		for ( c = (unsigned char *)sni; *c; c++ ) {
+			if ( *c == ':' )	/* IPv6 address */
+				break;
+			if ( *c == '.' )
+				continue;
+			if ( !isdigit( *c )) {
+				numeric = 0;
+				break;
+			}
+		}
+		if ( numeric )
+			sni = NULL;
+	}
+	err = tls_imp->ti_session_connect( ld, ssl, sni );
 
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
@@ -396,8 +427,8 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 #endif
 		}
 
-		Debug( LDAP_DEBUG_ANY,"TLS: can't connect: %s.\n",
-			ld->ld_error ? ld->ld_error : "" ,0,0);
+		Debug1( LDAP_DEBUG_ANY,"TLS: can't connect: %s.\n",
+			ld->ld_error ? ld->ld_error : "" );
 
 		ber_sockbuf_remove_io( sb, tls_imp->ti_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT );
@@ -409,6 +440,13 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 	}
 
 	return 0;
+}
+
+int
+ldap_pvt_tls_connect( LDAP *ld, Sockbuf *sb, const char *host )
+{
+	LDAPConn conn = { .lconn_sb = sb };
+	return ldap_int_tls_connect( ld, &conn, host );
 }
 
 /*
@@ -448,8 +486,8 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 		if ( DebugTest( LDAP_DEBUG_ANY ) ) {
 			char buf[256], *msg;
 			msg = tls_imp->ti_session_errmsg( ssl, err, buf, sizeof(buf) );
-			Debug( LDAP_DEBUG_ANY,"TLS: can't accept: %s.\n",
-				msg ? msg : "(unknown)", 0, 0 );
+			Debug1( LDAP_DEBUG_ANY,"TLS: can't accept: %s.\n",
+				msg ? msg : "(unknown)" );
 		}
 
 		ber_sockbuf_remove_io( sb, tls_imp->ti_sbio,
@@ -516,11 +554,23 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 		}
 	}
 
+	/*
+	 * If instructed to do pinning, do it now
+	 */
+	if ( !BER_BVISNULL( &ld->ld_options.ldo_tls_pin ) ) {
+		ld->ld_errno = tls_imp->ti_session_pinning( ld, s,
+				ld->ld_options.ldo_tls_pin_hashalg,
+				&ld->ld_options.ldo_tls_pin );
+		if (ld->ld_errno != LDAP_SUCCESS) {
+			return ld->ld_errno;
+		}
+	}
+
 	return LDAP_SUCCESS;
 }
 
 int
-ldap_int_tls_config( LDAP *ld, int option, const char *arg )
+ldap_pvt_tls_config( LDAP *ld, int option, const char *arg )
 {
 	int i;
 
@@ -532,6 +582,7 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 	case LDAP_OPT_X_TLS_DHFILE:
+	case LDAP_OPT_X_TLS_PEERKEY_HASH:
 	case LDAP_OPT_X_TLS_ECNAME:
 	case LDAP_OPT_X_TLS_CRLFILE:	/* GnuTLS only */
 		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
@@ -564,6 +615,7 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 			return ldap_pvt_tls_set_option( ld, option, &i );
 		}
 		return -1;
+	case LDAP_OPT_X_TLS_PROTOCOL_MAX:
 	case LDAP_OPT_X_TLS_PROTOCOL_MIN: {
 		char *next;
 		long l;
@@ -581,7 +633,7 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 		}
 		return ldap_pvt_tls_set_option( ld, option, &i );
 		}
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		i = -1;
 		if ( strcasecmp( arg, "none" ) == 0 ) {
@@ -671,7 +723,7 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_REQUIRE_SAN:
 		*(int *)arg = lo->ldo_tls_require_san;
 		break;
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		*(int *)arg = lo->ldo_tls_crlcheck;
 		break;
@@ -682,6 +734,9 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		break;
 	case LDAP_OPT_X_TLS_PROTOCOL_MIN:
 		*(int *)arg = lo->ldo_tls_protocol_min;
+		break;
+	case LDAP_OPT_X_TLS_PROTOCOL_MAX:
+		*(int *)arg = lo->ldo_tls_protocol_max;
 		break;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		*(char **)arg = lo->ldo_tls_randfile ?
@@ -705,6 +760,80 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_CONNECT_ARG:
 		*(void **)arg = lo->ldo_tls_connect_arg;
 		break;
+	case LDAP_OPT_X_TLS_VERSION: {
+		void *sess = NULL;
+		const char *retval = NULL;
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				sess = ldap_pvt_tls_sb_ctx( sb );
+				if ( sess != NULL )
+					retval = ldap_pvt_tls_get_version( sess );
+			}
+		}
+		*(char **)arg = retval ? LDAP_STRDUP( retval ) : NULL;
+		break;
+	}
+	case LDAP_OPT_X_TLS_CIPHER: {
+		void *sess = NULL;
+		const char *retval = NULL;
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				sess = ldap_pvt_tls_sb_ctx( sb );
+				if ( sess != NULL )
+					retval = ldap_pvt_tls_get_cipher( sess );
+			}
+		}
+		*(char **)arg = retval ? LDAP_STRDUP( retval ) : NULL;
+		break;
+	}
+	case LDAP_OPT_X_TLS_PEERCERT: {
+		void *sess = NULL;
+		struct berval *bv = arg;
+		bv->bv_len = 0;
+		bv->bv_val = NULL;
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				sess = ldap_pvt_tls_sb_ctx( sb );
+				if ( sess != NULL )
+					return ldap_pvt_tls_get_peercert( sess, bv );
+			}
+		}
+		break;
+	}
+	case LDAP_OPT_X_TLS_CACERT: {
+		struct berval *bv = arg;
+		if ( lo->ldo_tls_cacert.bv_val ) {
+			ber_dupbv( bv, &lo->ldo_tls_cacert );
+		} else {
+			BER_BVZERO( bv );
+		}
+		break;
+	}
+	case LDAP_OPT_X_TLS_CERT: {
+		struct berval *bv = arg;
+		if ( lo->ldo_tls_cert.bv_val ) {
+			ber_dupbv( bv, &lo->ldo_tls_cert );
+		} else {
+			BER_BVZERO( bv );
+		}
+		break;
+	}
+	case LDAP_OPT_X_TLS_KEY: {
+		struct berval *bv = arg;
+		if ( lo->ldo_tls_key.bv_val ) {
+			ber_dupbv( bv, &lo->ldo_tls_key );
+		} else {
+			BER_BVZERO( bv );
+		}
+		break;
+	}
+
 	default:
 		return -1;
 	}
@@ -815,7 +944,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 			return 0;
 		}
 		return -1;
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		if ( !arg ) return -1;
 		switch( *(int *) arg ) {
@@ -836,6 +965,10 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		if ( !arg ) return -1;
 		lo->ldo_tls_protocol_min = *(int *)arg;
 		return 0;
+	case LDAP_OPT_X_TLS_PROTOCOL_MAX:
+		if ( !arg ) return -1;
+		lo->ldo_tls_protocol_max = *(int *)arg;
+		return 0;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		if ( ld != NULL )
 			return -1;
@@ -848,6 +981,107 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 			ldap_pvt_tls_ctx_free( lo->ldo_tls_ctx );
 		lo->ldo_tls_ctx = NULL;
 		return ldap_int_tls_init_ctx( lo, *(int *)arg );
+	case LDAP_OPT_X_TLS_CACERT:
+		if ( lo->ldo_tls_cacert.bv_val )
+			LDAP_FREE( lo->ldo_tls_cacert.bv_val );
+		if ( arg ) {
+			lo->ldo_tls_cacert.bv_len = ((struct berval *)arg)->bv_len;
+			lo->ldo_tls_cacert.bv_val = LDAP_MALLOC( lo->ldo_tls_cacert.bv_len );
+			if ( !lo->ldo_tls_cacert.bv_val )
+				return -1;
+			AC_MEMCPY( lo->ldo_tls_cacert.bv_val, ((struct berval *)arg)->bv_val, lo->ldo_tls_cacert.bv_len );
+		} else {
+			BER_BVZERO( &lo->ldo_tls_cacert );
+		}
+		break;
+	case LDAP_OPT_X_TLS_CERT:
+		if ( lo->ldo_tls_cert.bv_val )
+			LDAP_FREE( lo->ldo_tls_cert.bv_val );
+		if ( arg ) {
+			lo->ldo_tls_cert.bv_len = ((struct berval *)arg)->bv_len;
+			lo->ldo_tls_cert.bv_val = LDAP_MALLOC( lo->ldo_tls_cert.bv_len );
+			if ( !lo->ldo_tls_cert.bv_val )
+				return -1;
+			AC_MEMCPY( lo->ldo_tls_cert.bv_val, ((struct berval *)arg)->bv_val, lo->ldo_tls_cert.bv_len );
+		} else {
+			BER_BVZERO( &lo->ldo_tls_cert );
+		}
+		break;
+	case LDAP_OPT_X_TLS_KEY:
+		if ( lo->ldo_tls_key.bv_val )
+			LDAP_FREE( lo->ldo_tls_key.bv_val );
+		if ( arg ) {
+			lo->ldo_tls_key.bv_len = ((struct berval *)arg)->bv_len;
+			lo->ldo_tls_key.bv_val = LDAP_MALLOC( lo->ldo_tls_key.bv_len );
+			if ( !lo->ldo_tls_key.bv_val )
+				return -1;
+			AC_MEMCPY( lo->ldo_tls_key.bv_val, ((struct berval *)arg)->bv_val, lo->ldo_tls_key.bv_len );
+		} else {
+			BER_BVZERO( &lo->ldo_tls_key );
+		}
+		break;
+	case LDAP_OPT_X_TLS_PEERKEY_HASH: {
+		/* arg = "[hashalg:]pubkey_hash" */
+		struct berval bv;
+		char *p, *pin = arg;
+		int rc = LDAP_SUCCESS;
+
+		if ( !tls_imp->ti_session_pinning ) return -1;
+
+		if ( !pin || !*pin ) {
+			if ( lo->ldo_tls_pin_hashalg ) {
+				LDAP_FREE( lo->ldo_tls_pin_hashalg );
+			} else if ( lo->ldo_tls_pin.bv_val ) {
+				LDAP_FREE( lo->ldo_tls_pin.bv_val );
+			}
+			lo->ldo_tls_pin_hashalg = NULL;
+			BER_BVZERO( &lo->ldo_tls_pin );
+			return rc;
+		}
+
+		pin = LDAP_STRDUP( pin );
+		p = strchr( pin, ':' );
+
+		/* pubkey (its hash) goes in bv, alg in p */
+		if ( p ) {
+			*p = '\0';
+			bv.bv_val = p+1;
+			p = pin;
+		} else {
+			bv.bv_val = pin;
+		}
+
+		bv.bv_len = strlen(bv.bv_val);
+		if ( ldap_int_decode_b64_inplace( &bv ) ) {
+			LDAP_FREE( pin );
+			return -1;
+		}
+
+		if ( ld != NULL ) {
+			LDAPConn *conn = ld->ld_defconn;
+			if ( conn != NULL ) {
+				Sockbuf *sb = conn->lconn_sb;
+				void *sess = ldap_pvt_tls_sb_ctx( sb );
+				if ( sess != NULL ) {
+					rc = tls_imp->ti_session_pinning( ld, sess, p, &bv );
+				}
+			}
+		}
+
+		if ( rc == LDAP_SUCCESS ) {
+			if ( lo->ldo_tls_pin_hashalg ) {
+				LDAP_FREE( lo->ldo_tls_pin_hashalg );
+			} else if ( lo->ldo_tls_pin.bv_val ) {
+				LDAP_FREE( lo->ldo_tls_pin.bv_val );
+			}
+			lo->ldo_tls_pin_hashalg = p;
+			lo->ldo_tls_pin = bv;
+		} else {
+			LDAP_FREE( pin );
+		}
+
+		return rc;
+	}
 	default:
 		return -1;
 	}
@@ -861,10 +1095,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	char *host;
 	void *ssl;
 	int ret, async;
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 	struct timeval start_time_tv, tv, tv0;
 	ber_socket_t	sd = AC_SOCKET_ERROR;
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
 
 	if ( !conn )
 		return LDAP_PARAM_ERROR;
@@ -881,9 +1113,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		host = "localhost";
 	}
 
-	(void) tls_init( tls_imp );
+	(void) tls_init( tls_imp, 0 );
 
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 	/*
 	 * Use non-blocking io during SSL Handshake when a timeout is configured
 	 */
@@ -904,8 +1135,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 #endif /* ! HAVE_GETTIMEOFDAY */
 	}
 
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
-
 	ld->ld_errno = LDAP_SUCCESS;
 	ret = ldap_int_tls_connect( ld, conn, host );
 
@@ -914,7 +1143,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	  * big for a single network message.
 	  */
 	while ( ret > 0 ) {
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 		if ( async ) {
 			struct timeval curr_time_tv, delta_tv;
 			int wr=0;
@@ -924,8 +1152,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 			} else if ( sb->sb_trans_needs_write ) {
 				wr=1;
 			}
-			Debug( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ldap_int_tls_connect needs %s\n",
-					wr ? "write": "read", 0, 0 );
+			Debug1( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ldap_int_tls_connect needs %s\n",
+					wr ? "write": "read" );
 
 			/* This is mostly copied from result.c:wait4msg(), should
 			 * probably be moved into a separate function */
@@ -963,7 +1191,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 			start_time_tv.tv_sec = curr_time_tv.tv_sec;
 			start_time_tv.tv_usec = curr_time_tv.tv_usec;
 			tv = tv0;
-			Debug( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ld %p %ld s %ld us to go\n",
+			Debug3( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ld %p %ld s %ld us to go\n",
 				(void *)ld, (long) tv.tv_sec, (long) tv.tv_usec );
 			ret = ldap_int_poll( ld, sd, &tv, wr);
 			if ( ret < 0 ) {
@@ -971,7 +1199,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 				break;
 			}
 		}
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
 		ret = ldap_int_tls_connect( ld, conn, host );
 	}
 
@@ -1012,6 +1239,41 @@ ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, 
 	if ( rc == LDAP_SUCCESS )
 		rc = ldap_X509dn2bv(&der_dn, dn, (LDAPDN_rewrite_func *)func, flags );
 	return rc;
+}
+
+int
+ldap_pvt_tls_get_unique( void *s, struct berval *buf, int is_server )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_unique( session, buf, is_server );
+}
+
+int
+ldap_pvt_tls_get_endpoint( void *s, struct berval *buf, int is_server )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_endpoint( session, buf, is_server );
+}
+
+const char *
+ldap_pvt_tls_get_version( void *s )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_version( session );
+}
+
+const char *
+ldap_pvt_tls_get_cipher( void *s )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_cipher( session );
+}
+
+int
+ldap_pvt_tls_get_peercert( void *s, struct berval *der )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_peercert( session, der );
 }
 #endif /* HAVE_TLS */
 

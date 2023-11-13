@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2021 The OpenLDAP Foundation.
+ * Copyright 2002-2022 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -2047,7 +2047,7 @@ int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
 }
 
 /*
- * DS 5.x compatability API follow
+ * DS 5.x compatibility API follow
  */
 
 int slapi_attr_get_flags( const Slapi_Attr *attr, unsigned long *flags )

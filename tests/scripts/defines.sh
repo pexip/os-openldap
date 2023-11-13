@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2021 The OpenLDAP Foundation.
+## Copyright 1998-2022 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -18,9 +18,10 @@ umask 077
 TESTWD=`pwd`
 
 # backends
-MONITORDB=${AC_monitor-no}
 BACKLDAP=${AC_ldap-ldapno}
 BACKMETA=${AC_meta-metano}
+BACKASYNCMETA=${AC_asyncmeta-asyncmetano}
+BACKPERL=${AC_perl-perlno}
 BACKRELAY=${AC_relay-relayno}
 BACKSQL=${AC_sql-sqlno}
 	RDBMS=${SLAPD_USE_SQL-rdbmsno}
@@ -28,13 +29,19 @@ BACKSQL=${AC_sql-sqlno}
 
 # overlays
 ACCESSLOG=${AC_accesslog-accesslogno}
+ARGON2=${AC_argon2-argon2no}
+AUTOCA=${AC_autoca-autocano}
 CONSTRAINT=${AC_constraint-constraintno}
 DDS=${AC_dds-ddsno}
+DEREF=${AC_deref-derefno}
 DYNLIST=${AC_dynlist-dynlistno}
+HOMEDIR=${AC_homedir-homedirno}
 MEMBEROF=${AC_memberof-memberofno}
+OTP=${AC_otp-otpno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
+REMOTEAUTH=${AC_remoteauth-remoteauthno}
 RETCODE=${AC_retcode-retcodeno}
 RWM=${AC_rwm-rwmno}
 SYNCPROV=${AC_syncprov-syncprovno}
@@ -45,11 +52,14 @@ VALSORT=${AC_valsort-valsortno}
 # misc
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
+WITH_TLS=${AC_WITH_TLS-no}
+WITH_TLS_TYPE=${AC_TLS_TYPE-no}
+
 ACI=${AC_ACI_ENABLED-acino}
-THREADS=${AC_THREADS-threadsno}
 SLEEP0=${SLEEP0-1}
 SLEEP1=${SLEEP1-7}
 SLEEP2=${SLEEP2-15}
+TIMEOUT=${TIMEOUT-8}
 
 # dirs
 PROGDIR=./progs
@@ -60,10 +70,16 @@ case "$SCHEMADIR" in
 .*)	ABS_SCHEMADIR="$TESTWD/$SCHEMADIR" ;;
 *)  ABS_SCHEMADIR="$SCHEMADIR" ;;
 esac
+case "$SRCDIR" in
+.*)	ABS_SRCDIR="$TESTWD/$SRCDIR" ;;
+*)  ABS_SRCDIR="$SRCDIR" ;;
+esac
+export TESTDIR
 
 DBDIR1A=$TESTDIR/db.1.a
 DBDIR1B=$TESTDIR/db.1.b
 DBDIR1C=$TESTDIR/db.1.c
+DBDIR1D=$TESTDIR/db.1.d
 DBDIR1=$DBDIR1A
 DBDIR2A=$TESTDIR/db.2.a
 DBDIR2B=$TESTDIR/db.2.b
@@ -101,8 +117,13 @@ R2SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-refresh2.conf
 P1SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist1.conf
 P2SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist2.conf
 P3SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist3.conf
+DIRSYNC1CONF=$DATADIR/slapd-dirsync1.conf
+DSEESYNC1CONF=$DATADIR/slapd-dsee-consumer1.conf
+DSEESYNC2CONF=$DATADIR/slapd-dsee-consumer2.conf
 REFCONSUMERCONF=$DATADIR/slapd-ref-consumer.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
+TLSCONF=$DATADIR/slapd-tls.conf
+TLSSASLCONF=$DATADIR/slapd-tls-sasl.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
 RETCODECONF=$DATADIR/slapd-retcode.conf
@@ -126,10 +147,13 @@ TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
 METACONF1=$DATADIR/slapd-meta-target1.conf
 METACONF2=$DATADIR/slapd-meta-target2.conf
+ASYNCMETACONF=$DATADIR/slapd-asyncmeta.conf
 GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
 VALSORTCONF=$DATADIR/slapd-valsort.conf
+DEREFCONF=$DATADIR/slapd-deref.conf
 DYNLISTCONF=$DATADIR/slapd-dynlist.conf
+HOMEDIRCONF=$DATADIR/slapd-homedir.conf
 RCONSUMERCONF=$DATADIR/slapd-repl-consumer-remote.conf
 PLSRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist-ldap.conf
 PLSRPROVIDERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
@@ -140,6 +164,14 @@ NAKEDCONF=$DATADIR/slapd-config-naked.conf
 VALREGEXCONF=$DATADIR/slapd-valregex.conf
 
 DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
+
+SLAPDLLOADCONF=$DATADIR/slapd-lload.conf
+LLOADDCONF=$DATADIR/lloadd.conf
+LLOADDEMPTYCONF=$DATADIR/lloadd-empty.conf
+LLOADDANONCONF=$DATADIR/lloadd-anon.conf
+LLOADDUNREACHABLECONF=$DATADIR/lloadd-backend-issues.conf
+LLOADDTLSCONF=$DATADIR/lloadd-tls.conf
+LLOADDSASLCONF=$DATADIR/lloadd-sasl.conf
 
 # generated files
 CONF1=$TESTDIR/slapd.1.conf
@@ -162,19 +194,40 @@ SLURPLOG=$TESTDIR/slurp.log
 
 CONFIGPWF=$TESTDIR/configpw
 
+LIBTOOL="${LIBTOOL-$TESTWD/../libtool}"
+# wrappers (valgrind, gdb, environment variables, etc.)
+if [ -n "$WRAPPER" ]; then
+	: # skip
+elif [ "$SLAPD_COMMON_WRAPPER" = gdb ]; then
+	WRAPPER="$ABS_SRCDIR/scripts/grandchild_wrapper.py gdb -nx -x $ABS_SRCDIR/scripts/gdb.py -batch-silent -return-child-result --args"
+elif [ "$SLAPD_COMMON_WRAPPER" = valgrind ]; then
+	WRAPPER="valgrind --log-file=$TESTDIR/valgrind.%p.log --fullpath-after=`dirname $ABS_SRCDIR` --keep-debuginfo=yes --leak-check=full"
+elif [ "$SLAPD_COMMON_WRAPPER" = "valgrind-errstop" ]; then
+	WRAPPER="valgrind --log-file=$TESTDIR/valgrind.%p.log --vgdb=yes --vgdb-error=1"
+elif [ "$SLAPD_COMMON_WRAPPER" = vgdb ]; then
+	WRAPPER="valgrind --log-file=$TESTDIR/valgrind.%p.log --vgdb=yes --vgdb-error=0"
+fi
+
+if [ -n "$WRAPPER" ]; then
+	SLAPD_WRAPPER="$LIBTOOL --mode=execute env $WRAPPER"
+fi
+
 # args
+SASLARGS="-Q"
 TOOLARGS="-x $LDAP_TOOLARGS"
 TOOLPROTO="-P 3"
 
 # cmds
 CONFFILTER=$SRCDIR/scripts/conf.sh
+CONFDIRSYNC=$SRCDIR/scripts/confdirsync.sh
 
 MONITORDATA=$SRCDIR/scripts/monitor_data.sh
 
-SLAPADD="$TESTWD/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
-SLAPCAT="$TESTWD/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
-SLAPINDEX="$TESTWD/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
-SLAPPASSWD="$TESTWD/../servers/slapd/slapd -Tpasswd"
+SLAPADD="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
+SLAPCAT="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
+SLAPINDEX="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
+SLAPMODIFY="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Tm -d 0 $LDAP_VERBOSE"
+SLAPPASSWD="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Tpasswd"
 
 unset DIFF_OPTIONS
 # NOTE: -u/-c is not that portable...
@@ -182,9 +235,11 @@ DIFF="diff -i"
 CMP="diff -i"
 BCMP="diff -iB"
 CMPOUT=/dev/null
-SLAPD="$TESTWD/../servers/slapd/slapd -s0"
+SLAPD="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -s0"
+LLOADD="$SLAPD_WRAPPER $TESTWD/../servers/lloadd/lloadd -s0"
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
-LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $LDAP_TOOLARGS -LLL"
+LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $SASLARGS $TOOLPROTO $LDAP_TOOLARGS -LLL"
+LDAPSASLWHOAMI="$CLIENTDIR/ldapwhoami $SASLARGS $LDAP_TOOLARGS"
 LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
 LDAPRSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS"
 LDAPDELETE="$CLIENTDIR/ldapdelete $TOOLPROTO $TOOLARGS"
@@ -199,6 +254,7 @@ LDIFFILTER=$PROGDIR/ldif-filter
 SLAPDMTREAD=$PROGDIR/slapd-mtread
 LVL=${SLAPD_DEBUG-0x4105}
 LOCALHOST=localhost
+LOCALIP=127.0.0.1
 BASEPORT=${SLAPD_BASEPORT-9010}
 PORT1=`expr $BASEPORT + 1`
 PORT2=`expr $BASEPORT + 2`
@@ -206,12 +262,34 @@ PORT3=`expr $BASEPORT + 3`
 PORT4=`expr $BASEPORT + 4`
 PORT5=`expr $BASEPORT + 5`
 PORT6=`expr $BASEPORT + 6`
+KDCPORT=`expr $BASEPORT + 7`
 URI1="ldap://${LOCALHOST}:$PORT1/"
+URIP1="ldap://${LOCALIP}:$PORT1/"
 URI2="ldap://${LOCALHOST}:$PORT2/"
+URIP2="ldap://${LOCALIP}:$PORT2/"
 URI3="ldap://${LOCALHOST}:$PORT3/"
+URIP3="ldap://${LOCALIP}:$PORT3/"
 URI4="ldap://${LOCALHOST}:$PORT4/"
+URIP4="ldap://${LOCALIP}:$PORT4/"
 URI5="ldap://${LOCALHOST}:$PORT5/"
+URIP5="ldap://${LOCALIP}:$PORT5/"
 URI6="ldap://${LOCALHOST}:$PORT6/"
+URIP6="ldap://${LOCALIP}:$PORT6/"
+SURI1="ldaps://${LOCALHOST}:$PORT1/"
+SURIP1="ldaps://${LOCALIP}:$PORT1/"
+SURI2="ldaps://${LOCALHOST}:$PORT2/"
+SURIP2="ldaps://${LOCALIP}:$PORT2/"
+SURI3="ldaps://${LOCALHOST}:$PORT3/"
+SURIP3="ldaps://${LOCALIP}:$PORT3/"
+SURI4="ldaps://${LOCALHOST}:$PORT4/"
+SURIP4="ldaps://${LOCALIP}:$PORT4/"
+SURI5="ldaps://${LOCALHOST}:$PORT5/"
+SURIP5="ldaps://${LOCALIP}:$PORT5/"
+SURI6="ldaps://${LOCALHOST}:$PORT6/"
+SURIP6="ldaps://${LOCALIP}:$PORT6/"
+
+KRB5REALM="K5.REALM"
+KDCHOST=$LOCALHOST
 
 # LDIF
 LDIF=$DATADIR/test.ldif
@@ -247,10 +325,14 @@ LDIFTRANSLUCENTCONFIG=$DATADIR/test-translucent-config.ldif
 LDIFTRANSLUCENTADD=$DATADIR/test-translucent-add.ldif
 LDIFTRANSLUCENTMERGED=$DATADIR/test-translucent-merged.ldif
 LDIFMETA=$DATADIR/test-meta.ldif
+LDIFDEREF=$DATADIR/test-deref.ldif
 LDIFVALSORT=$DATADIR/test-valsort.ldif
 SQLADD=$DATADIR/sql-add.ldif
 LDIFUNORDERED=$DATADIR/test-unordered.ldif
 LDIFREORDERED=$DATADIR/test-reordered.ldif
+LDIFMODIFY=$DATADIR/test-modify.ldif
+LDIFDIRSYNCCP=$DATADIR/test-dirsync-cp.ldif
+LDIFDIRSYNCNOCP=$DATADIR/test-dirsync-nocp.ldif
 
 # strings
 MONITOR=""
@@ -275,6 +357,8 @@ TRANSLUCENTDN="uid=binder,o=translucent"
 TRANSLUCENTPASSWD="bindtest"
 METABASEDN="ou=Meta,$BASEDN"
 METAMANAGERDN="cn=Manager,$METABASEDN"
+DEREFDN="cn=Manager,o=deref"
+DEREFBASEDN="o=deref"
 VALSORTDN="cn=Manager,o=valsort"
 VALSORTBASEDN="o=valsort"
 MONITORDN="cn=Monitor"
@@ -360,6 +444,7 @@ SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 ACIOUT=$DATADIR/aci.out
 DYNLISTOUT=$DATADIR/dynlist.out
 DDSOUT=$DATADIR/dds.out
+DEREFOUT=$DATADIR/deref.out
 MEMBEROFOUT=$DATADIR/memberof.out
 MEMBEROFREFINTOUT=$DATADIR/memberof-refint.out
 SHTOOL="$SRCDIR/../build/shtool"

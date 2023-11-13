@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2021 The OpenLDAP Foundation.
+## Copyright 1998-2022 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3 $DBDIR4 $DBDIR5 $DBDIR6
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRPROVIDERCONF > $CONF1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+. $CONFFILTER $BACKEND < $SRPROVIDERCONF > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -46,7 +46,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd (pid=$PID) is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -63,7 +63,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to create the context prefix entry in the provider..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDEREDCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -73,8 +73,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting R1 consumer slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $R1SRCONSUMERCONF > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+. $CONFFILTER $BACKEND < $R1SRCONSUMERCONF > $CONF2
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER R1 PID $CONSUMERPID
@@ -86,7 +86,7 @@ sleep 1
 
 echo "Using ldapsearch to check that R1 consumer slapd (pid=$CONSUMERPID) is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -103,8 +103,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting R2 consumer slapd on TCP/IP port $PORT3..."
-. $CONFFILTER $BACKEND $MONITORDB < $R2SRCONSUMERCONF > $CONF3
-$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+. $CONFFILTER $BACKEND < $R2SRCONSUMERCONF > $CONF3
+$SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER R2 PID $CONSUMERPID
@@ -116,7 +116,7 @@ sleep 1
 
 echo "Using ldapsearch to check that R2 consumer slapd (pid=$CONSUMERPID) is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI3 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -133,8 +133,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting P1 consumer slapd on TCP/IP port $PORT4..."
-. $CONFFILTER $BACKEND $MONITORDB < $P1SRCONSUMERCONF > $CONF4
-$SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING > $LOG4 2>&1 &
+. $CONFFILTER $BACKEND < $P1SRCONSUMERCONF > $CONF4
+$SLAPD -f $CONF4 -h $URI4 -d $LVL > $LOG4 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER P1 PID $CONSUMERPID
@@ -146,7 +146,7 @@ sleep 1
 
 echo "Using ldapsearch to check that P1 consumer slapd (pid=$CONSUMERPID) is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT4 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI4 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -163,8 +163,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting P2 consumer slapd on TCP/IP port $PORT5..."
-. $CONFFILTER $BACKEND $MONITORDB < $P2SRCONSUMERCONF > $CONF5
-$SLAPD -f $CONF5 -h $URI5 -d $LVL $TIMING > $LOG5 2>&1 &
+. $CONFFILTER $BACKEND < $P2SRCONSUMERCONF > $CONF5
+$SLAPD -f $CONF5 -h $URI5 -d $LVL > $LOG5 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER P2 PID $CONSUMERPID
@@ -176,7 +176,7 @@ sleep 1
 
 echo "Using ldapsearch to check that P2 consumer slapd (pid=$CONSUMERPID) is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT5 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI5 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -193,8 +193,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting P3 consumer slapd on TCP/IP port $PORT6..."
-. $CONFFILTER $BACKEND $MONITORDB < $P3SRCONSUMERCONF > $CONF6
-$SLAPD -f $CONF6 -h $URI6 -d $LVL $TIMING > $LOG6 2>&1 &
+. $CONFFILTER $BACKEND < $P3SRCONSUMERCONF > $CONF6
+$SLAPD -f $CONF6 -h $URI6 -d $LVL > $LOG6 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER P3 PID $CONSUMERPID
@@ -206,7 +206,7 @@ sleep 1
 
 echo "Using ldapsearch to check that P3 consumer slapd (pid=$CONSUMERPID) is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT6 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI6 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -223,7 +223,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the provider directory..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDEREDNOCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -241,7 +241,7 @@ echo "Using ldapmodify to modify provider directory..."
 # Do some modifications
 #
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example,dc=com
 changetype: modify
@@ -340,7 +340,7 @@ echo "Waiting $SLEEP2 seconds for syncrepl to receive changes..."
 sleep $SLEEP2
 
 echo "Performing modify alone on provider..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD > \
         $TESTOUT 2>&1 << EOMODS
 dn: dc=itsdomain2,dc=example,dc=com
 changetype: modify
@@ -360,7 +360,7 @@ echo "Waiting $SLEEP2 seconds for syncrepl to receive changes..."
 sleep $SLEEP2 
 
 echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' '*' entryCSN > $PROVIDEROUT 2>&1
 RC=$?
 
@@ -371,7 +371,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the R1 consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' '*' entryCSN > $SERVER2OUT 2>&1
 RC=$?
 
@@ -382,7 +382,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the R2 consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT3 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI3 \
 	'(objectClass=*)' '*' entryCSN > $SERVER3OUT 2>&1
 RC=$?
 
@@ -393,7 +393,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the P1 consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT4 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI4 \
 	'(objectClass=*)' '*' entryCSN > $SERVER4OUT 2>&1
 RC=$?
 
@@ -404,7 +404,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the P2 consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT5 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI5 \
 	'(objectClass=*)' '*' entryCSN > $SERVER5OUT 2>&1
 RC=$?
 
@@ -415,7 +415,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the P3 consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT6 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI6 \
 	'(objectClass=*)' '*' entryCSN > $SERVER6OUT 2>&1
 RC=$?
 

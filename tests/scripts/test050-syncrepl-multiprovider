@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2021 The OpenLDAP Foundation.
+## Copyright 1998-2022 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -85,7 +85,7 @@ done
 
 echo "Starting server 1 on TCP/IP port $PORT1..."
 cd ${XDIR}1
-$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -169,8 +169,8 @@ echo "  retry=\"3 10 300 5\" timeout=3" >> $TMP
 n=`expr $n + 1`
 done
 echo "-" >> $TMP
-echo "add: olcMirrorMode" >> $TMP
-echo "olcMirrorMode: TRUE" >> $TMP
+echo "add: olcMultiProvider" >> $TMP
+echo "olcMultiProvider: TRUE" >> $TMP
 $LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF < $TMP >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -186,7 +186,7 @@ URI="ldap://${LOCALHOST}:$PORT/"
 LOG=$TESTDIR/slapd.$n.log
 echo "Starting server $n on TCP/IP port $PORT..."
 cd ${XDIR}$n
-$SLAPD -F ./slapd.d -h $URI -d $LVL $TIMING > $LOG 2>&1 &
+$SLAPD -F ./slapd.d -h $URI -d $LVL > $LOG 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID
@@ -232,8 +232,8 @@ j=`expr $j + 1`
 done
 cat <<EOF >> $TMP
 -
-add: olcMirrorMode
-olcMirrorMode: TRUE
+add: olcMultiProvider
+olcMultiProvider: TRUE
 EOF
 $LDAPMODIFY -D cn=config -H $URI -y $CONFIGPWF < $TMP >>$TESTOUT 2>&1
 n=`expr $n + 1`
@@ -296,7 +296,7 @@ n=`expr $n + 1`
 done
 
 cat <<EOF >> $TMP
-olcMirrorMode: TRUE
+olcMultiProvider: TRUE
 
 dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
 objectClass: olcOverlayConfig
@@ -642,7 +642,7 @@ KILLPIDS=""
 echo "Starting server 1 on TCP/IP port $PORT1..."
 echo "======================= RESTART =======================" >> $LOG1
 cd ${XDIR}1
-$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL >> $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -679,7 +679,7 @@ LOG=$TESTDIR/slapd.$n.log
 echo "Starting server $n on TCP/IP port $PORT..."
 cd ${XDIR}$n
 echo "======================= RESTART =======================" >> $LOG
-$SLAPD -F ./slapd.d -h $URI -d $LVL $TIMING >> $LOG 2>&1 &
+$SLAPD -F ./slapd.d -h $URI -d $LVL >> $LOG 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

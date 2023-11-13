@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2021 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2022 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Introduction to OpenLDAP Directory Services
 
@@ -57,7 +57,7 @@ support browsing and searching.
 
 While some consider the Internet {{TERM[expand]DNS}} (DNS) is an
 example of a globally distributed directory service, DNS is not
-browseable nor searchable.  It is more properly described as a
+browsable nor searchable.  It is more properly described as a
 globally distributed {{lookup}} service.
 
 
@@ -346,7 +346,7 @@ really have a "directory".
 
 Existing commercial LDAP server implementations that use a relational database 
 are either from the first kind or the third. I don't know of any implementation 
-that uses a relational database to do inefficiently what BDB does efficiently.
+that uses a relational database to do inefficiently what LMDB does efficiently.
 For those who are interested in "third way" (exposing EXISTING data from RDBMS 
 as LDAP tree, having some limitations compared to classic LDAP model, but making 
 it possible to interoperate between LDAP and SQL applications):
@@ -383,8 +383,8 @@ SASL}} software which supports a number of mechanisms including
 {{B:{{TERM[expand]TLS}}}}: {{slapd}} supports certificate-based
 authentication and data security (integrity and confidentiality)
 services through the use of TLS (or SSL).  {{slapd}}'s TLS
-implementation can utilize {{PRD:OpenSSL}}, {{PRD:GnuTLS}},
-or {{PRD:MozNSS}} software.
+implementation can utilize {{PRD:OpenSSL}} or {{PRD:GnuTLS}},
+software.
 
 {{B:Topology control}}: {{slapd}} can be configured to restrict
 access at the socket layer based upon network topology information.
@@ -403,15 +403,8 @@ tags.
 {{B:Choice of database backends}}: {{slapd}} comes with a variety
 of different database backends you can choose from. They include
 {{TERM:MDB}}, a hierarchical high-performance transactional database backend;
-{{TERM:BDB}}, a high-performance transactional database backend (deprecated);
-{{TERM:HDB}}, a hierarchical high-performance transactional
-backend (deprecated); {{SHELL}}, a backend interface to arbitrary shell scripts;
 and PASSWD, a simple backend interface to the {{passwd}}(5) file.
-The MDB backend utilizes {{TERM:LMDB}}, a high performance replacement
-for {{ORG[expand]Oracle}}'s Berkeley DB.
-The BDB and HDB backends utilize {{ORG[expand]Oracle}} Berkeley DB. These
-backends have been deprecated as LMDB provides significantly higher read
-and write throughput and data reliability.
+The MDB backend utilizes {{TERM:LMDB}}.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to
 serve multiple databases at the same time. This means that a single
@@ -428,7 +421,7 @@ well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules which extend {{slapd}} in numerous ways.  Also,
 a number of {{programmable database}} modules are provided.  These
 allow you to expose external data sources to {{slapd}} using popular
-programming languages ({{PRD:Perl}}, {{shell}}, and {{TERM:SQL}}).
+programming languages ({{PRD:Perl}}, and {{TERM:SQL}}).
 
 {{B:Threads}}: {{slapd}} is threaded for high performance.  A single
 multi-threaded {{slapd}} process handles all incoming requests using
@@ -456,4 +449,17 @@ everything you'd ever want to change.  Configuration options have
 reasonable defaults, making your job much easier. Configuration can
 also be performed dynamically using LDAP itself, which greatly
 improves manageability.
+
+H2: What is lloadd and what can it do?
+
+{{lloadd}}(8) is a daemon that provides an LDAPv3 load balancer service.
+It is responsible for distributing requests across a set of {{slapd}}
+instances.
+
+See the {{SECT:Load Balancing with lloadd}} chapter for information
+about how to configure and run {{lloadd}}(8).
+
+Alternatively, the load balancer can run as a module embedded inside of
+{{slapd}}.  This is also described in the {{SECT:Load Balancing with lloadd}} chapter.
+
 
