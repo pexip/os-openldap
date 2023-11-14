@@ -1,8 +1,8 @@
-diff --git a/libraries/libldap/tls_o.c b/libraries/libldap/tls_o.c
-index b0277df..361da1d 100644
---- a/libraries/libldap/tls_o.c
-+++ b/libraries/libldap/tls_o.c
-@@ -156,6 +156,88 @@ BIO_meth_free( BIO_METHOD *meth )
+Index: os-openldap/libraries/libldap/tls_o.c
+===================================================================
+--- os-openldap.orig/libraries/libldap/tls_o.c
++++ os-openldap/libraries/libldap/tls_o.c
+@@ -164,6 +164,88 @@ BIO_meth_free( BIO_METHOD *meth )
  
  #endif /* OpenSSL 1.1 */
  
@@ -89,9 +89,9 @@ index b0277df..361da1d 100644
 +#endif /* OpenSSL 3 */
 +
  static STACK_OF(X509_NAME) *
- tlso_ca_list( char * bundle, char * dir )
+ tlso_ca_list( char * bundle, char * dir, X509 *cert )
  {
-@@ -375,28 +457,40 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
+@@ -525,28 +607,40 @@ tlso_ctx_init( struct ldapoptions *lo, s
  	}
  
  	if ( is_server && lo->ldo_tls_dhfile ) {
@@ -110,18 +110,18 @@ index b0277df..361da1d 100644
 +			return -1;
 +		}
  		if (( bio=BIO_new_file( lt->lt_dhfile,"r" )) == NULL ) {
- 			Debug( LDAP_DEBUG_ANY,
+ 			Debug1( LDAP_DEBUG_ANY,
  				"TLS: could not use DH parameters file `%s'.\n",
- 				lo->ldo_tls_dhfile,0,0);
+ 				lo->ldo_tls_dhfile );
  			tlso_report_error();
 +			OSSL_DECODER_CTX_free( dctx );
  			return -1;
  		}
 -		if (!( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
 +		if (!( OSSL_DECODER_from_bio( dctx, bio ))) {
- 			Debug( LDAP_DEBUG_ANY,
+ 			Debug1( LDAP_DEBUG_ANY,
  				"TLS: could not read DH parameters file `%s'.\n",
- 				lo->ldo_tls_dhfile,0,0);
+ 				lo->ldo_tls_dhfile );
  			tlso_report_error();
  			BIO_free( bio );
 +			OSSL_DECODER_CTX_free( dctx );
@@ -136,7 +136,7 @@ index b0277df..361da1d 100644
  	}
  
  	if ( lo->ldo_tls_ecname ) {
-@@ -581,7 +676,11 @@ tlso_get_cert( SSL *s )
+@@ -719,7 +813,11 @@ tlso_get_cert( SSL *s )
  	if (SSL_get_verify_result(s)) {
  		return NULL;
  	}
@@ -148,7 +148,7 @@ index b0277df..361da1d 100644
  }
  
  static int
-@@ -1156,7 +1255,11 @@ tlso_report_error( void )
+@@ -1555,7 +1653,11 @@ tlso_report_error( void )
  	const char *file;
  	int line;
  
