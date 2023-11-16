@@ -1,3 +1,9 @@
+openldap (2.5.13+dfsg-5pexip1) pexip-bookworm; urgency=medium
+
+  * Initial bookworm build
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Thu, 16 Nov 2023 10:17:04 +0000
+
 openldap (2.5.13+dfsg-5) unstable; urgency=medium
 
   * Fix sha2-contrib autopkgtest failure. Call slappasswd using its full path.
