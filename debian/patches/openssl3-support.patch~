@@ -148,47 +148,7 @@ Index: os-openldap/libraries/libldap/tls_o.c
  }
  
  static int
-@@ -1010,8 +1108,13 @@ tlso_session_endpoint( tls_session *sess
- 
- 	if ( is_server )
- 		cert = SSL_get_certificate( s );
--	else
--		cert = SSL_get_peer_certificate( s );
-+	else {
-+#if OPENSSL_VERSION_NUMBER < 0x30000000L
-+		cert = SSL_get_peer_certificate(s);
-+#else
-+		cert = SSL_get1_peer_certificate(s);
-+#endif
-+	}
- 
- 	if ( cert == NULL )
- 		return 0;
-@@ -1066,7 +1169,11 @@ tlso_session_peercert( tls_session *sess
- {
- 	tlso_session *s = (tlso_session *)sess;
- 	int ret = -1;
-+#if OPENSSL_VERSION_NUMBER < 0x30000000L
- 	X509 *x = SSL_get_peer_certificate(s);
-+#else
-+	X509 *x = SSL_get1_peer_certificate(s);
-+#endif
- 	if ( x ) {
- 		der->bv_len = i2d_X509(x, NULL);
- 		der->bv_val = LDAP_MALLOC(der->bv_len);
-@@ -1087,7 +1194,11 @@ tlso_session_pinning( LDAP *ld, tls_sess
- 	unsigned char *tmp, digest[EVP_MAX_MD_SIZE];
- 	struct berval key,
- 				  keyhash = { sizeof(digest), (char *) digest };
-+#if OPENSSL_VERSION_NUMBER < 0x30000000L
- 	X509 *cert = SSL_get_peer_certificate(s);
-+#else
-+	X509 *cert = SSL_get1_peer_certificate(s);
-+#endif
- 	int len, rc = LDAP_SUCCESS;
- 
- 	if ( !cert )
-@@ -1555,7 +1666,11 @@ tlso_report_error( void )
+@@ -1555,7 +1653,11 @@ tlso_report_error( void )
  	const char *file;
  	int line;
  
