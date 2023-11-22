@@ -103,7 +103,7 @@ Index: os-openldap/libraries/libldap/tls_o.c
 +		if (( dctx=OSSL_DECODER_CTX_new_for_pkey( &dh, "PEM", NULL, NULL,
 +				OSSL_KEYMGMT_SELECT_ALL_PARAMETERS, NULL, NULL ))
 +				== NULL ) {
-+			Debug( LDAP_DEBUG_ANY,
++			Debug1( LDAP_DEBUG_ANY,
 +				"TLS: could not use DH parameters file `%s'.\n",
 +				lo->ldo_tls_dhfile,0,0);
 +			tlso_report_error();
