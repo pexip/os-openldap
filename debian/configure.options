@@ -135,6 +135,7 @@
 #  --enable-homedir        Home Directory Management overlay no|yes|mod [no]
 #  --enable-memberof       Reverse Group Membership overlay no|yes|mod [no]
 #  --enable-otp            OTP 2-factor authentication overlay no|yes|mod [no]
+--disable-otp
 #  --enable-ppolicy        Password Policy overlay no|yes|mod [no]
 #  --enable-proxycache     Proxy Cache overlay no|yes|mod [no]
 #  --enable-refint         Referential Integrity overlay no|yes|mod [no]
