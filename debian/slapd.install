@@ -30,8 +30,6 @@ usr/lib/ldap/homedir*.so*
 usr/lib/ldap/homedir.la
 usr/lib/ldap/memberof*.so*
 usr/lib/ldap/memberof.la
-usr/lib/ldap/otp*.so*
-usr/lib/ldap/otp.la
 usr/lib/ldap/pcache*.so*
 usr/lib/ldap/pcache.la
 usr/lib/ldap/ppolicy*.so*
