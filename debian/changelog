@@ -1,3 +1,9 @@
+openldap (2.5.13+dfsg-5+pexip24u4) pexip-bookworm; urgency=medium
+
+  * New versioning scheme
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Thu, 01 Feb 2024 16:15:01 +0000
+
 openldap (2.5.13+dfsg-5pexip3) pexip-bookworm; urgency=medium
 
   * Rebuild for override changes
