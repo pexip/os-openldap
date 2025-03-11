@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * All rights reserved.
  *
@@ -82,7 +82,7 @@ usage( void )
 
 
 const char options[] = "r"
-	"cd:D:e:f:h:H:IMnNO:o:p:P:QR:U:vVw:WxX:y:Y:z:Z";
+	"cd:D:e:f:H:IMnNO:o:P:QR:U:vVw:WxX:y:Y:z:Z";
 
 int
 handle_private_option( int i )
@@ -279,8 +279,13 @@ retry:;
 	}
 
 	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, &ctrls, 1 );
+	if( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "%s: ldap_parse_result: %s (%d)\n",
+			prog, ldap_err2string( rc ), rc );
+		return rc;
+	}
 
-	switch ( rc ) {
+	switch ( code ) {
 	case LDAP_SUCCESS:
 		break;
 
@@ -292,9 +297,7 @@ retry:;
 		/* fallthru */
 
 	default:
-		fprintf( stderr, "%s: ldap_parse_result: %s (%d)\n",
-			prog, ldap_err2string( rc ), rc );
-		return rc;
+		break;
 	}
 
 	if( code != LDAP_SUCCESS ) {
@@ -386,7 +389,9 @@ more:;
 		break;
 	default:
 		tool_perror( "ldap_search", srch_rc, NULL, NULL, NULL, NULL );
-		return( srch_rc );
+		rc = srch_rc;
+		srch_rc = 0;
+		goto leave;
 	}
 
 	entries = ldap_count_entries( ld, res );
@@ -402,15 +407,14 @@ more:;
 			if( dn == NULL ) {
 				ldap_get_option( ld, LDAP_OPT_RESULT_CODE, &rc );
 				tool_perror( "ldap_prune", rc, NULL, NULL, NULL, NULL );
-				ber_memfree( dn );
-				return rc;
+				goto leave;
 			}
 
 			rc = deletechildren( ld, dn, 0 );
 			if ( rc != LDAP_SUCCESS ) {
 				tool_perror( "ldap_prune", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
-				return rc;
+				goto leave;
 			}
 
 			if ( verbose ) {
@@ -421,7 +425,7 @@ more:;
 			if ( rc != LDAP_SUCCESS ) {
 				tool_perror( "ldap_delete", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
-				return rc;
+				goto leave;
 
 			}
 			
@@ -433,6 +437,7 @@ more:;
 		}
 	}
 
+leave:
 	ldap_msgfree( res );
 
 	if ( srch_rc == LDAP_SIZELIMIT_EXCEEDED ) {

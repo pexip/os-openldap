@@ -3,7 +3,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2016-2022 The OpenLDAP Foundation.
+ * Copyright 2016-2024 The OpenLDAP Foundation.
  * Portions Copyright 2016 Symas Corporation.
  * All rights reserved.
  *
@@ -141,7 +141,7 @@ void asyncmeta_free_op(Operation *op)
 		Debug( LDAP_DEBUG_TRACE, "==> asyncmeta_free_op : other message type" );
 	}
 
-	connection_op_finish( op );
+	connection_op_finish( op, 1 );
 	slap_op_free( op, op->o_threadctx );
 }
 

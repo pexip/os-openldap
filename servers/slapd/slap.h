@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -158,6 +158,9 @@ LDAP_BEGIN_DECL
 
 /* pseudo error code indicating async operation */
 #define SLAPD_ASYNCOP (-1027)
+
+/* pseudo error code to suppress frontend response */
+#define SLAPD_NO_REPLY (-1028)
 
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
@@ -1319,12 +1322,15 @@ typedef struct AuthorizationInformation {
 	slap_ssf_t	sai_sasl_ssf;		/* SASL SSF */
 } AuthorizationInformation;
 
+typedef struct config_args_s ConfigArgs;	/* slap-config.h */
+typedef struct config_reply_s ConfigReply;	/* slap-config.h */
+
 #ifdef SLAP_DYNACL
 
 /*
  * "dynamic" ACL infrastructure (for ACIs and more)
  */
-typedef int (slap_dynacl_parse) LDAP_P(( const char *fname, int lineno,
+typedef int (slap_dynacl_parse) LDAP_P(( ConfigArgs *ca,
 	const char *opts, slap_style_t, const char *, void **privp ));
 typedef int (slap_dynacl_unparse) LDAP_P(( void *priv, struct berval *bv ));
 typedef int (slap_dynacl_mask) LDAP_P((
@@ -1604,6 +1610,7 @@ LDAP_SLAPD_V (int) slapMode;
 #define	SLAP_TOOL_QUICK		0x0800
 #define SLAP_TOOL_NO_SCHEMA_CHECK	0x1000
 #define SLAP_TOOL_VALUE_CHECK	0x2000
+#define SLAP_TOOL_DRYRUN	0x4000
 
 #define SLAP_SERVER_RUNNING	0x8000
 
@@ -1993,6 +2000,8 @@ struct BackendDB {
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
 	AttributeName	*be_extra_anlist;	/* attributes that need to be added to search requests (ITS#6513) */
 
+	unsigned int be_lastbind_precision;
+
 	/* Consumer Information */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
@@ -2019,7 +2028,6 @@ typedef int (BI_config) LDAP_P((BackendInfo *bi,
 	const char *fname, int lineno,
 	int argc, char **argv));
 
-typedef struct config_reply_s ConfigReply; /* slap-config.h */
 typedef int (BI_db_func) LDAP_P((Backend *bd, ConfigReply *cr));
 typedef BI_db_func BI_db_init;
 typedef BI_db_func BI_db_open;
@@ -2071,6 +2079,8 @@ typedef struct req_modrdn_s {
 	struct berval rs_nnewrdn;
 	struct berval *rs_newSup;
 	struct berval *rs_nnewSup;
+	struct berval rs_newDN;
+	struct berval rs_nnewDN;
 } req_modrdn_s;
 
 typedef struct req_add_s {
@@ -2693,6 +2703,8 @@ struct Operation {
 #define orr_nnewrdn oq_modrdn.rs_nnewrdn
 #define orr_newSup oq_modrdn.rs_newSup
 #define orr_nnewSup oq_modrdn.rs_nnewSup
+#define orr_newDN oq_modrdn.rs_newDN
+#define orr_nnewDN oq_modrdn.rs_nnewDN
 
 #define orc_ava oq_compare.rs_ava
 

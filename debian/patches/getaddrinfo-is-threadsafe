@@ -13,9 +13,11 @@ Not suitable for forwarding upstream; might be made suitable by adding a
 configure-time check for glibc and disabling the mutex only on known
 thread-safe implementations.
 
---- a/libraries/libldap/os-ip.c
-+++ b/libraries/libldap/os-ip.c
-@@ -591,13 +591,7 @@
+Index: openldap/libraries/libldap/os-ip.c
+===================================================================
+--- openldap.orig/libraries/libldap/os-ip.c	2022-05-20 17:36:12.989246703 -0400
++++ openldap/libraries/libldap/os-ip.c	2022-05-20 17:36:12.989246703 -0400
+@@ -645,13 +645,7 @@
  	hints.ai_socktype = socktype;
  	snprintf(serv, sizeof serv, "%d", port );
  
@@ -29,9 +31,11 @@ thread-safe implementations.
  	if ( err != 0 ) {
  		Debug1(LDAP_DEBUG_TRACE,
  			"ldap_connect_to_host: getaddrinfo failed: %s\n",
---- a/libraries/libldap/util-int.c
-+++ b/libraries/libldap/util-int.c
-@@ -533,9 +533,7 @@
+Index: openldap/libraries/libldap/util-int.c
+===================================================================
+--- openldap.orig/libraries/libldap/util-int.c	2022-05-20 17:36:12.989246703 -0400
++++ openldap/libraries/libldap/util-int.c	2022-05-20 17:36:12.989246703 -0400
+@@ -559,9 +559,7 @@
  	int rc;
  #if defined( HAVE_GETNAMEINFO )
  

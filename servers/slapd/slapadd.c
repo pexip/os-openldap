@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -172,7 +172,8 @@ again:
 				"database #%d (%s) not configured to hold \"%s\"",
 				progname, erec->lineno,
 				dbnum,
-				be->be_suffix[0].bv_val,
+				( be->be_suffix && be->be_suffix[0].bv_val ) ?
+					be->be_suffix[0].bv_val : "(null)",
 				e->e_dn );
 			if ( bd ) {
 				BackendDB *bdtmp;
@@ -400,7 +401,7 @@ slapadd( int argc, char **argv )
 		SLAP_DBFLAGS(be) &= ~(SLAP_DBFLAG_NO_SCHEMA_CHECK);
 	}
 
-	if( !dryrun && be->be_entry_open( be, 1 ) != 0 ) {
+	if( be->be_entry_open && be->be_entry_open( be, 1 ) != 0 ) {
 		fprintf( stderr, "%s: could not open database.\n",
 			progname );
 		exit( EXIT_FAILURE );
@@ -442,7 +443,7 @@ slapadd( int argc, char **argv )
 			break;
 		}
 
-		if ( !dryrun ) {
+		if ( be->be_entry_put ) {
 			/*
 			 * Initialize text buffer
 			 */
@@ -504,7 +505,7 @@ slapadd( int argc, char **argv )
 
 	ch_free( buf );
 
-	if ( !dryrun ) {
+	if ( be->be_entry_close ) {
 		if ( enable_meter ) {
 			fprintf( stderr, "Closing DB..." );
 		}

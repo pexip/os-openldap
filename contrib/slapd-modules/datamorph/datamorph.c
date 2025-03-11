@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2016-2022 The OpenLDAP Foundation.
+ * Copyright 2016-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1194,7 +1194,7 @@ static ConfigTable datamorph_cfg[] = {
 	{ "datamorph_attribute", "attr", 2, 2, 0,
 		ARG_STRING|ARG_QUOTE|ARG_MAGIC,
 		datamorph_set_attribute,
-		"( OLcfgCtAt:7.1 NAME 'olcDatamorphAttribute' "
+		"( OLcfgCtAt:8.1 NAME 'olcDatamorphAttribute' "
 			"DESC 'Attribute to transform' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
@@ -1204,7 +1204,7 @@ static ConfigTable datamorph_cfg[] = {
 	{ "datamorph_size", "<1|2|4|8>", 2, 2, 0,
 		ARG_INT|ARG_MAGIC|DATAMORPH_INT_SIZE,
 		datamorph_set_size,
-		"( OLcfgCtAt:7.2 NAME 'olcDatamorphIntegerBytes' "
+		"( OLcfgCtAt:8.2 NAME 'olcDatamorphIntegerBytes' "
 			"DESC 'Integer size in bytes' "
 			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger "
@@ -1214,7 +1214,7 @@ static ConfigTable datamorph_cfg[] = {
 	{ "datamorph_signed", "TRUE|FALSE", 2, 2, 0,
 		ARG_ON_OFF|ARG_MAGIC|DATAMORPH_INT_SIGNED,
 		datamorph_set_signed,
-		"( OLcfgCtAt:7.3 NAME 'olcDatamorphIntegerSigned' "
+		"( OLcfgCtAt:8.3 NAME 'olcDatamorphIntegerSigned' "
 			"DESC 'Whether integers maintain sign' "
 			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
@@ -1224,7 +1224,7 @@ static ConfigTable datamorph_cfg[] = {
 	{ "datamorph_lower_bound", "int", 2, 2, 0,
 		ARG_BERVAL|ARG_MAGIC|DATAMORPH_INT_LOWER,
 		datamorph_set_bounds,
-		"( OLcfgCtAt:7.4 NAME 'olcDatamorphIntegerLowerBound' "
+		"( OLcfgCtAt:8.4 NAME 'olcDatamorphIntegerLowerBound' "
 			"DESC 'Lowest valid value for the attribute' "
 			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger "
@@ -1234,7 +1234,7 @@ static ConfigTable datamorph_cfg[] = {
 	{ "datamorph_upper_bound", "int", 2, 2, 0,
 		ARG_BERVAL|ARG_MAGIC|DATAMORPH_INT_UPPER,
 		datamorph_set_bounds,
-		"( OLcfgCtAt:7.5 NAME 'olcDatamorphIntegerUpperBound' "
+		"( OLcfgCtAt:8.5 NAME 'olcDatamorphIntegerUpperBound' "
 			"DESC 'Highest valid value for the attribute' "
 			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger "
@@ -1246,7 +1246,7 @@ static ConfigTable datamorph_cfg[] = {
 	{ "", NULL, 2, 2, 0,
 		ARG_INT|ARG_MAGIC,
 		datamorph_set_index,
-		"( OLcfgCtAt:7.6 NAME 'olcDatamorphIndex' "
+		"( OLcfgCtAt:8.6 NAME 'olcDatamorphIndex' "
 			"DESC 'Internal DB value' "
 			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger "
@@ -1256,7 +1256,7 @@ static ConfigTable datamorph_cfg[] = {
 	{ "", NULL, 2, 2, 0,
 		ARG_BERVAL|ARG_QUOTE|ARG_MAGIC,
 		datamorph_set_value,
-		"( OLcfgCtAt:7.7 NAME 'olcDatamorphValue' "
+		"( OLcfgCtAt:8.7 NAME 'olcDatamorphValue' "
 			"DESC 'Wire value' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString "
@@ -1282,25 +1282,25 @@ static ConfigTable datamorph_cfg[] = {
 };
 
 static ConfigOCs datamorph_ocs[] = {
-	{ "( OLcfgCtOc:7.1 "
+	{ "( OLcfgCtOc:8.1 "
 		"NAME 'olcDatamorphConfig' "
 		"DESC 'Datamorph overlay configuration' "
 		"SUP olcOverlayConfig )",
 		Cft_Overlay, datamorph_cfg, NULL, datamorph_cfadd },
-	{ "( OLcfgCtOc:7.2 "
+	{ "( OLcfgCtOc:8.2 "
 		"NAME 'olcTransformation' "
 		"DESC 'Transformation configuration' "
 		"MUST ( olcDatamorphAttribute ) "
 		"SUP top "
 		"ABSTRACT )",
 		Cft_Misc, datamorph_cfg, NULL },
-	{ "( OLcfgCtOc:7.3 "
+	{ "( OLcfgCtOc:8.3 "
 		"NAME 'olcDatamorphEnum' "
 		"DESC 'Configuration for an enumerated attribute' "
 		"SUP olcTransformation "
 		"STRUCTURAL )",
 		Cft_Misc, datamorph_cfg, datamorph_ldadd_enum },
-	{ "( OLcfgCtOc:7.4 "
+	{ "( OLcfgCtOc:8.4 "
 		"NAME 'olcDatamorphInteger' "
 		"DESC 'Configuration for a compact integer attribute' "
 		"MUST ( olcDatamorphIntegerBytes ) "
@@ -1311,7 +1311,7 @@ static ConfigOCs datamorph_ocs[] = {
 		"SUP olcTransformation "
 		"STRUCTURAL )",
 		Cft_Misc, datamorph_cfg, datamorph_ldadd_interval },
-	{ "( OLcfgCtOc:7.5 "
+	{ "( OLcfgCtOc:8.5 "
 		"NAME 'olcDatamorphEnumValue' "
 		"DESC 'Configuration for an enumerated attribute' "
 		"MUST ( olcDatamorphIndex $ "
@@ -1399,9 +1399,6 @@ datamorph_set_attribute( ConfigArgs *ca )
 	}
 
 done:
-	if ( rc ) {
-		ca->reply.err = rc;
-	}
 	return rc;
 }
 
@@ -1432,8 +1429,7 @@ datamorph_set_size( ConfigArgs *ca )
 		snprintf( ca->cr_msg, sizeof(ca->cr_msg), "invalid size %d",
 				ca->value_int );
 		Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
-		ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-		return ca->reply.err;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 	info->ti_int.size = ca->value_int;
 
@@ -1544,8 +1540,7 @@ datamorph_set_bounds( ConfigArgs *ca )
 				"failed to parse '%s' as integer",
 				ca->value_bv.bv_val );
 		Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
-		ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-		return ca->reply.err;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 	ch_free( ca->value_bv.bv_val );
 
@@ -1611,8 +1606,7 @@ datamorph_set_bounds( ConfigArgs *ca )
 			snprintf( ca->cr_msg, sizeof(ca->cr_msg),
 					"datamorph_size has to be set first!" );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
-			ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-			return ca->reply.err;
+			return LDAP_CONSTRAINT_VIOLATION;
 	}
 	if ( info->ti_int.flags & DATAMORPH_FLAG_SIGNED ) {
 		bound->i = signed_bound;
@@ -1645,8 +1639,7 @@ datamorph_set_value( ConfigArgs *ca )
 		ber_len_t len;
 		s = memchr( s, '}', ca->value_bv.bv_len );
 		if ( !s ) {
-			ca->reply.err = LDAP_UNDEFINED_TYPE;
-			return ca->reply.err;
+			return LDAP_UNDEFINED_TYPE;
 		}
 		s += 1;
 
@@ -1675,14 +1668,12 @@ datamorph_set_index( ConfigArgs *ca )
 	}
 
 	if ( ca->value_int < 0 || ca->value_int >= 256 ) {
-		ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-		return ca->reply.err;
+		return LDAP_CONSTRAINT_VIOLATION;
 	} else if ( !BER_BVISNULL( &from_db[ca->value_int] ) ) {
 		snprintf( ca->cr_msg, sizeof(ca->cr_msg), "duplicate index %d",
 				ca->value_int );
 		Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
-		ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-		return ca->reply.err;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 	mapping->db_value = ca->value_int;
 	from_db[ca->value_int] = mapping->wire_value;
@@ -1718,8 +1709,7 @@ datamorph_add_transformation( ConfigArgs *ca )
 		snprintf( ca->cr_msg, sizeof(ca->cr_msg),
 				"unknown transformation type '%s'", ca->argv[1] );
 		Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
-		ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-		return ca->reply.err;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
 	ca->value_string = strdup( ca->argv[2] );
@@ -1770,9 +1760,6 @@ done:
 		rc = ldap_avl_insert( &info->ti_enum.to_db, mapping,
 				transformation_mapping_cmp, ldap_avl_dup_error );
 	}
-	if ( rc ) {
-		ca->reply.err = rc;
-	}
 
 	return rc;
 }
@@ -1785,15 +1772,13 @@ datamorph_ldadd_info_cleanup( ConfigArgs *ca )
 	transformation_info *info = ca->ca_private;
 
 	if ( ca->reply.err != LDAP_SUCCESS ) {
-		/* Not reached since cleanup is only called on success */
-fail:
 		ch_free( info );
 		return LDAP_SUCCESS;
 	}
 
 	if ( ldap_avl_insert( &ov->transformations, info, transformation_info_cmp,
 			ldap_avl_dup_error ) ) {
-		goto fail;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 	return LDAP_SUCCESS;
 }
@@ -1843,15 +1828,15 @@ datamorph_ldadd_mapping_cleanup( ConfigArgs *ca )
 	transformation_info *info = mapping->transformation;
 
 	if ( ca->reply.err != LDAP_SUCCESS ) {
-		/* Not reached since cleanup is only called on success */
-fail:
-		datamorph_mapping_free( mapping );
+		if ( mapping ) {
+			datamorph_mapping_free( mapping );
+		}
 		return LDAP_SUCCESS;
 	}
 
 	if ( ldap_avl_insert( &info->ti_enum.to_db, mapping, transformation_mapping_cmp,
 			ldap_avl_dup_error ) ) {
-		goto fail;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 	info->ti_enum.from_db[mapping->db_value] = mapping->wire_value;
 

@@ -1,3 +1,374 @@
+openldap (2.6.9+dfsg-2) unstable; urgency=medium
+
+  [ Adriano Rafael Gomes ]
+  * Update Brazilian Portuguese debconf templates translation
+    (Closes: #1093449)
+
+  [ Ryan Tandy ]
+  * d/salsa-ci.yml: Switch to including just recipes/debian.yml.
+  * Fix FTCBFS: use AC_CHECK_TOOLS to detect host-prefixed tools. Thanks to
+    Helmut Grohne for the patch. (Closes: #1094386)
+  * d/rules: Add answers for native-only configure checks when cross-building.
+    Thanks to Helmut Grohne for his input.
+  * d/salsa-ci.yml: Enable cross-build test job.
+  * d/control: Annotate slapd's test dependencies with <!pkg.openldap.noslapd>
+    in addition to <!nocheck>.
+  * Delete obsolete manual testing scripts:
+    d/tests/{check_upgradepath,create_account,hammer_slapd}.
+  * d/rules: Stop including /usr/share/dpkg/buildtools.mk; no longer needed.
+  * d/control: Update Standards-Version to 4.7.2. No changes needed.
+
+ -- Ryan Tandy <ryan@nardis.ca>  Tue, 11 Mar 2025 16:27:52 -0700
+
+openldap (2.6.9+dfsg-1) unstable; urgency=medium
+
+  * Upload to unstable.
+  * d/slapd.preinst: Back up config as LDIF before transitioning to OpenSSL.
+  * d/NEWS, d/slapd.README.Debian:
+    - Announce the switch to OpenSSL.
+    - Document behaviour and config settings affected by the change.
+  * d/control: Declare Standards-Version: 4.7.0.
+  * d/slapd.service: Delete After=syslog.target. Fixes a Lintian warning
+    (systemd-service-file-refers-to-obsolete-target).
+  * Disable flaky tests test063-delta-multiprovider and
+    test069-delta-multiprovider-starttls. Mitigates #1010608.
+  * d/rules: Delete override_dh_auto_build target, so that -indep/-arch are
+    actually used. See #1014334.
+  * d/slapd.init:
+    - Fix status_of_proc pidfile argument.
+    - Fix olcPidFile regexp.
+  * d/control: Remove inactive team members from Uploaders. Thanks to Torsten
+    and Steve for their many past contributions.
+  * d/gbp.conf: Return to master branch.
+
+ -- Ryan Tandy <ryan@nardis.ca>  Tue, 14 Jan 2025 18:30:51 -0800
+
+openldap (2.6.9+dfsg-1~exp2) experimental; urgency=medium
+
+  [ Ryan Tandy ]
+  * Change TLS library from GnuTLS to OpenSSL.
+    - d/control: Replace Build-Depends: libgnutls28-dev, nettle-dev with
+      libssl-dev.
+    - d/configure.options: Configure --with-tls=openssl.
+    - d/p/contrib-makefiles: Drop changes to pbkdf2 and smbk5pwd to use
+      nettle.
+    - d/p/add-tlscacert-option-to-ldap-conf: Drop patch since the OpenSSL
+      backend activates the default CAs automatically.
+    - d/p/ldap-conf-tls-cacertdir: Drop patch since GnuTLS caveats are no
+      longer applicable.
+    - d/slapd.README.Debian: Drop GnuTLS caveat.
+
+  [ Michael Tokarev ]
+  * d/control: remove very old (before buster) versioned depends/conflicts
+  * d/libldap2.README.Debian: remove: umounting /usr is not very interesting
+    in 2025 (see also #182536)
+  * remove ldiftopasswd script (it is a rather dangerous example to carry on)
+  * d/slapd.scripts-common,d/debian/slapd.postinst: do not create
+    /var/run/slapd (created in the startup script)
+  * d/slapd.init: stop providing /var/run/slapd/ldapi symlink for compatibility
+    with openldap 2.1
+  * d/slapd.init: simplify it significantly
+  * d/configure-options: enable systemd support (Closes: #1039299 #877512)
+  * d/slapd.default, d/slapd.init: do not use "export" keyword in the default
+    file (so it is processed by systemd), but export KRB5_KTNAME in init if set
+  * d/rules: fix $? usage in clean target
+  * d/rules: stop overriding dh_missing --fail-missing: it is the default
+    in dh-compat 13+
+  * d/rules: only do actual work in arch-dependent build
+  * d/control: add myself to Uploaders
+  * d/rules: add -Wno-unused-const-variable to CFLAGS
+  * d/rules: add LC_ALL=C for the build rule
+  * d/rules: add slapdS.c to blhc ignore-line
+  * d/libldap-dev.links: stop generating it, dh is capable to expand variables
+  * d/rules: fix override_dh_makeshlibs & override_dh_installdeb conditionals
+  * d/slapd.preinst: remove stopping of slapd
+    (#989155 in debhelper has been fixed)
+  * d/rules: build flags & build tools
+  * d/rules: simplify noslapd build-profile expressions by using noslapd var
+  * d/rules: export DEB_MAINTAINER only once
+
+ -- Michael Tokarev <mjt@tls.msk.ru>  Wed, 08 Jan 2025 21:02:34 +0300
+
+openldap (2.6.9+dfsg-1~exp1) experimental; urgency=medium
+
+  [ Carles Pina i Estany ]
+  * Update po-debconf Catalan translation
+
+  [ Ryan Tandy ]
+  * New upstream release.
+    - Update patch 64-bit-time-t-compat.patch.
+    - Drop ITS#10253 patch, applied upstream.
+  * Apply patch from Helmut Grohne to fix cross-building ppm.
+    (Closes: #1079533)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Mon, 23 Dec 2024 12:07:55 -0800
+
+openldap (2.6.8+dfsg-1~exp4) experimental; urgency=medium
+
+  * Add a superficial autopkgtest to ensure back_perl can be loaded.
+  * Fix FTBFS on 32-bit architectures. (ITS#10253) (Closes: #1078822)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Fri, 23 Aug 2024 12:15:12 -0700
+
+openldap (2.6.8+dfsg-1~exp3) experimental; urgency=medium
+
+  [ Helmut Grohne ]
+  * Move systemd drop-in to /usr (DEP17). (Closes: #1073059)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Wed, 12 Jun 2024 20:12:08 -0700
+
+openldap (2.6.8+dfsg-1~exp2) experimental; urgency=medium
+
+  * Ship slapo-nestgroup files in the main slapd binary package.
+    - d/slapd-contrib.{install,manpages}: Move slapo-nestgroup files to...
+    - d/slapd.{install,manpages}: ...here.
+    Thanks to Ryan Tandy for letting me know about this mistake.
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Fri, 31 May 2024 13:30:18 -0400
+
+openldap (2.6.8+dfsg-1~exp1) experimental; urgency=medium
+
+  [ Sergio Durigan Junior ]
+  * d/rules: Anchor DEB_MAINTAINER regexp.
+    This is needed in Ubuntu because of XSBC-Original-Maintainer.
+  * New upstream version 2.6.8+dfsg
+  * d/p/smbk5pwd-implicit-declaration: Remove; fixed upstream.
+  * d/control: B-D on pkgconf instead of pkg-config.
+  * d/p/slapd-contrib.{install,manpages}: Install new slapo-nestgroup overlay.
+
+  [ Steve Langasek ]
+  * debian/patches/64-bit-time-t-compat:
+    handle sizeof(time_t) > sizeof(long) in format strings.
+
+  [ Ryan Tandy ]
+  * Drop transitional package slapd-smbk5pwd. (Closes: #1032742)
+  * Drop dbgsym migration for slapd-dbg.
+    The dbgsym transition was done in buster.
+  * Build and install the ppm module in slapd-contrib. (Closes: #1039740)
+  * Fix implicit declaration of kadm5_s_init_with_password_ctx.
+    (Closes: #1065633)
+  * debian/patches/64-bit-time-t-compat.patch: Refresh patch.
+  * debian/copyright: Exclude doc/guide/admin/guide.html from
+    the upstream source.
+    The tool required to build it from source is not packaged in Debian.
+    Fixes a Lintian error (source-is-missing).
+  * Update Swedish debconf translation.
+    Thanks to Martin Bagge and Anders Jonsson (Closes: #1056955)
+  * debian/salsa-ci.yml: Enable Salsa CI pipeline.
+  * debian/copyright: Remove build/missing.
+    Fixes a Lintian warning (superfluous-file-pattern).
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Thu, 30 May 2024 23:18:02 -0400
+
+openldap (2.6.7+dfsg-1~exp1) experimental; urgency=medium
+
+  * New upstream version 2.6.7+dfsg
+  * d/p/contrib-makefiles: Refresh patch.
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Thu, 01 Feb 2024 16:24:20 -0500
+
+openldap (2.6.6+dfsg-1~exp2) experimental; urgency=medium
+
+  * Update debconf translations:
+    - German, thanks to Helge Kreutzmann. (Closes: #1007728)
+    - Spanish, thanks to Camaleón. (Closes: #1008529)
+    - Dutch, thanks to Frans Spiesschaert. (Closes: #1010034)
+    - Turkish, thanks to Atila KOÇ. (Closes: #1029758)
+    - Romanian, thanks to Remus-Gabriel Chelu. (Closes: #1033177)
+  * Create an autopkgtest covering basic TLS functionality.
+    Thanks to John Scott.
+
+ -- Ryan Tandy <ryan@nardis.ca>  Wed, 09 Aug 2023 10:10:54 -0700
+
+openldap (2.6.6+dfsg-1~exp1) experimental; urgency=medium
+
+  * New upstream version 2.6.6+dfsg
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Mon, 31 Jul 2023 18:24:38 -0400
+
+openldap (2.6.5+dfsg-1~exp1) experimental; urgency=medium
+
+  [ Sergio Durigan Junior ]
+  * New upstream version 2.6.5+dfsg
+  * d/control: Bump Standards-Version to 4.6.2; no changes needed.
+  * d/control: Bump debhelper-compat to 13.
+  * d/control: Drop lsb-base from slapd's Depends.
+
+  [ Ryan Tandy ]
+  * d/tests/smbk5pwd: Grant slapd access to /var/lib/heimdal-kdc. Fixes the
+    autopkgtest failure due to heimdal setting mode 700 on this directory.
+    (Closes: #1020442)
+  * d/source/lintian-overrides: Add wildcards to make overrides compatible
+    with both older and newer versions of lintian.
+  * d/slapd-contrib.lintian-overrides: Remove unused
+    custom-library-search-path override now that krb5-config no longer sets
+    -rpath.
+  * Fix sha2-contrib autopkgtest failure. Call slappasswd using its full path.
+    (Closes: #1030814)
+
+  [ Gioele Barabucci ]
+  * slapd.scripts-common: Avoid double-UTF8-encoding org name.
+    (Closes: #1016185)
+  * d/slapd.scripts-common: Remove outdated `migrate_to_slapd_d_style`
+  * d/slapd.postinst: Remove test for ancient version.
+  * slapd.scripts-common: Remove unused `normalize_ldif`
+  * d/slapd.scripts-common: Use sed instead of perl in `release_diagnostics`
+
+  [ Andreas Hasenack ]
+  * d/rules: Fix passwd/sha2 build.
+    Build the passwd/sha2 contrib module with -fno-strict-aliasing to avoid
+    computing an incorrect SHA256 hash with some versions of the compiler
+    (Closes: #1030716, LP: #2000817)
+  * d/t/sha2-contrib: add test for sha2 module.
+    DEP8 test to verify the SHA256 hash produced by passwd/sha2
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Mon, 24 Jul 2023 19:26:16 -0400
+
+openldap (2.6.4+dfsg-1~exp1) experimental; urgency=medium
+
+  * New upstream version 2.6.4+dfsg.
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Sat, 04 Mar 2023 16:35:10 -0500
+
+openldap (2.6.3+dfsg-1~exp1) experimental; urgency=medium
+
+  * d/rules: Remove get-orig-source, now unnecessary.
+  * Check PGP signature when running uscan.
+  * d/watch: Modernize watch file; use repacksuffix.
+  * d/copyright: Expand Files-Excluded to account for other schemas/ldifs.
+  * New upstream release.
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Mon, 19 Sep 2022 14:07:32 -0400
+
+openldap (2.6.2+dfsg-1~exp2) experimental; urgency=medium
+
+  * Enable SASL/GSSAPI tests
+    - d/control: Update B-D to include required dependencies needed to run
+      SASL/GSSAPI tests during build time, and mark them "!nocheck".
+    Thanks to Andreas Hasenack <andreas.hasenack@canonical.com>
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Thu, 25 Aug 2022 15:16:24 -0400
+
+openldap (2.6.2+dfsg-1~exp1) experimental; urgency=medium
+
+  * d/gbp.conf: Prepare to import 2.6.x.
+  * New upstream version 2.6.2+dfsg
+  * d/patches/*.patch: Refresh patches.
+  * Adjust package to ship renamed libldap.
+    - d/clean: Adjust to remove d/libldap2.links.
+    - d/control: New binary package libldap2.  Remove binary package
+      libldap-2.5-0.  Adjust package relationships (Depends, Replaces) due
+      to new package.  Remove old Conflicts with old ldap-utils.
+    - d/libldap-2.5-0.install: Delete file.
+    - d/libldap-2.5-0.symbols: Likewise.
+    - d/libldap-2.5-0.README.Debian: Rename to...
+    - d/libldap2.README.Debian: ... this.
+    - d/libldap2.install: New file, based on d/libldap-2.5-0.install
+    - d/libldap2.symbols: New file, based on d/libldap-2.5-0.symbols.
+    - d/slapd.install: Install libslapi.so.2*.
+    - d/slapd.lintian-overrides: Remove
+      lacks-unversioned-link-to-shared-library override.  Adjust
+      package-name-doesnt-match-sonames to reflect libslapd2 name change.
+  * Remove ndb references, given the plugin has been removed upstream.
+    - d/configure.options: Remove "--disable-ndb".
+    - d/slapd.manpages: Don't install slapd-ndb.5.
+  * d/control: Add myself to Uploaders.
+  * d/README.source: New file with instructions on how to import a new
+    release.
+  * d/copyright: Write new copyright file from scratch.
+
+ -- Sergio Durigan Junior <sergiodj@debian.org>  Fri, 20 May 2022 17:41:04 -0400
+
+openldap (2.5.19+dfsg-1) unstable; urgency=medium
+
+  [ Carles Pina i Estany ]
+  * Update po-debconf Catalan translation
+
+  [ Ryan Tandy ]
+  * New upstream release.
+    - Drop ITS#10221 and ITS#10253 patches, applied upstream.
+  * Apply patch from Helmut Grohne to fix cross-building ppm.
+    (Closes: #1079533)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Mon, 23 Dec 2024 12:05:58 -0800
+
+openldap (2.5.18+dfsg-3) unstable; urgency=medium
+
+  * Fix FTBFS on 32-bit architectures. (ITS#10253) (Closes: #1078822)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Wed, 21 Aug 2024 20:38:08 -0700
+
+openldap (2.5.18+dfsg-2) unstable; urgency=medium
+
+  * Apply upstream patch to fix back-perl linking with libperl.
+    (ITS#10221, LP: #2072976)
+  * Add a superficial autopkgtest to ensure back_perl can be loaded.
+
+ -- Ryan Tandy <ryan@nardis.ca>  Sun, 14 Jul 2024 14:37:43 -0700
+
+openldap (2.5.18+dfsg-1) unstable; urgency=medium
+
+  [ Ryan Tandy ]
+  * New upstream release.
+  * Drop patch smbk5pwd-implicit-declaration, applied upstream.
+
+  [ Sergio Durigan Junior ]
+  * d/control: B-D on pkgconf instead of pkg-config.
+
+  [ Helmut Grohne ]
+  * Move systemd drop-in to /usr (DEP17). (Closes: #1073059)
+
+ -- Ryan Tandy <ryan@nardis.ca>  Wed, 12 Jun 2024 19:23:12 -0700
+
+openldap (2.5.17+dfsg-1) unstable; urgency=medium
+
+  * New upstream release.
+    - fixed slapo-dynlist so it can't be global (ITS#10091) (Closes: #1040382)
+  * debian/copyright: Exclude doc/guide/admin/guide.html from the upstream
+    source, because the tool required to build it from source is not packaged
+    in Debian. Fixes a Lintian error (source-is-missing).
+  * Update Swedish debconf translation. (Closes: #1056955)
+    Thanks to Martin Bagge and Anders Jonsson.
+  * debian/salsa-ci.yml: Enable Salsa CI pipeline.
+
+ -- Ryan Tandy <ryan@nardis.ca>  Fri, 26 Apr 2024 16:09:29 -0700
+
+openldap (2.5.16+dfsg-2) unstable; urgency=medium
+
+  * debian/patches/64-bit-time-t-compat: handle sizeof(time_t) >
+    sizeof(long) in format strings.
+
+ -- Steve Langasek <vorlon@debian.org>  Tue, 12 Mar 2024 06:26:07 +0000
+
+openldap (2.5.16+dfsg-1) unstable; urgency=medium
+
+  [ Ryan Tandy ]
+  * New upstream release.
+    - fixed possible null pointer dereferences if strdup fails
+      (ITS#9904) (Closes: #1036995, CVE-2023-2953)
+    - fixed unaligned accesses in LMDB on sparc64
+      (ITS#9916) (Closes: #1020319)
+  * Update Turkish debconf translation. (Closes: #1029758)
+    Thanks to Atila KOÇ.
+  * Add Romanian debconf translation. (Closes: #1033177)
+    Thanks to Remus-Gabriel Chelu.
+  * Create an autopkgtest covering basic TLS functionality.
+    Thanks to John Scott.
+  * Drop transitional package slapd-smbk5pwd. (Closes: #1032742)
+  * Drop dbgsym migration for slapd-dbg.
+  * Build and install the ppm module in slapd-contrib. (Closes: #1039740)
+  * Fix implicit declaration of kadm5_s_init_with_password_ctx.
+    (Closes: #1065633)
+
+  [ Sergio Durigan Junior ]
+  * d/control: Bump Standards-Version to 4.6.2; no changes needed.
+  * d/control: Bump debhelper-compat to 13.
+  * d/control: Drop lsb-base from slapd's Depends.
+  * Enable SASL/GSSAPI tests.
+    Thanks to Andreas Hasenack <andreas.hasenack@canonical.com>
+
+ -- Ryan Tandy <ryan@nardis.ca>  Fri, 08 Mar 2024 21:46:26 -0800
+
 openldap (2.5.13+dfsg-5) unstable; urgency=medium
 
   * Fix sha2-contrib autopkgtest failure. Call slappasswd using its full path.

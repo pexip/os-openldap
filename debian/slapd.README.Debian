@@ -188,18 +188,6 @@ If slapd Depends on Other Service
   that depends on other programs (such as an SQL database) you may need to
   adjust the runlevels of slapd to start after the SQL database.
 
-Creating NSS Flat Files from LDAP
-
-  If you have need to create passwd/shadow/etc files from an LDAP
-  directory there is now a script included with these Debian packages
-  which may help you.  The script is in /usr/share/slapd/ and is named
-  ldiftopasswd.  In general you should be able to do:
-
-      ldapsearch | ldiftopasswd
-
-  and it will generate the files for you.  You will need appropriate
-  privileges, of course, and appropriate arguments to ldapsearch.
-
 Modifications Compared to Upstream
 
   Compared to stock OpenLDAP as shipped by the OpenLDAP project, the
@@ -239,11 +227,6 @@ Modifications Compared to Upstream
   In addition, upstream patches from CVS may be applied to fix bugs in the
   current release and will not be noted here unless they're not expected
   to be in the next release.
-
-  Finally, note that the Debian OpenLDAP packages have been compiled
-  against GnuTLS instead of OpenSSL to avoid licensing problems for
-  GPL-covered packages that use the LDAP libraries.  This is a supported
-  configuration, but it's not widely used outside of Debian.
 
   For the exact patches applied to the upstream source and references to
   the relevant upstream ITS numbers, Debian bugs, and upstream
@@ -378,3 +361,30 @@ Known issues for OpenLDAP 2.5.x upgrades
   olcModuleLoad: pw-argon2 to argon2.
 
  -- Ryan Tandy <ryan@nardis.ca>  Sat, 14 Aug 2021 15:03:31 -0700
+
+Known issues for OpenLDAP 2.6.x upgrades
+
+  * TLS backend changed to OpenSSL
+
+  The OpenLDAP packages are now built with OpenSSL instead of GnuTLS.
+  This change affects the olcTLSCipherSuite and olcTLSCRLFile options.
+
+  Previously, the olcTLSCipherSuite option accepted a GnuTLS priority
+  string. Now, the option now accepts an OpenSSL cipher list. If your
+  config specifies a GnuTLS priority string, slapd fails to start, with
+  the following message:
+
+    main: TLS init def ctx failed: -1 error:0A0000B9:SSL routines::no cipher match
+
+  Edit the exported configuration LDIF as described above. Change the
+  olcTLSCipherSuite option to an OpenSSL cipher list. For information
+  about the cipher list format, see the openssl-ciphers(1) man page.
+
+  The olcTLSCRLFile option is no longer supported; it is accepted, but
+  silently ignored. Update your slapd configuration to use the
+  olcTLSCRLCheck option instead. The olcTLSCACertificatePath option must
+  also be configured. For more information about configuring CRLs, see:
+
+  <https://kb.symas.com/configuration/configuring-certificate-revocation-lists-crls>
+
+ -- Ryan Tandy <ryan@nardis.ca>  Fri, 10 Jan 2025 18:17:14 -0800

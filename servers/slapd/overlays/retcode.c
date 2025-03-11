@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2022 The OpenLDAP Foundation.
+ * Copyright 2005-2024 The OpenLDAP Foundation.
  * Portions Copyright 2005 Pierangelo Masarati <ando@sys-net.it>
  * All rights reserved.
  *
@@ -711,7 +711,6 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 			return rs->sr_err = SLAPD_DISCONNECT;
 		}
 	
-		op->o_abandon = 1;
 		return rs->sr_err;
 	}
 

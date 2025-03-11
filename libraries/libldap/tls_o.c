@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2008-2022 The OpenLDAP Foundation.
+ * Copyright 2008-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,12 @@
 #define ASN1_STRING_data(x)	ASN1_STRING_get0_data(x)
 #endif
 
+#if OPENSSL_VERSION_MAJOR >= 3
+#define ERR_get_error_line( a, b )	ERR_get_error_all( a, b, NULL, NULL, NULL )
+#ifndef SSL_get_peer_certificate
+#define SSL_get_peer_certificate( s )	SSL_get1_peer_certificate( s )
+#endif
+#endif
 typedef SSL_CTX tlso_ctx;
 typedef SSL tlso_session;
 
@@ -60,7 +66,7 @@ static BIO_METHOD * tlso_bio_setup( void );
 
 static int  tlso_opt_trace = 1;
 
-static void tlso_report_error( void );
+static void tlso_report_error( char *errmsg );
 
 static void tlso_info_cb( const SSL *ssl, int where, int ret );
 static int tlso_verify_cb( int ok, X509_STORE_CTX *ctx );
@@ -170,21 +176,23 @@ tlso_ca_list( char * bundle, char * dir, X509 *cert )
 	if ( bundle ) {
 		ca_list = SSL_load_client_CA_file( bundle );
 	}
-#if defined(HAVE_DIRENT_H) || defined(dirent)
 	if ( dir ) {
-		int freeit = 0;
+		char **dirs = ldap_str2charray( dir, CERTPATHSEP );
+		int freeit = 0, i, success = 0;
 
 		if ( !ca_list ) {
 			ca_list = sk_X509_NAME_new_null();
 			freeit = 1;
 		}
-		if ( !SSL_add_dir_cert_subjects_to_stack( ca_list, dir ) &&
-			freeit ) {
+		for ( i=0; dirs[i]; i++ ) {
+			success += SSL_add_dir_cert_subjects_to_stack( ca_list, dir );
+		}
+		if ( !success && freeit ) {
 			sk_X509_NAME_free( ca_list );
 			ca_list = NULL;
 		}
+		ldap_charray_free( dirs );
 	}
-#endif
 	if ( cert ) {
 		X509_NAME *xn = X509_get_subject_name( cert );
 		xn = X509_NAME_dup( xn );
@@ -219,7 +227,12 @@ tlso_init( void )
 	SSL_library_init();
 	OpenSSL_add_all_digests();
 #else
-	OPENSSL_init_ssl(0, NULL);
+#ifdef OPENSSL_INIT_NO_ATEXIT
+#define	OPENSSL_FLAGS	OPENSSL_INIT_NO_ATEXIT
+#else
+#define	OPENSSL_FLAGS	0
+#endif
+	OPENSSL_init_ssl(OPENSSL_FLAGS, NULL);
 #endif
 
 	/* FIXME: mod_ssl does this */
@@ -289,18 +302,20 @@ tlso_stecpy( char *dst, const char *src, const char *end )
 /* OpenSSL 1.1.1 uses a separate API for TLS1.3 ciphersuites.
  * Try to find any TLS1.3 ciphers in the given list of suites.
  */
-static void
-tlso_ctx_cipher13( tlso_ctx *ctx, char *suites )
+static int
+tlso_ctx_cipher13( tlso_ctx *ctx, char *suites, char **oldsuites )
 {
 	char tls13_suites[1024], *ts = tls13_suites, *te = tls13_suites + sizeof(tls13_suites);
 	char *ptr, *colon, *nptr;
 	char sname[128];
 	STACK_OF(SSL_CIPHER) *cs;
 	SSL *s = SSL_new( ctx );
-	int ret;
+	int ret = 0;
+
+	*oldsuites = NULL;
 
 	if ( !s )
-		return;
+		return ret;
 
 	*ts = '\0';
 
@@ -329,9 +344,16 @@ tlso_ctx_cipher13( tlso_ctx *ctx, char *suites )
 				if ( !strncmp( ver, "TLSv", 4 ) && strncmp( ver+4, "1.3", 3 ) >= 0 ) {
 					if ( tls13_suites[0] )
 						ts = tlso_stecpy( ts, ":", te );
-					ts = tlso_stecpy( ts, sname, te );
+					ts = tlso_stecpy( ts, nptr, te );
+				} else if (! *oldsuites) {
+					/* should never happen, set_ciphersuites should
+					 * only succeed for TLSv1.3 and above
+					 */
+					*oldsuites = ptr;
 				}
 			}
+		} else if (! *oldsuites) {
+			*oldsuites = ptr;
 		}
 		if ( !colon || ts >= te )
 			break;
@@ -340,8 +362,9 @@ tlso_ctx_cipher13( tlso_ctx *ctx, char *suites )
 	SSL_free( s );
 
 	/* If no TLS1.3 ciphersuites were specified, leave current settings untouched. */
-	if ( tls13_suites[0] )
-		SSL_CTX_set_ciphersuites( ctx, tls13_suites );
+	if ( tls13_suites[0] && !SSL_CTX_set_ciphersuites( ctx, tls13_suites ))
+		ret = -1;
+	return ret;
 }
 #endif /* OpenSSL 1.1.1 */
 
@@ -349,7 +372,7 @@ tlso_ctx_cipher13( tlso_ctx *ctx, char *suites )
  * initialize a new TLS context
  */
 static int
-tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
+tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server, char *errmsg )
 {
 	tlso_ctx *ctx = (tlso_ctx *)lo->ldo_tls_ctx;
 	int i;
@@ -411,15 +434,23 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 	}
 
 	if ( lo->ldo_tls_ciphersuite ) {
+		char *oldsuites = lt->lt_ciphersuite;
 #if OPENSSL_VERSION_NUMBER >= 0x10101000
-		tlso_ctx_cipher13( ctx, lt->lt_ciphersuite );
+		if ( tlso_ctx_cipher13( ctx, lt->lt_ciphersuite, &oldsuites ))
+		{
+			Debug1( LDAP_DEBUG_ANY,
+				   "TLS: could not set TLSv1.3 cipher list %s.\n",
+				   lo->ldo_tls_ciphersuite );
+			tlso_report_error( errmsg );
+			return -1;
+		}
 #endif
-		if ( !SSL_CTX_set_cipher_list( ctx, lt->lt_ciphersuite ) )
+		if ( oldsuites && !SSL_CTX_set_cipher_list( ctx, oldsuites ) )
 		{
 			Debug1( LDAP_DEBUG_ANY,
 				   "TLS: could not set cipher list %s.\n",
 				   lo->ldo_tls_ciphersuite );
-			tlso_report_error();
+			tlso_report_error( errmsg );
 			return -1;
 		}
 	}
@@ -429,7 +460,7 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		if ( !SSL_CTX_set_default_verify_paths( ctx ) ) {
 			Debug0( LDAP_DEBUG_ANY, "TLS: "
 				"could not use default certificate paths" );
-			tlso_report_error();
+			tlso_report_error( errmsg );
 			return -1;
 		}
 	} else {
@@ -441,19 +472,41 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 			if ( !X509_STORE_add_cert( store, cert )) {
 				Debug0( LDAP_DEBUG_ANY, "TLS: "
 					"could not use CA certificate" );
-				tlso_report_error();
+				tlso_report_error( errmsg );
 				return -1;
 			}
 		}
-		if (( lt->lt_cacertfile || lt->lt_cacertdir ) && !SSL_CTX_load_verify_locations( ctx,
-				lt->lt_cacertfile, lt->lt_cacertdir ) )
-		{
-			Debug2( LDAP_DEBUG_ANY, "TLS: "
-				"could not load verify locations (file:`%s',dir:`%s').\n",
-				lo->ldo_tls_cacertfile ? lo->ldo_tls_cacertfile : "",
-				lo->ldo_tls_cacertdir ? lo->ldo_tls_cacertdir : "" );
-			tlso_report_error();
-			return -1;
+		if ( lt->lt_cacertfile || lt->lt_cacertdir ) {
+			char **dirs, *dummy = NULL;
+			if ( lt->lt_cacertdir ) {
+				dirs = ldap_str2charray( lt->lt_cacertdir, CERTPATHSEP );
+			} else {
+				dirs = &dummy;
+			}
+			/* Start with the first dir in path */
+			if ( !SSL_CTX_load_verify_locations( ctx,
+				lt->lt_cacertfile, dirs[0] ) )
+			{
+				Debug2( LDAP_DEBUG_ANY, "TLS: "
+					"could not load verify locations (file:`%s',dir:`%s').\n",
+					lo->ldo_tls_cacertfile ? lo->ldo_tls_cacertfile : "",
+					dirs[0] ? dirs[0] : "" );
+				tlso_report_error( errmsg );
+				if ( dirs != &dummy )
+					ldap_charray_free( dirs );
+				return -1;
+			}
+			/* Then additional dirs, if any */
+			if ( dirs != &dummy ) {
+				if ( dirs[1] ) {
+					int i;
+					X509_STORE *store = SSL_CTX_get_cert_store( ctx );
+					X509_LOOKUP *lookup = X509_STORE_add_lookup( store, X509_LOOKUP_hash_dir() );
+					for ( i=1; dirs[i]; i++ )
+						X509_LOOKUP_add_dir( lookup, dirs[i], X509_FILETYPE_PEM );
+				}
+				ldap_charray_free( dirs );
+			}
 		}
 
 		if ( is_server ) {
@@ -465,7 +518,7 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 					"could not load client CA list (file:`%s',dir:`%s').\n",
 					lo->ldo_tls_cacertfile ? lo->ldo_tls_cacertfile : "",
 					lo->ldo_tls_cacertdir ? lo->ldo_tls_cacertdir : "" );
-				tlso_report_error();
+				tlso_report_error( errmsg );
 				return -1;
 			}
 
@@ -482,7 +535,7 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		if ( !SSL_CTX_use_certificate( ctx, cert )) {
 			Debug0( LDAP_DEBUG_ANY,
 				"TLS: could not use certificate.\n" );
-			tlso_report_error();
+			tlso_report_error( errmsg );
 			return -1;
 		}
 		X509_free( cert );
@@ -493,7 +546,7 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		Debug1( LDAP_DEBUG_ANY,
 			"TLS: could not use certificate file `%s'.\n",
 			lo->ldo_tls_certfile );
-		tlso_report_error();
+		tlso_report_error( errmsg );
 		return -1;
 	}
 
@@ -506,7 +559,7 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		{
 			Debug0( LDAP_DEBUG_ANY,
 				"TLS: could not use private key.\n" );
-			tlso_report_error();
+			tlso_report_error( errmsg );
 			return -1;
 		}
 		EVP_PKEY_free( pkey );
@@ -518,33 +571,43 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		Debug1( LDAP_DEBUG_ANY,
 			"TLS: could not use key file `%s'.\n",
 			lo->ldo_tls_keyfile );
-		tlso_report_error();
+		tlso_report_error( errmsg );
 		return -1;
 	}
 
 	if ( is_server && lo->ldo_tls_dhfile ) {
+#if OPENSSL_VERSION_MAJOR >= 3
+		EVP_PKEY *dh;
+#define	bio_params( bio, dh )	dh = PEM_read_bio_Parameters( bio, NULL )
+#else
 		DH *dh;
+#define	bio_params( bio, dh )	dh = PEM_read_bio_DHparams( bio, NULL, NULL, NULL )
+#endif
 		BIO *bio;
 
 		if (( bio=BIO_new_file( lt->lt_dhfile,"r" )) == NULL ) {
 			Debug1( LDAP_DEBUG_ANY,
 				"TLS: could not use DH parameters file `%s'.\n",
 				lo->ldo_tls_dhfile );
-			tlso_report_error();
+			tlso_report_error( errmsg );
 			return -1;
 		}
-		if (!( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
+		if (!( bio_params( bio, dh ))) {
 			Debug1( LDAP_DEBUG_ANY,
 				"TLS: could not read DH parameters file `%s'.\n",
 				lo->ldo_tls_dhfile );
-			tlso_report_error();
+			tlso_report_error( errmsg );
 			BIO_free( bio );
 			return -1;
 		}
 		BIO_free( bio );
+#if OPENSSL_VERSION_MAJOR >= 3
+		SSL_CTX_set0_tmp_dh_pkey( ctx, dh );
+#else
 		SSL_CTX_set_tmp_dh( ctx, dh );
 		SSL_CTX_set_options( ctx, SSL_OP_SINGLE_DH_USE );
 		DH_free( dh );
+#endif
 	}
 
 	if ( lo->ldo_tls_ecname ) {
@@ -557,7 +620,7 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 			Debug1( LDAP_DEBUG_ANY,
 				"TLS: could not set EC name `%s'.\n",
 				lo->ldo_tls_ecname );
-			tlso_report_error();
+			tlso_report_error( errmsg );
 			return -1;
 		}
 	/*
@@ -1015,7 +1078,12 @@ tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
 		return 0;
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
-	md = EVP_get_digestbynid( X509_get_signature_nid( cert ));
+	{
+		int mdnid;
+		if ( !OBJ_find_sigid_algs( X509_get_signature_nid( cert ), &mdnid, NULL ))
+			return 0;
+		md = EVP_get_digestbynid( mdnid );
+	}
 #else
 	md = EVP_get_digestbynid(OBJ_obj2nid( cert->sig_alg->algorithm ));
 #endif
@@ -1126,15 +1194,19 @@ tlso_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval 
 			goto done;
 		}
 
-		EVP_DigestInit_ex( mdctx, md, NULL );
-		EVP_DigestUpdate( mdctx, key.bv_val, key.bv_len );
-		EVP_DigestFinal_ex( mdctx, (unsigned char *)keyhash.bv_val, &len );
-		keyhash.bv_len = len;
+		if ( EVP_DigestInit_ex( mdctx, md, NULL ) &&
+			EVP_DigestUpdate( mdctx, key.bv_val, key.bv_len ) &&
+			EVP_DigestFinal_ex( mdctx, (unsigned char *)keyhash.bv_val, &len ))
+			keyhash.bv_len = len;
+		else
+			rc = -1;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
 		EVP_MD_CTX_free( mdctx );
 #else
 		EVP_MD_CTX_destroy( mdctx );
 #endif
+		if ( rc )
+			goto done;
 	} else {
 		keyhash = key;
 	}
@@ -1546,15 +1618,17 @@ tlso_verify_ok( int ok, X509_STORE_CTX *ctx )
 
 /* Inspired by ERR_print_errors in OpenSSL */
 static void
-tlso_report_error( void )
+tlso_report_error( char *errmsg )
 {
 	unsigned long l;
-	char buf[200];
+	char buf[ERRBUFSIZE];
 	const char *file;
 	int line;
 
 	while ( ( l = ERR_get_error_line( &file, &line ) ) != 0 ) {
-		ERR_error_string_n( l, buf, sizeof( buf ) );
+		ERR_error_string_n( l, buf, ERRBUFSIZE );
+		if ( !*errmsg )
+			strcpy(errmsg, buf );
 #ifdef HAVE_EBCDIC
 		if ( file ) {
 			file = LDAP_STRDUP( file );

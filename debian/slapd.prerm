@@ -19,13 +19,6 @@ ignore_init_failure() {							# {{{
 
 #DEBHELPER#
 
-# Workaround for #1006147. Debhelper changed to stop the service in
-# preinst instead of prerm. However, dpkg-reconfigure doesn't run
-# preinst yet.
-if [ "$MODE" = upgrade ] && [ -x /etc/init.d/slapd ]; then
-	invoke-rc.d slapd stop || exit 1
-fi
-
 # Dump config and data to LDIF before removing slapd.
 # If a later version is reinstalled without being purged first, the LDIF
 # files may be required for the upgrade, and the old slapcat won't be

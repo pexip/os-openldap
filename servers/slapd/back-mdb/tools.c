@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2011-2022 The OpenLDAP Foundation.
+ * Copyright 2011-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,8 @@ static MDB_cursor *mcp = NULL, *mcd = NULL;
 static MDB_val key, data;
 static ID previd = NOID;
 
+static int reindexing;
+
 typedef struct dn_id {
 	ID id;
 	struct berval dn;
@@ -101,6 +103,9 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep );
 int mdb_tool_entry_open(
 	BackendDB *be, int mode )
 {
+	if ( slapMode & SLAP_TOOL_DRYRUN )
+		return 0;
+
 	/* In Quick mode, commit once per 500 entries */
 	mdb_writes = 0;
 	if ( slapMode & SLAP_TOOL_QUICK )
@@ -147,6 +152,9 @@ int mdb_tool_entry_open(
 int mdb_tool_entry_close(
 	BackendDB *be )
 {
+	if ( slapMode & SLAP_TOOL_DRYRUN )
+		return 0;
+
 #ifdef MDB_TOOL_IDL_CACHING
 	if ( mdb_tool_info ) {
 		int i;
@@ -216,6 +224,20 @@ int mdb_tool_entry_close(
 			return -1;
 		}
 		mdb_tool_txn = NULL;
+	}
+	if( reindexing ) {
+		struct mdb_info *mdb = be->be_private;
+		if ( !txi ) {
+			int rc = mdb_txn_begin( mdb->mi_dbenv, NULL, 0, &txi );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"=> " LDAP_XSTRING(mdb_tool_entry_close) ": database %s: "
+					"txn_begin failed: %s (%d)\n",
+					be->be_suffix[0].bv_val, mdb_strerror(rc), rc );
+				return -1;
+			}
+		}
+		mdb_drop( txi, mdb->mi_idxckp, 0 );
 	}
 	if( txi ) {
 		int rc;
@@ -419,7 +441,9 @@ mdb_tool_entry_get_int( BackendDB *be, ID id, Entry **ep )
 		e->e_name = dn;
 		e->e_nname = ndn;
 	} else {
+		e->e_name.bv_len = 0;
 		e->e_name.bv_val = NULL;
+		e->e_nname.bv_len = 0;
 		e->e_nname.bv_val = NULL;
 	}
 
@@ -652,6 +676,9 @@ ID mdb_tool_entry_put(
 	Operation op = {0};
 	Opheader ohdr = {0};
 
+	if ( slapMode & SLAP_TOOL_DRYRUN )
+		return 0;
+
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 
@@ -829,6 +856,8 @@ int mdb_tool_entry_reindex(
 	if (!mi->mi_attrs) {
 		return 0;
 	}
+
+	reindexing = 1;
 
 	/* Check for explicit list of attrs to index */
 	if ( adv ) {

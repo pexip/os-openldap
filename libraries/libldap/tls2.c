@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -199,7 +199,7 @@ ldap_pvt_tls_init( int do_threads )
  * initialize a new TLS context
  */
 static int
-ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
+ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server, char *errmsg )
 {
 	int rc = 0;
 	tls_impl *ti = tls_imp;
@@ -261,7 +261,7 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 		goto error_exit;
 	}
 
-	rc = ti->ti_ctx_init( lo, &lts, is_server );
+	rc = ti->ti_ctx_init( lo, &lts, is_server, errmsg );
 
 error_exit:
 	if ( rc < 0 && lo->ldo_tls_ctx != NULL ) {
@@ -288,10 +288,15 @@ int
 ldap_pvt_tls_init_def_ctx( int is_server )
 {
 	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
+	char errmsg[ERRBUFSIZE];
 	int rc;
+	errmsg[0] = 0;
 	LDAP_MUTEX_LOCK( &tls_def_ctx_mutex );
-	rc = ldap_int_tls_init_ctx( lo, is_server );
+	rc = ldap_int_tls_init_ctx( lo, is_server, errmsg );
 	LDAP_MUTEX_UNLOCK( &tls_def_ctx_mutex );
+	if ( rc ) {
+		Debug1( LDAP_DEBUG_ANY,"TLS: init_def_ctx: %s.\n", errmsg );
+	}
 	return rc;
 }
 
@@ -378,6 +383,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 		if ( lo && lo->ldo_tls_connect_cb && lo->ldo_tls_connect_cb !=
 			ld->ld_options.ldo_tls_connect_cb )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
+		conn->lconn_status = LDAP_CONNST_TLS_INPROGRESS;
 	}
 
 	/* pass hostname for SNI, but only if it's an actual name
@@ -436,9 +442,11 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 		ber_sockbuf_remove_io( sb, &ber_sockbuf_io_debug,
 			LBER_SBIOD_LEVEL_TRANSPORT );
 #endif
+		conn->lconn_status = LDAP_CONNST_CONNECTED;
 		return -1;
 	}
 
+	conn->lconn_status = LDAP_CONNST_CONNECTED;
 	return 0;
 }
 
@@ -511,14 +519,19 @@ int
 ldap_tls_inplace( LDAP *ld )
 {
 	Sockbuf		*sb = NULL;
+	LDAPConn	*lc = ld->ld_defconn;
 
-	if ( ld->ld_defconn && ld->ld_defconn->lconn_sb ) {
+	if ( lc && lc->lconn_sb ) {
 		sb = ld->ld_defconn->lconn_sb;
 
 	} else if ( ld->ld_sb ) {
 		sb = ld->ld_sb;
 
 	} else {
+		return 0;
+	}
+
+	if ( lc && lc->lconn_status == LDAP_CONNST_TLS_INPROGRESS ) {
 		return 0;
 	}
 
@@ -975,12 +988,22 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		if ( lo->ldo_tls_randfile ) LDAP_FREE (lo->ldo_tls_randfile );
 		lo->ldo_tls_randfile = (arg && *(char *)arg) ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
-	case LDAP_OPT_X_TLS_NEWCTX:
+	case LDAP_OPT_X_TLS_NEWCTX: {
+		int rc;
+		char errmsg[ERRBUFSIZE];
 		if ( !arg ) return -1;
 		if ( lo->ldo_tls_ctx )
 			ldap_pvt_tls_ctx_free( lo->ldo_tls_ctx );
 		lo->ldo_tls_ctx = NULL;
-		return ldap_int_tls_init_ctx( lo, *(int *)arg );
+		errmsg[0] = 0;
+		rc = ldap_int_tls_init_ctx( lo, *(int *)arg, errmsg );
+		if ( rc && errmsg[0] && ld ) {
+			if ( ld->ld_error )
+				LDAP_FREE( ld->ld_error );
+			ld->ld_error = LDAP_STRDUP( errmsg );
+		}
+		return rc;
+		}
 	case LDAP_OPT_X_TLS_CACERT:
 		if ( lo->ldo_tls_cacert.bv_val )
 			LDAP_FREE( lo->ldo_tls_cacert.bv_val );
@@ -1144,6 +1167,9 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	  */
 	while ( ret > 0 ) {
 		if ( async ) {
+			ld->ld_errno = LDAP_X_CONNECTING;
+			return (ld->ld_errno);
+		} else {
 			struct timeval curr_time_tv, delta_tv;
 			int wr=0;
 
@@ -1200,6 +1226,11 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 			}
 		}
 		ret = ldap_int_tls_connect( ld, conn, host );
+	}
+
+	if ( !async && ld->ld_options.ldo_tm_net.tv_sec >= 0 ) {
+		/* Restore original sb status */
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_NONBLOCK, (void*)0 );
 	}
 
 	if ( ret < 0 ) {

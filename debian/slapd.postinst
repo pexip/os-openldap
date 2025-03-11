@@ -38,9 +38,8 @@ postinst_upgrade_configuration() {					# {{{
 		fi
 	fi
 
-	# Update permissions of all database directories and /var/run/slapd
+	# Update permissions of all database directories
 	update_databases_permissions
-	update_permissions /var/run/slapd
 
 	# Versions prior to 2.4.7-1 could create a slapd.conf that wasn't
 	# readable by the openldap user.

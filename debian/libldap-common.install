@@ -1,1 +1,1 @@
-etc/ldap/ldap.conf
+libraries/libldap/ldap.conf etc/ldap

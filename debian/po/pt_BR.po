@@ -5,14 +5,14 @@
 # Felipe Augusto van de Wiel (faw) <faw@debian.org>, 2007.
 # Steve Langasek <vorlon@debian.org>, 2008.
 # Eder L. Marques (frolic) <frolic@debian-ce.org>, 2008.
-# Adriano Rafael Gomes <adrianorg@debian.org>, 2011-2017.
+# Adriano Rafael Gomes <adrianorg@debian.org>, 2011-2024.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: openldap 2.4.44+dfsg-4\n"
+"Project-Id-Version: openldap\n"
 "Report-Msgid-Bugs-To: openldap@packages.debian.org\n"
 "POT-Creation-Date: 2021-08-16 01:12+0000\n"
-"PO-Revision-Date: 2017-01-10 10:28-0200\n"
+"PO-Revision-Date: 2024-12-15 11:17-0300\n"
 "Last-Translator: Adriano Rafael Gomes <adrianorg@debian.org>\n"
 "Language-Team: l10n Portuguese <debian-l10n-portuguese@lists.debian.org>\n"
 "Language: pt_BR\n"
@@ -297,7 +297,7 @@ msgstr ""
 #. Description
 #: ../slapd.templates:15001
 msgid "Error while performing post-installation tasks"
-msgstr ""
+msgstr "Erro ao executar tarefas pós-instalação"
 
 #. Type: note
 #. Description
@@ -308,6 +308,10 @@ msgid ""
 "migrate one or more LDAP databases, or that a backend being used by the "
 "current OpenLDAP installation is not supported anymore."
 msgstr ""
+"Ocorreram um ou mais erros ao executar algumas tarefas pós-instalação. Isso "
+"provavelmente significa que o pacote slapd não pode migrar automaticamente "
+"uma ou mais bases de dados LDAP, ou que um mecanismo (\"backend\") sendo "
+"usado pela instalação atual do OpenLDAP não tem mais suporte."
 
 #. Type: note
 #. Description
@@ -317,6 +321,9 @@ msgid ""
 "has exited, but the slapd service has NOT been (re)started. You will need to "
 "manually fix the problem and then start the service."
 msgstr ""
+"O script de mantenedor responsável por executar as tarefas pós-instalação "
+"encerrou, mas o serviço slapd NÃO foi (re)iniciado. Você precisará corrigir "
+"manualmente o problema e então iniciar o serviço."
 
 #. Type: note
 #. Description
@@ -326,6 +333,60 @@ msgid ""
 "them, please take a look at the README.Debian file (under /usr/share/doc/"
 "slapd/)."
 msgstr ""
+"Para mais informação sobre possíveis cenários problemáticos e como tratá-"
+"los, por favor, veja o arquivo README.Debian (em /usr/share/doc/slapd)."
+
+#~ msgid "Database backend to use:"
+#~ msgstr "\"Backend\" de base de dados a ser usado:"
+
+#~ msgid ""
+#~ "HDB and BDB use similar storage formats, but HDB adds support for subtree "
+#~ "renames. Both support the same configuration options."
+#~ msgstr ""
+#~ "O HDB e o BDB usam formatos de armazenamento similares, mas o HDB "
+#~ "adiciona suporte para renomeação de subárvores. Ambos suportam as mesmas "
+#~ "opções de configuração."
+
+#~ msgid ""
+#~ "The MDB backend is recommended. MDB uses a new storage format and "
+#~ "requires less configuration than BDB or HDB."
+#~ msgstr ""
+#~ "O \"backend\" MDB é recomendado. O MDB usa um novo formato de "
+#~ "armazenamento e requer menos configuração que o BDB e o HDB."
+
+#~ msgid ""
+#~ "In any case, you should review the resulting database configuration for "
+#~ "your needs. See /usr/share/doc/slapd/README.Debian.gz for more details."
+#~ msgstr ""
+#~ "Em qualquer caso, você deve revisar a configuração resultante da base de "
+#~ "dados para que atenda as suas necessidades. Veja /usr/share/doc/slapd/"
+#~ "README.Debian.gz para mais detalhes."
+
+#~ msgid "Potentially unsafe slapd access control configuration"
+#~ msgstr "Configuração de controle de acesso do slapd potencialmente insegura"
+
+#~ msgid ""
+#~ "One or more of the configured databases has an access control rule that "
+#~ "allows users to modify most of their own attributes. This may be unsafe, "
+#~ "depending on how the database is used."
+#~ msgstr ""
+#~ "Uma ou mais das bases de dados configuradas tem uma regra de controle de "
+#~ "acesso que permite que usuários modifiquem a maioria dos seus próprios "
+#~ "atributos. Isso pode ser inseguro, dependendo de como a base de dados é "
+#~ "usada."
+
+#~ msgid ""
+#~ "In the case of slapd access rules that begin with \"to *\", it is "
+#~ "recommended to remove any instances of \"by self write\", so that users "
+#~ "are only able to modify specifically allowed attributes."
+#~ msgstr ""
+#~ "No caso das regras de acesso do slapd que comecem com \"to *\", é "
+#~ "recomendado remover quaisquer instâncias de \"by self write\", de modo "
+#~ "que os usuários possam modificar somente atributos especificamente "
+#~ "permitidos."
+
+#~ msgid "See /usr/share/doc/slapd/README.Debian.gz for more details."
+#~ msgstr "Veja /usr/share/doc/slapd/README.Debian.gz para mais detalhes."
 
 #~ msgid "abort installation"
 #~ msgstr "cancelar a instalação"
@@ -374,58 +435,6 @@ msgstr ""
 #~ "atributo será adicionado automaticamente, mas a modificação não sofrerá "
 #~ "ações por sobreposições do slapd, e a replicação com outros servidores "
 #~ "pode ser afetada."
-
-#~ msgid "Potentially unsafe slapd access control configuration"
-#~ msgstr "Configuração de controle de acesso do slapd potencialmente insegura"
-
-#~ msgid ""
-#~ "One or more of the configured databases has an access control rule that "
-#~ "allows users to modify most of their own attributes. This may be unsafe, "
-#~ "depending on how the database is used."
-#~ msgstr ""
-#~ "Uma ou mais das bases de dados configuradas tem uma regra de controle de "
-#~ "acesso que permite que usuários modifiquem a maioria dos seus próprios "
-#~ "atributos. Isso pode ser inseguro, dependendo de como a base de dados é "
-#~ "usada."
-
-#~ msgid ""
-#~ "In the case of slapd access rules that begin with \"to *\", it is "
-#~ "recommended to remove any instances of \"by self write\", so that users "
-#~ "are only able to modify specifically allowed attributes."
-#~ msgstr ""
-#~ "No caso das regras de acesso do slapd que comecem com \"to *\", é "
-#~ "recomendado remover quaisquer instâncias de \"by self write\", de modo "
-#~ "que os usuários possam modificar somente atributos especificamente "
-#~ "permitidos."
-
-#~ msgid "See /usr/share/doc/slapd/README.Debian.gz for more details."
-#~ msgstr "Veja /usr/share/doc/slapd/README.Debian.gz para mais detalhes."
-
-#~ msgid "Database backend to use:"
-#~ msgstr "\"Backend\" de base de dados a ser usado:"
-
-#~ msgid ""
-#~ "HDB and BDB use similar storage formats, but HDB adds support for subtree "
-#~ "renames. Both support the same configuration options."
-#~ msgstr ""
-#~ "O HDB e o BDB usam formatos de armazenamento similares, mas o HDB "
-#~ "adiciona suporte para renomeação de subárvores. Ambos suportam as mesmas "
-#~ "opções de configuração."
-
-#~ msgid ""
-#~ "The MDB backend is recommended. MDB uses a new storage format and "
-#~ "requires less configuration than BDB or HDB."
-#~ msgstr ""
-#~ "O \"backend\" MDB é recomendado. O MDB usa um novo formato de "
-#~ "armazenamento e requer menos configuração que o BDB e o HDB."
-
-#~ msgid ""
-#~ "In any case, you should review the resulting database configuration for "
-#~ "your needs. See /usr/share/doc/slapd/README.Debian.gz for more details."
-#~ msgstr ""
-#~ "Em qualquer caso, você deve revisar a configuração resultante da base de "
-#~ "dados para que atenda as suas necessidades. Veja /usr/share/doc/slapd/"
-#~ "README.Debian.gz para mais detalhes."
 
 #~ msgid "Allow LDAPv2 protocol?"
 #~ msgstr "Permitir o protocolo LDAPv2?"

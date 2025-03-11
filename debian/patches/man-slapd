@@ -4,8 +4,10 @@ for slapd.
 
 Debian-specific.
 
---- a/doc/man/man8/slapd.8
-+++ b/doc/man/man8/slapd.8
+Index: openldap/doc/man/man8/slapd.8
+===================================================================
+--- openldap.orig/doc/man/man8/slapd.8	2022-05-20 17:36:07.977242738 -0400
++++ openldap/doc/man/man8/slapd.8	2022-05-20 17:36:07.973242735 -0400
 @@ -5,7 +5,7 @@
  .SH NAME
  slapd \- Stand-alone LDAP Daemon
@@ -15,7 +17,7 @@ Debian-specific.
  [\c
  .BR \-V [ V [ V ]]
  [\c
-@@ -103,11 +103,10 @@
+@@ -110,11 +110,10 @@
  will not fork or disassociate from the invoking terminal.  Some general
  operation and status messages are printed for any value of \fIdebug-level\fP.
  \fIdebug-level\fP is taken as a bit string, with each bit corresponding to a
@@ -31,7 +33,7 @@ Debian-specific.
  If \fIdebug-level\fP is \fB?\fP, a list of installed debug-levels is printed,
  and slapd exits.
  
-@@ -317,7 +316,7 @@
+@@ -332,7 +331,7 @@
  .LP
  .nf
  .ft tt
@@ -40,7 +42,7 @@ Debian-specific.
  .ft
  .fi
  .LP
-@@ -328,7 +327,7 @@
+@@ -343,7 +342,7 @@
  .LP
  .nf
  .ft tt
@@ -49,7 +51,7 @@ Debian-specific.
  .ft
  .fi
  .LP
-@@ -336,7 +335,7 @@
+@@ -351,7 +350,7 @@
  .LP
  .nf
  .ft tt

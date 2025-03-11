@@ -38,3 +38,6 @@ usr/share/man/man5/slapd-pw-radius.5
 # supports vc overlay (contrib, not packaged)
 usr/bin/ldapvc
 usr/share/man/man1/ldapvc.1
+
+# ldap.conf is installed from source (libldap-common)
+etc/ldap/ldap.conf
