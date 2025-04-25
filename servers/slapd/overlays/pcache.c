@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2022 The OpenLDAP Foundation.
+ * Copyright 2003-2024 The OpenLDAP Foundation.
  * Portions Copyright 2003 IBM Corporation.
  * Portions Copyright 2003-2009 Symas Corporation.
  * All rights reserved.
@@ -3514,7 +3514,7 @@ consistency_check(
 	Operation *op;
 
 	CachedQuery *query, *qprev;
-	CachedQuery *expires = NULL;
+	CachedQuery *expires;
 	int return_val, pause = PCACHE_CC_PAUSED;
 	QueryTemplate *templ;
 
@@ -3537,6 +3537,7 @@ consistency_check(
 		time_t ttl;
 		if ( !templ->query_last ) continue;
 		pause = 0;
+		expires = NULL;
 		op->o_time = slap_get_time();
 		if ( !templ->ttr ) {
 			ttl = templ->ttl;
@@ -3840,8 +3841,8 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 
 	/* We can only create this entry if the database is table-driven
 	 */
-	if ( cm->db.bd_info->bi_cf_ocs )
-		config_build_entry( op, rs, pe, ca, &bv, cm->db.bd_info->bi_cf_ocs,
+	if ( cm->db.be_cf_ocs )
+		config_build_entry( op, rs, pe, ca, &bv, cm->db.be_cf_ocs,
 			&pcocs[1] );
 
 	return 0;

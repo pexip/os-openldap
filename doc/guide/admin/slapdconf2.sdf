@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 2005-2022 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2005-2024 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Configuring slapd
@@ -369,7 +369,6 @@ ldif	Lightweight Data Interchange Format backend
 mdb	Memory-Mapped DB backend
 meta	Metadirectory backend
 monitor	Monitor backend
-ndb	MySQL NDB backend
 null	Null backend
 passwd	Provides read-only access to {{passwd}}(5)
 perl	Perl Programmable backend

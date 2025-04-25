@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -113,13 +113,8 @@ int cancel_extop( Operation *op, SlapReply *rs )
 		rc = LDAP_OPERATIONS_ERROR;
 		rs->sr_text = "message ID already being cancelled";
 
-#if 0
 	} else if ( o->o_abandon ) {
-		/* TODO: Would this break something when
-		 * o_abandon="suppress response"? (ITS#6138)
-		 */
 		rc = LDAP_TOO_LATE;
-#endif
 
 	} else {
 		rc = LDAP_SUCCESS;

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2022 The OpenLDAP Foundation.
+ * Copyright 2004-2024 The OpenLDAP Foundation.
  * Portions Copyright 2004-2005 Howard Chu, Symas Corporation.
  * Portions Copyright 2004 Hewlett-Packard Company.
  * All rights reserved.
@@ -41,13 +41,17 @@
 #include <ac/ctype.h>
 #include "slap-config.h"
 
-#ifndef MODULE_NAME_SZ
-#define MODULE_NAME_SZ 256
-#endif
-
 #ifndef PPOLICY_DEFAULT_MAXRECORDED_FAILURE
 #define PPOLICY_DEFAULT_MAXRECORDED_FAILURE	5
 #endif
+
+		/* External password quality checking function.
+		 * The error message must have a preallocated buffer and size
+		 * passed in. Module can still allocate a buffer for
+		 * it if the provided one is too small.
+		 */
+typedef	int (check_func)( char *passwd, struct berval *errmsg, Entry *ent, struct berval *arg );
+#define ERRBUFSIZ	256
 
 /* Per-instance configuration information */
 typedef struct pp_info {
@@ -57,6 +61,12 @@ typedef struct pp_info {
 	int forward_updates;	/* use frontend for policy state updates */
 	int disable_write;
 	int send_netscape_controls;	/* send netscape password controls */
+	char *pwdCheckModule; /* name of module to dynamically
+										    load to check password */
+#ifdef SLAPD_MODULES
+	lt_dlhandle	pwdCheckHandle;		/* handle from lt_dlopen */
+	check_func *pwdCheckFunc;
+#endif /* SLAPD_MODULES */
 	ldap_pvt_thread_mutex_t pwdFailureTime_mutex;
 } pp_info;
 
@@ -104,8 +114,7 @@ typedef struct pass_policy {
 	int pwdSafeModify; /* 0 = old password doesn't need to come
 								with password change request
 							1 = password change must supply existing pwd */
-	char pwdCheckModule[MODULE_NAME_SZ]; /* name of module to dynamically
-										    load to check password */
+	int pwdUseCheckModule; /* 0 = do not use password check module, 1 = use */
 	struct berval pwdCheckModuleArg; /* Optional argument to the password check
 										module */
 } PassPolicy;
@@ -129,7 +138,7 @@ static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdMaxIdle,
 	*ad_pwdMaxFailure, *ad_pwdGraceExpiry, *ad_pwdGraceAuthNLimit,
 	*ad_pwdExpireWarning, *ad_pwdMinDelay, *ad_pwdMaxDelay,
 	*ad_pwdLockoutDuration, *ad_pwdFailureCountInterval,
-	*ad_pwdCheckModule, *ad_pwdCheckModuleArg, *ad_pwdLockout,
+	*ad_pwdCheckModule, *ad_pwdCheckModuleArg, *ad_pwdUseCheckModule, *ad_pwdLockout,
 	*ad_pwdMustChange, *ad_pwdAllowUserChange, *ad_pwdSafeModify,
 	*ad_pwdAttribute, *ad_pwdMaxRecordedFailure;
 
@@ -384,7 +393,8 @@ static struct schema_info {
 		"NAME ( 'pwdCheckModule' ) "
 		"EQUALITY caseExactIA5Match "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 "
-		"DESC 'Loadable module that instantiates check_password() function' "
+		"DESC 'Obsolete, no longer used' "
+		"OBSOLETE "
 		"SINGLE-VALUE )",
 		&ad_pwdCheckModule },
 	{	"( 1.3.6.1.4.1.4754.1.99.2 "
@@ -394,6 +404,13 @@ static struct schema_info {
 		"DESC 'Argument to pass to check_password() function' "
 		"SINGLE-VALUE )",
 		&ad_pwdCheckModuleArg },
+	{	"( 1.3.6.1.4.1.4754.1.99.3 "
+		"NAME ( 'pwdUseCheckModule' ) "
+		"EQUALITY booleanMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+		"DESC 'Toggle use of the loaded pwdCheckModule' "
+		"SINGLE-VALUE )",
+		&ad_pwdUseCheckModule },
 
 	{ NULL, NULL }
 };
@@ -403,7 +420,7 @@ static char *pwd_ocs[] = {
 		"NAME 'pwdPolicyChecker' "
 		"SUP top "
 		"AUXILIARY "
-		"MAY ( pwdCheckModule $ pwdCheckModuleArg ) )" ,
+		"MAY ( pwdCheckModule $ pwdCheckModuleArg $ pwdUseCheckModule ) )" ,
 	"( 1.3.6.1.4.1.42.2.27.8.2.1 "
 		"NAME 'pwdPolicy' "
 		"SUP top "
@@ -426,9 +443,10 @@ enum {
 	PPOLICY_HASH_CLEARTEXT,
 	PPOLICY_USE_LOCKOUT,
 	PPOLICY_DISABLE_WRITE,
+	PPOLICY_CHECK_MODULE,
 };
 
-static ConfigDriver ppolicy_cf_default;
+static ConfigDriver ppolicy_cf_default, ppolicy_cf_checkmod;
 
 static ConfigTable ppolicycfg[] = {
 	{ "ppolicy_default", "policyDN", 2, 2, 0,
@@ -472,6 +490,17 @@ static ConfigTable ppolicycfg[] = {
 	  "DESC 'Send Netscape policy controls' "
 	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "ppolicy_check_module", "path", 2, 2, 0,
+#ifdef SLAPD_MODULES
+	  ARG_STRING|ARG_MAGIC|PPOLICY_CHECK_MODULE, ppolicy_cf_checkmod,
+#else
+	  ARG_IGNORED, NULL,
+#endif /* SLAPD_MODULES */
+	  "( OLcfgOvAt:12.7 NAME 'olcPPolicyCheckModule' "
+	  "DESC 'Loadable module that instantiates check_password() function' "
+	  "EQUALITY caseExactIA5Match "
+	  "SYNTAX OMsIA5String "
+	  "SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -482,7 +511,8 @@ static ConfigOCs ppolicyocs[] = {
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcPPolicyDefault $ olcPPolicyHashCleartext $ "
 	  "olcPPolicyUseLockout $ olcPPolicyForwardUpdates $ "
-	  "olcPPolicyDisableWrite $ olcPPolicySendNetscapeControls ) )",
+	  "olcPPolicyDisableWrite $ olcPPolicySendNetscapeControls $ "
+	  "olcPPolicyCheckModule ) )",
 	  Cft_Overlay, ppolicycfg },
 	{ NULL, 0, NULL }
 };
@@ -537,6 +567,63 @@ ppolicy_cf_default( ConfigArgs *c )
 
 	return rc;
 }
+
+#ifdef SLAPD_MODULES
+static int
+ppolicy_cf_checkmod( ConfigArgs *c )
+{
+	slap_overinst *on = (slap_overinst *)c->bi;
+	pp_info *pi = (pp_info *)on->on_bi.bi_private;
+	int rc = ARG_BAD_CONF;
+
+	assert ( c->type == PPOLICY_CHECK_MODULE );
+	Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_checkmod\n" );
+
+	switch ( c->op ) {
+	case SLAP_CONFIG_EMIT:
+		if ( pi->pwdCheckModule ) {
+			c->value_string = ch_strdup( pi->pwdCheckModule );
+			rc = 0;
+		}
+		break;
+	case LDAP_MOD_DELETE:
+		if ( pi->pwdCheckHandle ) {
+			lt_dlclose( pi->pwdCheckHandle );
+			pi->pwdCheckHandle = NULL;
+			pi->pwdCheckFunc = NULL;
+		}
+		ch_free( pi->pwdCheckModule );
+		pi->pwdCheckModule = NULL;
+		rc = 0;
+		break;
+	case SLAP_CONFIG_ADD:
+		/* fallthru to LDAP_MOD_ADD */
+	case LDAP_MOD_ADD:
+		pi->pwdCheckHandle = lt_dlopen( c->value_string );
+		if ( pi->pwdCheckHandle == NULL ) {
+			const char *dlerr = lt_dlerror();
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> lt_dlopen(%s) failed: %s",
+				c->argv[0], c->value_string, dlerr );
+			Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+		} else {
+			if (( pi->pwdCheckFunc = lt_dlsym( pi->pwdCheckHandle, "check_password" )) == NULL) {
+				const char *dlerr = lt_dlerror();
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> lt_dlsym(%s) failed: %s",
+					c->argv[0], c->value_string, dlerr );
+				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
+			} else {
+				pi->pwdCheckModule = c->value_string;
+				rc = 0;
+			}
+		}
+		break;
+	default:
+		abort ();
+	}
+
+	return rc;
+}
+#endif /* SLAPD_MODULES */
 
 static time_t
 parse_time( char *atm )
@@ -1026,11 +1113,15 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	}
 
 	ad = ad_pwdCheckModule;
-	if ( (a = attr_find( pe->e_attrs, ad )) ) {
-		strncpy( pp->pwdCheckModule, a->a_vals[0].bv_val,
-			sizeof(pp->pwdCheckModule) );
-		pp->pwdCheckModule[sizeof(pp->pwdCheckModule)-1] = '\0';
+	if ( attr_find( pe->e_attrs, ad )) {
+		Debug( LDAP_DEBUG_ANY, "ppolicy_get: "
+				"WARNING: Ignoring OBSOLETE attribute %s in policy %s.\n",
+				ad->ad_cname.bv_val, pe->e_name.bv_val );
 	}
+
+	ad = ad_pwdUseCheckModule;
+	if ( (a = attr_find( pe->e_attrs, ad )) )
+		pp->pwdUseCheckModule = bvmatch( &a->a_nvals[0], &slap_true_bv );
 
 	ad = ad_pwdCheckModuleArg;
 	if ( (a = attr_find( pe->e_attrs, ad )) ) {
@@ -1125,7 +1216,8 @@ password_scheme( struct berval *cred, struct berval *sch )
 }
 
 static int
-check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyError *err, Entry *e, char **txt )
+check_password_quality( struct berval *cred, pp_info *pi, PassPolicy *pp, LDAPPasswordPolicyError *err,
+	Entry *e, struct berval *errmsg )
 {
 	int rc = LDAP_SUCCESS, ok = LDAP_SUCCESS;
 	char *ptr;
@@ -1133,11 +1225,12 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 
 	assert( cred != NULL );
 	assert( pp != NULL );
-	assert( txt != NULL );
+	assert( errmsg != NULL );
+
+	ptr = errmsg->bv_val;
+	*ptr = '\0';
 
 	ptr = cred->bv_val;
-
-	*txt = NULL;
 
 	if ((cred->bv_len == 0) || (pp->pwdMinLength > cred->bv_len)) {
 		rc = LDAP_CONSTRAINT_VIOLATION;
@@ -1182,63 +1275,40 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 
 	rc = LDAP_SUCCESS;
 
-	if (pp->pwdCheckModule[0]) {
+	if (pp->pwdUseCheckModule) {
 #ifdef SLAPD_MODULES
-		lt_dlhandle mod;
-		const char *err;
-		
-		if ((mod = lt_dlopen( pp->pwdCheckModule )) == NULL) {
-			err = lt_dlerror();
+		check_func *prog;
 
+		if ( !pi->pwdCheckFunc ) {
 			Debug(LDAP_DEBUG_ANY,
-			"check_password_quality: lt_dlopen failed: (%s) %s.\n",
-				pp->pwdCheckModule, err );
-			ok = LDAP_OTHER; /* internal error */
+				"check_password_quality: no CheckModule loaded\n" );
+			ok = LDAP_OTHER;
 		} else {
-			/* FIXME: the error message ought to be passed thru a
-			 * struct berval, with preallocated buffer and size
-			 * passed in. Module can still allocate a buffer for
-			 * it if the provided one is too small.
-			 */
-			int (*prog)( char *passwd, char **text, Entry *ent, struct berval *arg );
-
-			if ((prog = lt_dlsym( mod, "check_password" )) == NULL) {
-				err = lt_dlerror();
-
-				Debug(LDAP_DEBUG_ANY,
-					"check_password_quality: lt_dlsym failed: (%s) %s.\n",
-					pp->pwdCheckModule, err );
-				ok = LDAP_OTHER;
-			} else {
-				struct berval *arg = NULL;
-				if ( !BER_BVISNULL( &pp->pwdCheckModuleArg ) ) {
-					arg = &pp->pwdCheckModuleArg;
-				}
-
-				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
-				ok = prog( ptr, txt, e, arg );
-				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
-				if (ok != LDAP_SUCCESS) {
-					Debug(LDAP_DEBUG_ANY,
-						"check_password_quality: module error: (%s) %s.[%d]\n",
-						pp->pwdCheckModule, *txt ? *txt : "", ok );
-				}
+			struct berval *arg = NULL;
+			if ( !BER_BVISNULL( &pp->pwdCheckModuleArg ) ) {
+				arg = &pp->pwdCheckModuleArg;
 			}
-			    
-			lt_dlclose( mod );
+
+			ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
+			ok = pi->pwdCheckFunc( ptr, errmsg, e, arg );
+			ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
+			if (ok != LDAP_SUCCESS) {
+				Debug(LDAP_DEBUG_ANY,
+					"check_password_quality: module error: (%s) %s.[%d]\n",
+					pi->pwdCheckModule, errmsg->bv_val ? errmsg->bv_val : "", ok );
+			}
 		}
 #else
-	Debug(LDAP_DEBUG_ANY, "check_password_quality: external modules not "
-		"supported. pwdCheckModule ignored.\n" );
+		Debug(LDAP_DEBUG_ANY, "check_password_quality: external modules not "
+			"supported. pwdCheckModule ignored.\n" );
 #endif /* SLAPD_MODULES */
 	}
-		
-		    
+
 	if (ok != LDAP_SUCCESS) {
 		rc = LDAP_CONSTRAINT_VIOLATION;
 		if (err) *err = PP_insufficientPasswordQuality;
 	}
-	
+
 	return rc;
 }
 
@@ -1617,7 +1687,8 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 		} else if ( ppb->pp.pwdMinDelay ) {
 			int waittime = ppb->pp.pwdMinDelay << fc;
 			time_t wait_end;
-			struct berval lockout_stamp;
+			char lockout_stamp_buf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+			struct berval lockout_stamp = BER_BVC(lockout_stamp_buf);
 
 			if ( waittime > ppb->pp.pwdMaxDelay ) {
 				waittime = ppb->pp.pwdMaxDelay;
@@ -2223,7 +2294,7 @@ ppolicy_add(
 		return rs->sr_err;
 
 	/* If this is a replica, assume the provider checked everything */
-	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) )
+	if ( be_shadow_update( op ) )
 		return SLAP_CB_CONTINUE;
 
 	ppolicy_get( op, op->ora_e, &pp );
@@ -2252,14 +2323,16 @@ ppolicy_add(
 			struct berval *bv = &(pa->a_vals[0]);
 			int rc, send_ctrl = 0;
 			LDAPPasswordPolicyError pErr = PP_noError;
-			char *txt;
+			char errbuf[ERRBUFSIZ];
+			struct berval errmsg = BER_BVC( errbuf );
 
 			/* Did we receive a password policy request control? */
 			if ( op->o_ctrlflag[ppolicy_cid] ) {
 				send_ctrl = 1;
 			}
-			rc = check_password_quality( bv, &pp, &pErr, op->ora_e, &txt );
+			rc = check_password_quality( bv, pi, &pp, &pErr, op->ora_e, &errmsg );
 			if (rc != LDAP_SUCCESS) {
+				char *txt = errmsg.bv_val;
 				LDAPControl **oldctrls = NULL;
 				op->o_bd->bd_info = (BackendInfo *)on->on_info;
 				if ( send_ctrl ) {
@@ -2267,8 +2340,8 @@ ppolicy_add(
 					ctrl = create_passcontrol( op, -1, -1, pErr );
 					oldctrls = add_passcontrol( op, rs, ctrl );
 				}
-				send_ldap_error( op, rs, rc, txt ? txt : "Password fails quality checking policy" );
-				if ( txt ) {
+				send_ldap_error( op, rs, rc, txt && txt[0] ? txt : "Password fails quality checking policy" );
+				if ( txt != errbuf ) {
 					free( txt );
 				}
 				if ( send_ctrl ) {
@@ -2366,6 +2439,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				*ml, *delmod, *addmod;
 	Attribute		*pa, *ha, at;
 	const char		*txt;
+	char errbuf[ERRBUFSIZ];
 	pw_hist			*tl = NULL, *p;
 	int			zapReset, send_ctrl = 0, free_txt = 0;
 	Entry			*e;
@@ -2390,7 +2464,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	/* If this is a replica, we may need to tweak some of the
 	 * provider's modifications. Otherwise, just pass it through.
 	 */
-	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) ) {
+	if ( be_shadow_update( op ) ) {
 		Modifications **prev;
 		Attribute *a_grace, *a_lock, *a_fail, *a_success;
 
@@ -2780,13 +2854,16 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 
 	bv = newpw.bv_val ? &newpw : &addmod->sml_values[0];
 	if (pp.pwdCheckQuality > 0) {
+		struct berval errmsg = BER_BVC( errbuf );
 
-		rc = check_password_quality( bv, &pp, &pErr, e, (char **)&txt );
+		rc = check_password_quality( bv, pi, &pp, &pErr, e, &errmsg );
 		if (rc != LDAP_SUCCESS) {
 			rs->sr_err = rc;
-			if ( txt ) {
+			txt = errmsg.bv_val;
+			if ( txt && txt[0] ) {
 				rs->sr_text = txt;
-				free_txt = 1;
+				if ( txt != errbuf )
+					free_txt = 1;
 			} else {
 				rs->sr_text = "Password fails quality checking policy";
 			}

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2009-2022 The OpenLDAP Foundation.
+ * Copyright 2009-2024 The OpenLDAP Foundation.
  * Copyright 2009-2018 by Howard Chu.
  * All rights reserved.
  *
@@ -46,6 +46,10 @@
 #include <openssl/rsa.h>
 #define X509_get_notBefore(x)	X509_getm_notBefore(x)
 #define X509_get_notAfter(x)	X509_getm_notAfter(x)
+#endif
+
+#if OPENSSL_VERSION_MAJOR >= 3
+#define BN_pseudo_rand(bn, bits, top, bottom)	BN_rand(bn, bits, top, bottom)
 #endif
 
 /* This overlay implements a certificate authority that can generate

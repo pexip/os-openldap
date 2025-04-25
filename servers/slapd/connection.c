@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -988,7 +988,7 @@ operation_counter_init( Operation *op, void *ctx )
 }
 
 void
-connection_op_finish( Operation *op )
+connection_op_finish( Operation *op, int lock )
 {
 	Connection *conn = op->o_conn;
 	void *memctx_null = NULL;
@@ -997,7 +997,8 @@ connection_op_finish( Operation *op )
 
 	INCR_OP_COMPLETED( opidx );
 
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	if ( lock )
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	if ( op->o_tag == LDAP_REQ_BIND && conn->c_conn_state == SLAP_C_BINDING )
 		conn->c_conn_state = SLAP_C_ACTIVE;
@@ -1009,7 +1010,8 @@ connection_op_finish( Operation *op )
 	conn->c_n_ops_async--;
 	conn->c_n_ops_completed++;
 	connection_resched( conn );
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	if ( lock )
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 }
 
 static void *

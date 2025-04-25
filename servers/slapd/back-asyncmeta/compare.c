@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2016-2022 The OpenLDAP Foundation.
+ * Copyright 2016-2024 The OpenLDAP Foundation.
  * Portions Copyright 2016 Symas Corporation.
  * All rights reserved.
  *
@@ -197,6 +197,14 @@ asyncmeta_back_compare( Operation *op, SlapReply *rs )
 		Debug( asyncmeta_debug, "==> asyncmeta_back_compare[%s]: o_time:[%ld], current time: [%ld]\n",
 		       op->o_log_prefix, op->o_time, current_time );
 	}
+
+	if ( mi->mi_ntargets == 0 ) {
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "No targets are configured for this database";
+		send_ldap_result(op, rs);
+		return rs->sr_err;
+	}
+
 	asyncmeta_new_bm_context(op, rs, &bc, mi->mi_ntargets, mi );
 	if (bc == NULL) {
 		rs->sr_err = LDAP_OTHER;

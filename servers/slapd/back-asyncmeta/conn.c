@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2016-2022 The OpenLDAP Foundation.
+ * Copyright 2016-2024 The OpenLDAP Foundation.
  * Portions Copyright 2016 Symas Corporation.
  * All rights reserved.
  *
@@ -1181,4 +1181,42 @@ void asyncmeta_log_conns(a_metainfo_t *mi)
 		}
 
 	}
+}
+
+int
+asyncmeta_db_has_pending_ops(a_metainfo_t *mi)
+{
+	int i;
+	if (mi->mi_ntargets == 0) {
+		return 0;
+	}
+
+	for (i = 0; i < mi->mi_num_conns; i++) {
+		if (mi->mi_conns[i].pending_ops > 0) {
+			return mi->mi_conns[i].pending_ops;
+		}
+	}
+
+	return 0;
+}
+
+
+int
+asyncmeta_db_has_mscs(a_metainfo_t *mi)
+{
+	int i, j;
+	if (mi->mi_ntargets == 0) {
+		return 0;
+	}
+
+	for (i = 0; i < mi->mi_num_conns; i++) {
+		for (j = 0; j < mi->mi_ntargets; j++) {
+			if (mi->mi_conns[i].mc_conns[j].msc_ld != NULL ||
+			    mi->mi_conns[i].mc_conns[j].msc_ldr != NULL ) {
+				return 1;
+			}
+		}
+	}
+
+	return 0;
 }
