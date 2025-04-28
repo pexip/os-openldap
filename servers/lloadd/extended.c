@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     output = c->c_pendingber;
     if ( output == NULL && (output = ber_alloc()) == NULL ) {
         checked_unlock( &c->c_io_mutex );
-        operation_unlink( op );
+        OPERATION_UNLINK(op);
         CONNECTION_LOCK_DESTROY(c);
         return -1;
     }
@@ -115,7 +115,7 @@ handle_starttls( LloadConnection *c, LloadOperation *op )
     op->o_res = LLOAD_OP_COMPLETED;
     CONNECTION_UNLOCK(c);
 
-    operation_unlink( op );
+    OPERATION_UNLINK(op);
 
     return -1;
 #endif /* HAVE_TLS */
@@ -125,6 +125,7 @@ int
 request_extended( LloadConnection *c, LloadOperation *op )
 {
     ExopHandler *handler, needle = {};
+    struct restriction_entry *restriction, rneedle = {};
     BerElement *copy;
     struct berval bv;
     ber_tag_t tag;
@@ -157,6 +158,15 @@ request_extended( LloadConnection *c, LloadOperation *op )
         return handler->func( c, op );
     }
     ber_free( copy, 0 );
+
+    rneedle.oid = bv;
+    restriction = ldap_tavl_find( lload_exop_actions, &rneedle,
+            lload_restriction_cmp );
+    if ( restriction ) {
+        op->o_restricted = restriction->action;
+    } else {
+        op->o_restricted = lload_default_exop_action;
+    }
 
     return request_process( c, op );
 }
@@ -200,4 +210,11 @@ lload_exop_init( void )
     }
 
     return LDAP_SUCCESS;
+}
+
+void
+lload_exop_destroy( void )
+{
+    ldap_avl_free( lload_exop_handlers, NULL );
+    lload_exop_handlers = NULL;
 }

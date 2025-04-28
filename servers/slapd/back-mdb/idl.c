@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2022 The OpenLDAP Foundation.
+ * Copyright 2000-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -727,7 +727,9 @@ mdb_idl_intersection(
 	if ( idmin > idmax ) {
 		a[0] = 0;
 		return 0;
-	} else if ( idmin == idmax ) {
+	} else if ( idmin == idmax &&
+			(( MDB_IDL_FIRST(a) == MDB_IDL_LAST(b)) ||
+			( MDB_IDL_FIRST(b) == MDB_IDL_LAST(a)))) {
 		a[0] = 1;
 		a[1] = idmin;
 		return 0;

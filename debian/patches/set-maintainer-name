@@ -1,5 +1,7 @@
---- a/build/mkversion
-+++ b/build/mkversion
+Index: openldap/build/mkversion
+===================================================================
+--- openldap.orig/build/mkversion	2022-05-20 17:36:16.721249629 -0400
++++ openldap/build/mkversion	2022-05-20 17:36:16.717249626 -0400
 @@ -50,12 +50,7 @@
  fi
  

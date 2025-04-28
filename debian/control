@@ -3,28 +3,32 @@ Section: net
 Priority: optional
 Maintainer: Pexip AS <packaging@pexip.com>
 XSBC-Pexip-Original-Maintainer: Debian OpenLDAP Maintainers <pkg-openldap-devel@lists.alioth.debian.org>
-XSBC-Pexip-Original-Uploaders: Steve Langasek <vorlon@debian.org>,
- Torsten Landschoff <torsten@debian.org>,
- Ryan Tandy <ryan@nardis.ca>,
- Sergio Durigan Junior <sergiodj@debian.org>
-Build-Depends: debhelper-compat (= 12),
-               dpkg-dev (>= 1.17.14),
+XSBC-Pexip-Original-Uploaders: Ryan Tandy <ryan@nardis.ca>,
+ Sergio Durigan Junior <sergiodj@debian.org>,
+ Michael Tokarev <mjt@tls.msk.ru>
+Build-Depends: debhelper-compat (= 13),
                groff-base,
-               heimdal-multidev (>= 7.4.0.dfsg.1-1~) <!pkg.openldap.noslapd>,
+               heimdal-multidev <!pkg.openldap.noslapd>,
                libargon2-dev <!pkg.openldap.noslapd>,
-               libssl-dev (>= 3),
+               libcrack2-dev <!pkg.openldap.noslapd>,
                libltdl-dev <!pkg.openldap.noslapd>,
-               libperl-dev (>= 5.8.0) <!pkg.openldap.noslapd>,
+               libperl-dev <!pkg.openldap.noslapd>,
                libsasl2-dev,
+               libssl-dev,
                libwrap0-dev <!pkg.openldap.noslapd>,
-               nettle-dev <!pkg.openldap.noslapd>,
-               openssl <!nocheck>,
+               openssl <!nocheck !pkg.openldap.noslapd>,
                perl:any,
-               pkg-config (>= 0.29),
+               pkgconf,
                po-debconf,
-               unixodbc-dev <!pkg.openldap.noslapd>
-Build-Conflicts: libbind-dev, bind-dev, autoconf2.13
-Standards-Version: 4.6.0
+               unixodbc-dev <!pkg.openldap.noslapd>,
+# Needed for SASL/GSSAPI tests
+               krb5-admin-server <!nocheck !pkg.openldap.noslapd>,
+               krb5-user <!nocheck !pkg.openldap.noslapd>,
+               krb5-kdc <!nocheck !pkg.openldap.noslapd>,
+               libsasl2-modules-gssapi-mit <!nocheck !pkg.openldap.noslapd>,
+               sasl2-bin <!nocheck !pkg.openldap.noslapd>,
+Build-Conflicts: libbind-dev, autoconf2.13
+Standards-Version: 4.7.2
 Homepage: https://www.openldap.org/
 Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/openldap-team/openldap.git
@@ -34,15 +38,14 @@ XS-Pexip-Upstream: http://deb.debian.org/debian/ trixie
 Package: slapd
 Architecture: any
 Build-Profiles: <!pkg.openldap.noslapd>
-Pre-Depends: debconf (>= 0.5) | debconf-2.0, ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, libldap-2.5-0 (= ${binary:Version}),
- coreutils (>= 4.5.1-1), psmisc, perl:any (>> 5.8.0) | libmime-base64-perl,
- adduser, lsb-base (>= 3.2-13), ${perl:Depends}, ${misc:Depends}
+Pre-Depends: debconf, ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, libldap2 (= ${binary:Version}),
+ psmisc,
+ adduser, ${misc:Depends}
 Recommends: ldap-utils
 Suggests: libsasl2-modules,
  libsasl2-modules-gssapi-mit | libsasl2-modules-gssapi-heimdal
-Conflicts: umich-ldapd, ldap-server, libltdl3 (= 1.5.4-1)
-Replaces: libldap2, ldap-utils (<< 2.2.23-3)
+Conflicts: ldap-server
 Provides: ldap-server, ${slapd:Provides}
 Description: OpenLDAP server (slapd)
  This is the OpenLDAP (Lightweight Directory Access Protocol) server
@@ -61,23 +64,12 @@ Description: contributed plugins for OpenLDAP slapd
  the OpenLDAP community. While distributed as part of OpenLDAP Software, they
  are not necessarily supported by the OpenLDAP Project.
 
-Package: slapd-smbk5pwd
-Architecture: all
-Section: oldlibs
-Build-Profiles: <!pkg.openldap.noslapd>
-Depends: slapd-contrib, ${misc:Depends}
-Breaks: slapd (<< 2.4.47+dfsg-2~)
-Description: transitional package for slapd-contrib
- This is a transitional package from slapd-smbk5pwd to slapd-contrib. It can be
- safely removed.
-
 Package: ldap-utils
 Architecture: any
-Depends: ${shlibs:Depends}, libldap-2.5-0 (= ${binary:Version}), ${misc:Depends}
+Depends: ${shlibs:Depends}, libldap2 (= ${binary:Version}), ${misc:Depends}
 Suggests: libsasl2-modules,
  libsasl2-modules-gssapi-mit | libsasl2-modules-gssapi-heimdal
-Conflicts: umich-ldap-utils, openldap-utils, ldap-client
-Replaces: openldap-utils, slapd (<< 2.2.23-0.pre6), openldapd
+Conflicts: ldap-client
 Provides: ldap-client, openldap-utils
 Description: OpenLDAP utilities
  This package provides utilities from the OpenLDAP (Lightweight
@@ -85,15 +77,13 @@ Description: OpenLDAP utilities
  local or remote LDAP server and contain all the client programs
  required to access LDAP servers.
 
-Package: libldap-2.5-0
+Package: libldap2
 Section: libs
 Architecture: any
 Multi-Arch: same
-Conflicts: ldap-utils (<= 2.1.23-1)
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: libldap-common
-Replaces: libldap2, libldap-2.3-0
 Description: OpenLDAP libraries
  These are the run-time libraries for the OpenLDAP (Lightweight Directory
  Access Protocol) servers and clients.
@@ -103,7 +93,6 @@ Section: libs
 Architecture: all
 Multi-Arch: foreign
 Depends: ${misc:Depends}
-Replaces: libldap-2.4-2 (<< 2.4.44+dfsg-1)
 Description: OpenLDAP common files for libraries
  These are common files for the run-time libraries for the OpenLDAP
  (Lightweight Directory Access Protocol) servers and clients.
@@ -115,7 +104,7 @@ Multi-Arch: same
 Provides: libldap2-dev
 Breaks: libldap2-dev (<< 2.5.4+dfsg-1~)
 Replaces: libldap2-dev (<< 2.5.4+dfsg-1~)
-Depends: libldap-2.5-0 (= ${binary:Version}), ${misc:Depends}
+Depends: libldap2 (= ${binary:Version}), ${misc:Depends}
 Description: OpenLDAP development libraries
  This package allows development of LDAP applications using the OpenLDAP
  libraries. It includes headers, libraries and links to allow static and

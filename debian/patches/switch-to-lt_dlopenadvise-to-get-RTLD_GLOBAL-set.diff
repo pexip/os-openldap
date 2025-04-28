@@ -6,9 +6,11 @@ Subject: Switch to lt_dlopenadvise() so back_perl can be opened with RTLD_GLOBAL
 Bug-Debian: http://bugs.debian.org/327585
 
 ---
---- a/servers/slapd/module.c
-+++ b/servers/slapd/module.c
-@@ -117,6 +117,20 @@ int module_unload( const char *file_name
+Index: openldap/servers/slapd/module.c
+===================================================================
+--- openldap.orig/servers/slapd/module.c	2022-05-20 17:36:16.057249110 -0400
++++ openldap/servers/slapd/module.c	2022-05-20 17:36:16.053249107 -0400
+@@ -117,6 +117,20 @@
  	return -1;	/* not found */
  }
  
@@ -29,7 +31,7 @@ Bug-Debian: http://bugs.debian.org/327585
  int module_load(const char* file_name, int argc, char *argv[])
  {
  	module_loaded_t *module;
-@@ -180,7 +194,7 @@ int module_load(const char* file_name, i
+@@ -179,7 +193,7 @@
  	 * to calling Debug. This is because Debug is a macro that expands
  	 * into multiple function calls.
  	 */

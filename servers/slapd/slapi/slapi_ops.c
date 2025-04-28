@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2022 The OpenLDAP Foundation.
+ * Copyright 2002-2024 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -342,6 +342,10 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 			op->o_tmpfree( op->orr_nnewSup->bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
 		}
+		if ( !BER_BVISNULL( &op->orr_newDN ))
+			op->o_tmpfree( op->orr_newDN.bv_val, op->o_tmpmemctx );
+		if ( !BER_BVISNULL( &op->orr_nnewDN ))
+			op->o_tmpfree( op->orr_nnewDN.bv_val, op->o_tmpmemctx );
 		slap_mods_free( op->orr_modlist, 1 );
 		break;
 	case LDAP_REQ_ADD:

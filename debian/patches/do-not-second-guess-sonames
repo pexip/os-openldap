@@ -6,8 +6,10 @@ Debian bug #546885
 
 Upstream ITS #6302 filed.
 
---- a/libraries/libldap/cyrus.c
-+++ b/libraries/libldap/cyrus.c
+Index: openldap/libraries/libldap/cyrus.c
+===================================================================
+--- openldap.orig/libraries/libldap/cyrus.c	2022-05-20 17:36:13.661247231 -0400
++++ openldap/libraries/libldap/cyrus.c	2022-05-20 17:36:13.661247231 -0400
 @@ -74,29 +74,6 @@
   */
  int ldap_int_sasl_init( void )
@@ -38,8 +40,10 @@ Upstream ITS #6302 filed.
  /* SASL 2 takes care of its own memory completely internally */
  #if SASL_VERSION_MAJOR < 2 && !defined(CSRIMALLOC)
  	sasl_set_alloc(
---- a/servers/slapd/sasl.c
-+++ b/servers/slapd/sasl.c
+Index: openldap/servers/slapd/sasl.c
+===================================================================
+--- openldap.orig/servers/slapd/sasl.c	2022-05-20 17:36:13.661247231 -0400
++++ openldap/servers/slapd/sasl.c	2022-05-20 17:36:13.661247231 -0400
 @@ -1271,26 +1271,6 @@
  	rewrite_mapper_register( &slapd_mapper );
  

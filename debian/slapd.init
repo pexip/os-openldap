@@ -24,22 +24,20 @@ SLAPD=/usr/sbin/slapd
 [ -x $SLAPD ] || exit 0
 
 # debconf may have this file descriptor open and it makes things work a bit
-# more reliably if we redirect it as a matter of course.  db_stop will take
+# more reliably if we close it as a matter of course.  db_stop will take
 # care of this, but this won't hurt.
-exec 3>/dev/null
+exec 3>&-
 
 # Source the init script configuration
-if [ -f "/etc/default/slapd" ]; then
+if [ -f /etc/default/slapd ]; then
 	. /etc/default/slapd
 fi
 
 # Load the default location of the slapd config file
 if [ -z "$SLAPD_CONF" ]; then
-	if [ -e /etc/ldap/slapd.d ]; then
-		SLAPD_CONF=/etc/ldap/slapd.d
-	else
+	[ -e /etc/ldap/slapd.d ] &&
+		SLAPD_CONF=/etc/ldap/slapd.d ||
 		SLAPD_CONF=/etc/ldap/slapd.conf
-	fi
 fi
 
 # Stop processing if the config file is not there
@@ -51,41 +49,22 @@ if [ ! -r "$SLAPD_CONF" ]; then
 fi
 
 # extend options depending on config type
-if [ -f "$SLAPD_CONF" ]; then
-	SLAPD_OPTIONS="-f $SLAPD_CONF $SLAPD_OPTIONS"
-elif [ -d "$SLAPD_CONF" ] ; then
+[ -f "$SLAPD_CONF" ] &&
+	SLAPD_OPTIONS="-f $SLAPD_CONF $SLAPD_OPTIONS" ||
 	SLAPD_OPTIONS="-F $SLAPD_CONF $SLAPD_OPTIONS"
-fi
 
 # Find out the name of slapd's pid file
 if [ -z "$SLAPD_PIDFILE" ]; then
-	# If using old one-file configuration scheme
-	if [ -f "$SLAPD_CONF" ] ; then
-		SLAPD_PIDFILE=`sed -ne 's/^pidfile[[:space:]]\+\(.\+\)/\1/p' \
-			"$SLAPD_CONF"`
-	# Else, if using new directory configuration scheme
-	elif [ -d "$SLAPD_CONF" ] ; then
-		SLAPD_PIDFILE=`sed -ne \
-			's/^olcPidFile:[[:space:]]\+\(.\+\)[[:space:]]*/\1/p' \
-			"$SLAPD_CONF"/'cn=config.ldif'`
+	if [ -d "$SLAPD_CONF" ] ; then # new directory config scheme
+		SLAPD_PIDFILE=$(sed -rne 's/^olcPidFile:\s+(.+)/\1/p' "$SLAPD_CONF/cn=config.ldif")
+	else # old one-file config scheme
+		SLAPD_PIDFILE=$(sed -rne 's/^pidfile\s+(.+)/\1/p' "$SLAPD_CONF")
 	fi
 fi
 
-# XXX: Breaks upgrading if there is no pidfile (invoke-rc.d stop will fail)
-# -- Torsten
-if [ -z "$SLAPD_PIDFILE" ]; then
-	log_failure_msg "The pidfile for slapd has not been specified"
-	exit 1
-fi
-
 # Pass the user and group to run under to slapd
-if [ "$SLAPD_USER" ]; then
-	SLAPD_OPTIONS="-u $SLAPD_USER $SLAPD_OPTIONS"
-fi
-
-if [ "$SLAPD_GROUP" ]; then
-	SLAPD_OPTIONS="-g $SLAPD_GROUP $SLAPD_OPTIONS"
-fi
+[ -z "$SLAPD_USER"  ] || SLAPD_OPTIONS="-u $SLAPD_USER $SLAPD_OPTIONS"
+[ -z "$SLAPD_GROUP" ] || SLAPD_OPTIONS="-g $SLAPD_GROUP $SLAPD_OPTIONS"
 
 # Check whether we were configured to not start the services.
 check_for_no_start() {
@@ -99,104 +78,64 @@ check_for_no_start() {
 	fi
 }
 
-# Tell the user that something went wrong and give some hints for
-# resolving the problem.
-report_failure() {
-	log_end_msg 1
-	if [ -n "$reason" ]; then
-		log_failure_msg "$reason"
-	else
-		log_failure_msg "The operation failed but no output was produced."
-
-		if [ -n "$SLAPD_OPTIONS" -o \
-		     -n "$SLAPD_SERVICES" ]; then
-			if [ -z "$SLAPD_SERVICES" ]; then
-				if [ -n "$SLAPD_OPTIONS" ]; then
-					log_failure_msg "Command line used: slapd $SLAPD_OPTIONS"
-				fi
-			else
-				log_failure_msg "Command line used: slapd -h '$SLAPD_SERVICES' $SLAPD_OPTIONS"
-			fi
-		fi
-	fi
-}
-
-# Start the slapd daemon and capture the error message if any to 
-# $reason.
 start_slapd() {
+
 	# Make sure /var/run/slapd exists with correct permissions
 	if [ ! -d /var/run/slapd ]; then
 		mkdir -p /var/run/slapd
-		[ -z "$SLAPD_USER" ] || chown -R "$SLAPD_USER" /var/run/slapd
-		[ -z "$SLAPD_GROUP" ] || chgrp -R "$SLAPD_GROUP" /var/run/slapd
+		chown "$SLAPD_USER":"$SLAPD_GROUP" /var/run/slapd
 	fi
 
-	# Make sure the pidfile directory exists with correct permissions
-	piddir=`dirname "$SLAPD_PIDFILE"`
-	if [ ! -d "$piddir" ]; then
+	piddir="${SLAPD_PIDFILE%/*}"
+	if [ -z "$SLAPD_PIDFILE" ]; then
+		log_warning_msg "The pid file for slapd has not been specified"
+	elif [ ! -d "$piddir" ]; then
 		mkdir -p "$piddir"
-		[ -z "$SLAPD_USER" ] || chown -R "$SLAPD_USER" "$piddir"
-		[ -z "$SLAPD_GROUP" ] || chgrp -R "$SLAPD_GROUP" "$piddir"
+		chown "$SLAPD_USER":"$SLAPD_GROUP" "$piddir"
 	fi
 
-	if [ -z "$SLAPD_SERVICES" ]; then
-		reason="`start-stop-daemon --start --quiet --oknodo \
-			--pidfile "$SLAPD_PIDFILE" \
-			--exec $SLAPD -- $SLAPD_OPTIONS 2>&1`"
-	else
-		reason="`start-stop-daemon --start --quiet --oknodo \
-			--pidfile "$SLAPD_PIDFILE" \
-			--exec $SLAPD -- -h "$SLAPD_SERVICES" $SLAPD_OPTIONS 2>&1`"
-	fi
+	[ -z "$KRB5_KTNAME" ] || export KRB5_KTNAME
 
-	# Backward compatibility with OpenLDAP 2.1 client libraries.
-	if [ ! -h /var/run/ldapi ] && [ ! -e /var/run/ldapi ] ; then
-		ln -s slapd/ldapi /var/run/ldapi
-	fi
-}
-
-# Stop the slapd daemon and capture the error message (if any) to
-# $reason.
-stop_slapd() {
-	reason="`start-stop-daemon --stop --quiet --oknodo --retry TERM/10 \
-		--pidfile "$SLAPD_PIDFILE" \
-		--exec $SLAPD 2>&1`"
-}
-
-# Start the OpenLDAP daemons
-start_ldap() {
-	trap 'report_failure' 0
-	log_daemon_msg "Starting OpenLDAP" "slapd"
-	start_slapd
-	trap "-" 0
+	log_daemon_msg "Starting OpenLDAP" slapd
+	reason=$(start-stop-daemon --start --quiet --oknodo \
+		${SLAPD_PIDFILE:+--pidfile "$SLAPD_PIDFILE"} \
+		--exec $SLAPD -- ${SLAPD_SERVICES:+-h "$SLAPD_SERVICES"} $SLAPD_OPTIONS 2>&1) ||
+	{
+		[ -z "$reason" ] || log_failure_msg "$reason"
+		log_failure_msg Command line used: ${SLAPD} ${SLAPD_SERVICES:+ -h \"$SLAPD_SERVICES\"} $SLAPD_OPTIONS
+		return 1
+	}
 	log_end_msg 0
 }
 
-# Stop the OpenLDAP daemons
-stop_ldap() {
-	trap 'report_failure' 0
-	log_daemon_msg "Stopping OpenLDAP" "slapd"
-	stop_slapd
-	trap "-" 0
+stop_slapd() {
+	log_daemon_msg "Stopping OpenLDAP" slapd
+	start-stop-daemon --stop --quiet --oknodo --retry TERM/10 \
+		${SLAPD_PIDFILE:+--pidfile "$SLAPD_PIDFILE"} \
+		--exec $SLAPD ||
+	{
+		log_failure_msg
+		return 1
+	}
 	log_end_msg 0
 }
 
 case "$1" in
   start)
 	check_for_no_start
-  	start_ldap ;;
+	start_slapd ;;
   stop)
-  	stop_ldap ;;
+	stop_slapd ;;
   restart|force-reload)
 	check_for_no_start
-  	stop_ldap
-	start_ldap
+	stop_slapd
+	start_slapd
 	;;
   status)
-	status_of_proc -p $SLAPD_PIDFILE $SLAPD slapd
+	status_of_proc ${SLAPD_PIDFILE:+-p "$SLAPD_PIDFILE"} $SLAPD slapd
 	;;
   *)
-  	echo "Usage: $0 {start|stop|restart|force-reload|status}"
+	echo "Usage: $0 {start|stop|restart|force-reload|status}"
 	exit 1
 	;;
 esac

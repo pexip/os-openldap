@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2022 The OpenLDAP Foundation.
+ * Copyright 2004-2024 The OpenLDAP Foundation.
  * Portions Copyright 2004-2005 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
@@ -45,6 +45,7 @@
 #include <krb5.h>
 #include <kadm5/admin.h>
 #include <hdb.h>
+#include <kadm5/private.h>
 
 #ifndef HDB_INTERFACE_VERSION
 #define	HDB_MASTER_KEY_SET	master_key_set

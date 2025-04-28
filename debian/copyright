@@ -35,6 +35,7 @@ Comment:
  Additional information about OpenLDAP can be obtained at
  <http://www.openldap.org/>.
 Files-Excluded: doc/drafts/*
+                doc/guide/admin/guide.html
                 doc/rfc/*
                 servers/slapd/schema/collective.schema
                 servers/slapd/schema/corba.schema
@@ -87,9 +88,8 @@ Files: build/lt~obsolete.m4
 Copyright: Copyright (C) 2004-2005, 2007, 2009, 2011-2015 Free Software Foundation, Inc.
 License: FSF-unlimited
 
-Files: build/missing
-       contrib/ldapc++/missing
-Copyright: Copyright (C) 1996-2014 Free Software Foundation, Inc.
+Files: contrib/ldapc++/missing
+Copyright: Copyright (C) 1996-2018 Free Software Foundation, Inc.
 License: GPL-2+ with Autoconf exception
 
 Files: build/shtool

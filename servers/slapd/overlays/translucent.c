@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2022 The OpenLDAP Foundation.
+ * Copyright 2004-2024 The OpenLDAP Foundation.
  * Portions Copyright 2005 Symas Corporation.
  * All rights reserved.
  *
@@ -176,9 +176,9 @@ translucent_cfadd( Operation *op, SlapReply *rs, Entry *e, ConfigArgs *ca )
 
 	/* We can only create this entry if the database is table-driven
 	 */
-	if ( ov->db.bd_info->bi_cf_ocs )
+	if ( ov->db.be_cf_ocs )
 		config_build_entry( op, rs, cei, ca, &bv,
-				    ov->db.bd_info->bi_cf_ocs,
+				    ov->db.be_cf_ocs,
 				    &translucentocs[1] );
 
 	return 0;
@@ -801,8 +801,8 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 
 	tc = op->o_callback->sc_private;
 
-	/* Don't let the op complete while we're gathering data */
-	if ( rs->sr_type == REP_RESULT && ( tc->step & USE_LIST ))
+	/* We took over the op, don't let it complete yet */
+	if ( rs->sr_type == REP_RESULT )
 		return 0;
 
 	if(rs->sr_type != REP_SEARCH || !rs->sr_entry)
@@ -1174,6 +1174,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 		op2.o_hdr = &oh;
 		op2.o_extra = op->o_extra;
 		op2.o_callback = &cb;
+		op2.ors_attrs = slap_anlist_all_attributes;
 
 		tc.attrs = op->ors_attrs;
 		op->ors_slimit = SLAP_NO_LIMIT;
@@ -1229,9 +1230,9 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 			rs->sr_flags = 0;
 			rs->sr_entry = NULL;
 		}
-		send_ldap_result( op, rs );
 	}
 
+	send_ldap_result( op, rs );
 	op->ors_slimit = tc.slimit;
 
 	/* Free in reverse order */

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2022 The OpenLDAP Foundation.
+ * Copyright 2000-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1212,8 +1212,6 @@ nochange:
 	} else {
 		send_ldap_result( op, rs );
 	}
-
-	rs->sr_err = LDAP_SUCCESS;
 
 done:
 	if ( cb.sc_private ) {

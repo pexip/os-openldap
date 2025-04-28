@@ -1,20 +1,22 @@
 # openldap po-debconf translation to Catalan.
 # This file is distributed under the same license as the openldap package.
 # Innocent De Marchi <tangram.peces@gmail.com>, 2011-2017.
+# poc senderi <pocsenderi@protonmail.com>, 2024.
+# Carles Pina i Estany <cpina@debian.org>, 2024.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: openldap 2.4.44+dfsg-4\n"
 "Report-Msgid-Bugs-To: openldap@packages.debian.org\n"
 "POT-Creation-Date: 2021-08-16 01:12+0000\n"
-"PO-Revision-Date: 2017-01-19 19:35+0100\n"
-"Last-Translator: Innocent De Marchi <tangram.peces@gmail.com>\n"
-"Language-Team: catalan <debian-l10n-catalan@lists.debian.org>\n"
-"Language: ca_ES\n"
+"PO-Revision-Date: 2024-11-25 10:27+0100\n"
+"Last-Translator: Carles Pina i Estany <cpina@debian.org>\n"
+"Language-Team: Catalan <debian-l10n-catalan@lists.debian.org>\n"
+"Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.11\n"
+"X-Generator: Poedit 3.2.2\n"
 
 #. Type: boolean
 #. Description
@@ -143,12 +145,12 @@ msgid ""
 "LDAP server will not be set up. Run 'dpkg-reconfigure slapd' if you want to "
 "retry later."
 msgstr ""
-"La configuració que ha introduït no és vàlida. Comproveu que el nom de "
+"La configuració que heu introduït no és vàlida. Comproveu que el nom de "
 "domini DNS és sintàcticament correcte, que el camp del nom de l'organització "
 "està emplenat i que les contrasenyes de l'administrador coincideixen. Si "
-"decideix no tornar a intentar la configuració, el servidor LDAP quedarà "
-"sense configurar. Executi «dpkg-reconfigure slapd» per tornar a intentar-ho "
-"més tard."
+"decidiu no tornar a intentar la configuració, el servidor LDAP quedarà sense "
+"configurar. Executeu «dpkg-reconfigure slapd» per tornar a intentar-ho més "
+"tard."
 
 #. Type: string
 #. Description
@@ -165,8 +167,8 @@ msgid ""
 "dc=example, dc=org' as base DN."
 msgstr ""
 "El nom de domini DNS es fa servir per construir el DN base del directori "
-"LDAP. Per exemple, si el vostre nom de domini és «elmeu.domini.org» es "
-"generarà el directori amb el DN base «dc=elmeu, dc=domini, dc=org»"
+"LDAP. Per exemple, «elmeu.exemple.org» crearà el directori amb el DN base "
+"«dc=elmeu, dc=exemple, dc=org»."
 
 #. Type: string
 #. Description
@@ -196,7 +198,7 @@ msgstr "Contrasenya de l'administrador:"
 msgid "Please enter the password for the admin entry in your LDAP directory."
 msgstr ""
 "Escriviu la contrasenya per l'accés com administrador al vostre directori "
-"LDAP:"
+"LDAP."
 
 #. Type: password
 #. Description
@@ -290,7 +292,7 @@ msgstr ""
 #. Description
 #: ../slapd.templates:15001
 msgid "Error while performing post-installation tasks"
-msgstr ""
+msgstr "Hi ha hagut un error al realitzar tasques posteriors a la instal·lació"
 
 #. Type: note
 #. Description
@@ -301,6 +303,10 @@ msgid ""
 "migrate one or more LDAP databases, or that a backend being used by the "
 "current OpenLDAP installation is not supported anymore."
 msgstr ""
+"Hi ha hagut un o més errors al realitzar tasques posteriors a la "
+"instal·lació. Això vol dir que probablement el paquet «slapd» no ha pogut "
+"migrar automàticament una o més bases de dades LDAP, o que un «backend» en "
+"ús per la instal·lació actual d'OpenLDAP ja no és compatible."
 
 #. Type: note
 #. Description
@@ -310,6 +316,9 @@ msgid ""
 "has exited, but the slapd service has NOT been (re)started. You will need to "
 "manually fix the problem and then start the service."
 msgstr ""
+"L'script de mantenidor responsable d'executar les tasques posteriors a la "
+"instal·lació ha acabat, però el servei «slapd» NO ha estat (re)iniciat. "
+"Caldrà solucionar el problema manualment i després iniciar el servei."
 
 #. Type: note
 #. Description
@@ -319,6 +328,8 @@ msgid ""
 "them, please take a look at the README.Debian file (under /usr/share/doc/"
 "slapd/)."
 msgstr ""
+"Per a més informació sobre escenaris problemàtics i com afrontar-los, feu "
+"una ullada al fitxer README.Debian (a dins de «/usr/share/doc/slapd/»)."
 
 #~ msgid "abort installation"
 #~ msgstr "aturar la instal·lació"

@@ -369,6 +369,7 @@ constraint_cf_gen( ConfigArgs *c )
 						ap.attrs[i] = NULL;
 						if ( slap_str2ad( ap.lud->lud_attrs[i], &ap.attrs[i], &text ) ) {
 							ch_free( ap.attrs );
+							ap.attrs = NULL;
 							snprintf( c->cr_msg, sizeof( c->cr_msg ),
 								"%s <%s>: %s\n", c->argv[0], ap.lud->lud_attrs[i], text );
 							rc = ARG_BAD_CONF;
@@ -557,7 +558,7 @@ done:;
 				a2->restrict_filter = ap.restrict_filter;
 				a2->restrict_val = ap.restrict_val;
 
-				for ( app = &on->on_bi.bi_private; *app; app = &(*app)->ap_next )
+				for ( app = (constraint **)&on->on_bi.bi_private; *app; app = &(*app)->ap_next )
 					/* Get to the end */ ;
 
 				a2->ap_next = *app;
@@ -816,7 +817,7 @@ constraint_add( Operation *op, SlapReply *rs )
 	int rc = 0;
 	char *msg = NULL;
 
-	if (get_relax(op) || SLAPD_SYNC_IS_SYNCCONN( op->o_connid )) {
+	if ( get_relax(op) || be_shadow_update( op ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -958,7 +959,7 @@ constraint_update( Operation *op, SlapReply *rs )
 	char *msg = NULL;
 	int is_v;
 
-	if (get_relax(op) || SLAPD_SYNC_IS_SYNCCONN( op->o_connid )) {
+	if ( get_relax(op) || be_shadow_update( op ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1056,23 +1057,10 @@ constraint_update( Operation *op, SlapReply *rs )
 
 					target_entry_copy = entry_dup(target_entry);
 
-					/* if rename, set the new entry's name
-					 * (in normalized form only) */
+					/* if rename, set the new entry's name */
 					if ( op->o_tag == LDAP_REQ_MODRDN ) {
-						struct berval pdn, ndn = BER_BVNULL;
-
-						if ( op->orr_nnewSup ) {
-							pdn = *op->orr_nnewSup;
-
-						} else {
-							dnParent( &target_entry_copy->e_nname, &pdn );
-						}
-
-						build_new_dn( &ndn, &pdn, &op->orr_nnewrdn, NULL ); 
-
-						ber_memfree( target_entry_copy->e_nname.bv_val );
-						target_entry_copy->e_nname = ndn;
-						ber_bvreplace( &target_entry_copy->e_name, &ndn );
+						ber_bvreplace( &target_entry_copy->e_name, &op->orr_newDN );
+						ber_bvreplace( &target_entry_copy->e_nname, &op->orr_nnewDN );
 					}
 
 					/* apply modifications, in an attempt

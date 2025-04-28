@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2022 The OpenLDAP Foundation.
+ * Copyright 1998-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,10 +102,8 @@ do_abandon( Operation *op, SlapReply *rs )
 			|| o->o_tag == LDAP_REQ_ABANDON ) {
 		msg = "cannot be abandoned";
 
-#if 0 /* Would break o_abandon used as "suppress response" flag, ITS#6138 */
 	} else if ( o->o_abandon ) {
 		msg = "already being abandoned";
-#endif
 
 	} else {
 		msg = "found";

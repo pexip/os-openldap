@@ -282,9 +282,7 @@ variant_op_add( Operation *op, SlapReply *rs )
 	variantEntry_info *vei;
 	int rc;
 
-	/* Replication always uses the rootdn */
-	if ( ov->passReplication && SLAPD_SYNC_IS_SYNCCONN(op->o_connid) &&
-			be_isroot( op ) ) {
+	if ( ov->passReplication && be_shadow_update( op ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -431,9 +429,7 @@ variant_op_mod( Operation *op, SlapReply *rs )
 	regmatch_t pmatch[10];
 	int rc, nmatch = sizeof(pmatch) / sizeof(regmatch_t);
 
-	/* Replication always uses the rootdn */
-	if ( ov->passReplication && SLAPD_SYNC_IS_SYNCCONN(op->o_connid) &&
-			be_isroot( op ) ) {
+	if ( ov->passReplication && be_shadow_update( op ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -700,7 +696,7 @@ static ConfigTable variant_cfg[] = {
 	{ "passReplication", "on|off", 2, 2, 0,
 		ARG_ON_OFF|ARG_OFFSET,
 		(void *)offsetof( variant_info_t, passReplication ),
-		"( OLcfgOvAt:FIXME.1 NAME 'olcVariantPassReplication' "
+		"( OLcfgOvAt:9.1 NAME 'olcVariantPassReplication' "
 			"DESC 'Whether to let searches with replication control "
 				"pass unmodified' "
 			"SYNTAX OMsBoolean "
@@ -710,7 +706,7 @@ static ConfigTable variant_cfg[] = {
 	{ "variantDN", "dn", 2, 2, 0,
 		ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		variant_set_dn,
-		"( OLcfgOvAt:FIXME.2 NAME 'olcVariantEntry' "
+		"( OLcfgOvAt:9.2 NAME 'olcVariantEntry' "
 			"DESC 'DN of the variant entry' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN "
@@ -720,7 +716,7 @@ static ConfigTable variant_cfg[] = {
 	{ "variantRegex", "regex", 2, 2, 0,
 		ARG_BERVAL|ARG_QUOTE|ARG_MAGIC,
 		variant_set_regex,
-		"( OLcfgOvAt:FIXME.6 NAME 'olcVariantEntryRegex' "
+		"( OLcfgOvAt:9.6 NAME 'olcVariantEntryRegex' "
 			"DESC 'Pattern for the variant entry' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString "
@@ -731,7 +727,7 @@ static ConfigTable variant_cfg[] = {
 	{ "", NULL, 2, 2, 0,
 		ARG_STRING|ARG_MAGIC|VARIANT_ATTR,
 		variant_set_attribute,
-		"( OLcfgOvAt:FIXME.3 NAME 'olcVariantVariantAttribute' "
+		"( OLcfgOvAt:9.3 NAME 'olcVariantVariantAttribute' "
 			"DESC 'Attribute to fill in the entry' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
@@ -741,7 +737,7 @@ static ConfigTable variant_cfg[] = {
 	{ "", NULL, 2, 2, 0,
 		ARG_STRING|ARG_MAGIC|VARIANT_ATTR_ALT,
 		variant_set_attribute,
-		"( OLcfgOvAt:FIXME.4 NAME 'olcVariantAlternativeAttribute' "
+		"( OLcfgOvAt:9.4 NAME 'olcVariantAlternativeAttribute' "
 			"DESC 'Attribute to take from the alternative entry' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
@@ -751,7 +747,7 @@ static ConfigTable variant_cfg[] = {
 	{ "", NULL, 2, 2, 0,
 		ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		variant_set_alt_dn,
-		"( OLcfgOvAt:FIXME.5 NAME 'olcVariantAlternativeEntry' "
+		"( OLcfgOvAt:9.5 NAME 'olcVariantAlternativeEntry' "
 			"DESC 'DN of the alternative entry' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN "
@@ -761,7 +757,7 @@ static ConfigTable variant_cfg[] = {
 	{ "", NULL, 2, 2, 0,
 		ARG_BERVAL|ARG_QUOTE|ARG_MAGIC,
 		variant_set_alt_pattern,
-		"( OLcfgOvAt:FIXME.7 NAME 'olcVariantAlternativeEntryPattern' "
+		"( OLcfgOvAt:9.7 NAME 'olcVariantAlternativeEntryPattern' "
 			"DESC 'Replacement pattern to locate the alternative entry' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString "
@@ -784,13 +780,13 @@ static ConfigTable variant_cfg[] = {
 };
 
 static ConfigOCs variant_ocs[] = {
-	{ "( OLcfgOvOc:FIXME.1 "
+	{ "( OLcfgOvOc:9.1 "
 		"NAME 'olcVariantConfig' "
 		"DESC 'Variant overlay configuration' "
 		"SUP olcOverlayConfig "
 		"MAY ( olcVariantPassReplication ) )",
 		Cft_Overlay, variant_cfg, NULL, variant_cfadd },
-	{ "( OLcfgOvOc:FIXME.2 "
+	{ "( OLcfgOvOc:9.2 "
 		"NAME 'olcVariantVariant' "
 		"DESC 'Variant configuration' "
 		"MUST ( olcVariantEntry ) "
@@ -798,7 +794,7 @@ static ConfigOCs variant_ocs[] = {
 		"SUP top "
 		"STRUCTURAL )",
 		Cft_Misc, variant_cfg, variant_ldadd },
-	{ "( OLcfgOvOc:FIXME.3 "
+	{ "( OLcfgOvOc:9.3 "
 		"NAME 'olcVariantAttribute' "
 		"DESC 'Variant attribute description' "
 		"MUST ( olcVariantVariantAttribute $ "
@@ -809,7 +805,7 @@ static ConfigOCs variant_ocs[] = {
 		"SUP top "
 		"STRUCTURAL )",
 		Cft_Misc, variant_cfg, variant_attr_ldadd },
-	{ "( OLcfgOvOc:FIXME.4 "
+	{ "( OLcfgOvOc:9.4 "
 		"NAME 'olcVariantRegex' "
 		"DESC 'Variant configuration' "
 		"MUST ( olcVariantEntryRegex ) "
@@ -817,7 +813,7 @@ static ConfigOCs variant_ocs[] = {
 		"SUP top "
 		"STRUCTURAL )",
 		Cft_Misc, variant_cfg, variant_regex_ldadd },
-	{ "( OLcfgOvOc:FIXME.5 "
+	{ "( OLcfgOvOc:9.5 "
 		"NAME 'olcVariantAttributePattern' "
 		"DESC 'Variant attribute description' "
 		"MUST ( olcVariantVariantAttribute $ "
@@ -868,8 +864,10 @@ variant_set_dn( ConfigArgs *ca )
 
 		dnMatch( &diff, 0, NULL, NULL, &vei->dn, &vei2->dn );
 		if ( !diff ) {
-			ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-			return ca->reply.err;
+			snprintf( ca->cr_msg, sizeof(ca->cr_msg),
+					"duplicate variant dn: %s", ca->value_ndn.bv_val );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
+			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
 
@@ -889,7 +887,11 @@ variant_set_regex( ConfigArgs *ca )
 	} else if ( ca->op == LDAP_MOD_DELETE ) {
 		ber_memfree( vei->dn.bv_val );
 		BER_BVZERO( &vei->dn );
-		regfree( vei->regex );
+		if ( vei->regex ) {
+			regfree( vei->regex );
+			ch_free( vei->regex );
+			vei->regex = NULL;
+		}
 		return LDAP_SUCCESS;
 	}
 
@@ -910,18 +912,21 @@ variant_set_regex( ConfigArgs *ca )
 		if ( vei == vei2 ) continue;
 
 		if ( !ber_bvcmp( &ca->value_bv, &vei2->dn ) ) {
-			ch_free( vei );
-			ca->ca_private = NULL;
-			ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-			return ca->reply.err;
+			snprintf( ca->cr_msg, sizeof(ca->cr_msg),
+					"duplicate variant regex: %s", ca->value_dn.bv_val );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
+			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
 
 	vei->regex = ch_calloc( 1, sizeof(regex_t) );
 	if ( regcomp( vei->regex, vei->dn.bv_val, REG_EXTENDED ) ) {
 		ch_free( vei->regex );
-		ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-		return ca->reply.err;
+		vei->regex = NULL;
+		snprintf( ca->cr_msg, sizeof(ca->cr_msg),
+				"cannot process regex: %s", vei->dn.bv_val );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
 	return LDAP_SUCCESS;
@@ -969,11 +974,11 @@ variant_set_alt_pattern( ConfigArgs *ca )
 		if ( ( ( *p >= '0' ) && ( *p <= '9' ) ) || ( *p == '$' ) ) {
 			p += 1;
 		} else {
-			Debug( LDAP_DEBUG_ANY, "variant_set_alt_pattern: "
-					"invalid replacement pattern supplied '%s'\n",
+			snprintf( ca->cr_msg, sizeof(ca->cr_msg),
+					"invalid replacement pattern supplied '%s'",
 					ca->value_bv.bv_val );
-			ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-			return ca->reply.err;
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
+			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
 
@@ -1008,8 +1013,7 @@ variant_set_attribute( ConfigArgs *ca )
 	if ( *s == '{' ) {
 		s = strchr( s, '}' );
 		if ( !s ) {
-			ca->reply.err = LDAP_UNDEFINED_TYPE;
-			return ca->reply.err;
+			return LDAP_UNDEFINED_TYPE;
 		}
 		s += 1;
 	}
@@ -1017,6 +1021,9 @@ variant_set_attribute( ConfigArgs *ca )
 	rc = slap_str2ad( s, ad, &text );
 	ber_memfree( ca->value_string );
 	if ( rc ) {
+		snprintf( ca->cr_msg, sizeof(ca->cr_msg),
+				"attribute %s invalid: %s", s, text );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
 		return rc;
 	}
 
@@ -1024,8 +1031,11 @@ variant_set_attribute( ConfigArgs *ca )
 	if ( vai->attr && vai->alternative &&
 			vai->attr->ad_type->sat_syntax !=
 					vai->alternative->ad_type->sat_syntax ) {
-		ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-		return ca->reply.err;
+		snprintf( ca->cr_msg, sizeof(ca->cr_msg),
+				"attribute '%s' syntax doesn't match alternative attribute '%s'",
+				vai->attr->ad_cname.bv_val, vai->alternative->ad_cname.bv_val );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
 	if ( ca->type == VARIANT_ATTR ) {
@@ -1033,8 +1043,10 @@ variant_set_attribute( ConfigArgs *ca )
 		LDAP_SLIST_FOREACH( vai2, &vai->variant->attributes, next ) {
 			if ( vai == vai2 ) continue;
 			if ( vai->attr == vai2->attr ) {
-				ca->reply.err = LDAP_CONSTRAINT_VIOLATION;
-				return ca->reply.err;
+				snprintf( ca->cr_msg, sizeof(ca->cr_msg),
+						"duplicate attribute '%s'", vai->attr->ad_cname.bv_val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s\n", ca->log, ca->cr_msg );
+				return LDAP_CONSTRAINT_VIOLATION;
 			}
 		}
 	}
@@ -1091,8 +1103,6 @@ variant_add_alt_attr( ConfigArgs *ca )
 done:
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_SLIST_INSERT_HEAD( &vei->attributes, vai, next );
-	} else {
-		ca->reply.err = rc;
 	}
 
 	return rc;
@@ -1137,8 +1147,6 @@ variant_add_alt_attr_regex( ConfigArgs *ca )
 done:
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_SLIST_INSERT_HEAD( &vei->attributes, vai, next );
-	} else {
-		ca->reply.err = rc;
 	}
 
 	return rc;
@@ -1153,6 +1161,7 @@ variant_ldadd_cleanup( ConfigArgs *ca )
 
 	if ( ca->reply.err != LDAP_SUCCESS ) {
 		assert( LDAP_SLIST_EMPTY(&vei->attributes) );
+		ch_free( vei->dn.bv_val );
 		ch_free( vei );
 		return LDAP_SUCCESS;
 	}
@@ -1233,6 +1242,7 @@ variant_attr_ldadd_cleanup( ConfigArgs *ca )
 	variantEntry_info *vei = vai->variant;
 
 	if ( ca->reply.err != LDAP_SUCCESS ) {
+		ch_free( vai->dn.bv_val );
 		ch_free( vai );
 		return LDAP_SUCCESS;
 	}
@@ -1383,6 +1393,8 @@ variant_db_destroy( BackendDB *be, ConfigReply *cr )
 				ch_free( vai );
 			}
 			ber_memfree( vei->dn.bv_val );
+			regfree( vei->regex );
+			ch_free( vei->regex );
 			ch_free( vei );
 		}
 		ch_free( ov );

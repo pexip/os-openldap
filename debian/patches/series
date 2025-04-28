@@ -8,11 +8,10 @@ sasl-default-path
 getaddrinfo-is-threadsafe
 do-not-second-guess-sonames
 contrib-makefiles
-ldap-conf-tls-cacertdir
-add-tlscacert-option-to-ldap-conf
 fix-build-top-mk
 switch-to-lt_dlopenadvise-to-get-RTLD_GLOBAL-set.diff
 set-maintainer-name
-no-openssl-locking-callbacks
+64-bit-time-t-compat.patch
+cross.patch
+ppm-cross.patch
 openssl3-support.patch
-tls10-support.patch

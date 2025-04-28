@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2022 The OpenLDAP Foundation.
+ * Copyright 2002-2024 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -606,7 +606,7 @@ loop_begin:
 			if ( id == base->e_id ) scopeok = 1;
 			break;
 		case LDAP_SCOPE_ONELEVEL:
-			scopeok = 1;
+			scopeok = dnIsSuffixScope(&e->e_nname, &base->e_nname, LDAP_SCOPE_ONELEVEL);
 			break;
 		case LDAP_SCOPE_CHILDREN:
 			if ( id == base->e_id ) break;

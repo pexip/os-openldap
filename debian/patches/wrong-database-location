@@ -3,9 +3,11 @@ Move the default slapd database location to /var/lib/ldap instead of
 
 Debian-specific.
 
---- a/doc/man/man5/slapd.conf.5
-+++ b/doc/man/man5/slapd.conf.5
-@@ -2073,7 +2073,7 @@
+Index: openldap/doc/man/man5/slapd.conf.5
+===================================================================
+--- openldap.orig/doc/man/man5/slapd.conf.5	2022-05-20 17:36:10.817244990 -0400
++++ openldap/doc/man/man5/slapd.conf.5	2022-05-20 17:36:10.813244986 -0400
+@@ -2122,7 +2122,7 @@
  # The database directory MUST exist prior to
  # running slapd AND should only be accessible
  # by the slapd/tools. Mode 0700 recommended.
@@ -14,20 +16,24 @@ Debian-specific.
  # Indices to maintain
  index     objectClass  eq
  index     cn,sn,mail   pres,eq,approx,sub
---- a/include/ldap_defaults.h
-+++ b/include/ldap_defaults.h
-@@ -47,7 +47,7 @@
- 	/* location of the default slapd config file */
- #define SLAPD_DEFAULT_CONFIGFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.conf"
+Index: openldap/include/ldap_defaults.h
+===================================================================
+--- openldap.orig/include/ldap_defaults.h	2022-05-20 17:36:10.817244990 -0400
++++ openldap/include/ldap_defaults.h	2022-05-20 17:36:10.813244986 -0400
+@@ -54,7 +54,7 @@
  #define SLAPD_DEFAULT_CONFIGDIR		LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.d"
+ #endif
+ #ifndef SLAPD_DEFAULT_DB_DIR
 -#define SLAPD_DEFAULT_DB_DIR		LDAP_RUNDIR LDAP_DIRSEP "openldap-data"
 +#define SLAPD_DEFAULT_DB_DIR		LDAP_RUNDIR LDAP_DIRSEP "lib" LDAP_DIRSEP "ldap"
+ #endif
  #define SLAPD_DEFAULT_DB_MODE		0600
- #define SLAPD_DEFAULT_UCDATA		LDAP_DATADIR LDAP_DIRSEP "ucdata"
  	/* default max deref depth for aliases */
---- a/servers/slapd/Makefile.in
-+++ b/servers/slapd/Makefile.in
-@@ -439,9 +439,9 @@
+Index: openldap/servers/slapd/Makefile.in
+===================================================================
+--- openldap.orig/servers/slapd/Makefile.in	2022-05-20 17:36:10.817244990 -0400
++++ openldap/servers/slapd/Makefile.in	2022-05-20 17:36:10.813244986 -0400
+@@ -452,9 +452,9 @@
  
  install-db-config: FORCE
  	@-$(MKDIR) $(DESTDIR)$(localstatedir) $(DESTDIR)$(sysconfdir)
@@ -39,9 +45,11 @@ Debian-specific.
  	$(INSTALL) $(INSTALLFLAGS) -m 600 $(srcdir)/DB_CONFIG \
  		$(DESTDIR)$(sysconfdir)/DB_CONFIG.example
  
---- a/doc/man/man5/slapd-config.5
-+++ b/doc/man/man5/slapd-config.5
-@@ -2095,7 +2095,7 @@
+Index: openldap/doc/man/man5/slapd-config.5
+===================================================================
+--- openldap.orig/doc/man/man5/slapd-config.5	2022-05-20 17:36:10.817244990 -0400
++++ openldap/doc/man/man5/slapd-config.5	2022-05-20 17:36:10.813244986 -0400
+@@ -2233,7 +2233,7 @@
  # The database directory MUST exist prior to
  # running slapd AND should only be accessible
  # by the slapd/tools. Mode 0700 recommended.
@@ -50,9 +58,11 @@ Debian-specific.
  # Indices to maintain
  olcDbIndex:     objectClass  eq
  olcDbIndex:     cn,sn,mail   pres,eq,approx,sub
---- a/doc/man/man5/slapd-mdb.5
-+++ b/doc/man/man5/slapd-mdb.5
-@@ -51,7 +51,7 @@
+Index: openldap/doc/man/man5/slapd-mdb.5
+===================================================================
+--- openldap.orig/doc/man/man5/slapd-mdb.5	2022-05-20 17:36:10.817244990 -0400
++++ openldap/doc/man/man5/slapd-mdb.5	2022-05-20 17:36:10.813244986 -0400
+@@ -63,7 +63,7 @@
  associated indexes live.
  A separate directory must be specified for each database.
  The default is
