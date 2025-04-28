@@ -14,4 +14,3 @@ set-maintainer-name
 64-bit-time-t-compat.patch
 cross.patch
 ppm-cross.patch
-openssl3-support.patch
