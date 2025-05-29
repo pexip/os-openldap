@@ -780,6 +780,9 @@ tool_args( int argc, char **argv )
 				exit( EXIT_FAILURE );
 			}
 			ldapuri = ber_strdup( optarg );
+			if ( ldapuri == NULL ) {
+				exit( EXIT_FAILURE );
+			}
 			break;
 		case 'I':
 #ifdef HAVE_CYRUS_SASL
@@ -980,6 +983,9 @@ tool_args( int argc, char **argv )
 			break;
 		case 'w':	/* password */
 			passwd.bv_val = ber_strdup( optarg );
+			if ( passwd.bv_val == NULL ) {
+				exit( EXIT_FAILURE );
+			}
 			{
 				char* p;
 
@@ -1166,6 +1172,7 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 	LDAP *ld = NULL;
 
 	if ( debug ) {
+#ifdef LDAP_DEBUG
 		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug )
 			!= LBER_OPT_SUCCESS )
 		{
@@ -1178,6 +1185,10 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 			fprintf( stderr,
 				"Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
 		}
+#else /* !LDAP_DEBUG */
+		fprintf( stderr,
+				"Must compile with LDAP_DEBUG for debugging\n", prog );
+#endif /* !LDAP_DEBUG */
 	}
 
 #ifdef SIGPIPE
@@ -1476,6 +1487,9 @@ tool_bind( LDAP *ld )
 				tool_exit( ld, EXIT_FAILURE );
 			}
 			passwd.bv_val = ber_strdup( pw );
+			if ( passwd.bv_val == NULL ) {
+				tool_exit( ld, EXIT_FAILURE );
+			}
 			passwd.bv_len = strlen( passwd.bv_val );
 		}
 	}
