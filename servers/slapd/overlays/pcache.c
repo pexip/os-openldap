@@ -749,7 +749,7 @@ url2query(
 		}
 	}
 
-	if ( got != GOT_ALL ) {
+	if ( (got & GOT_ALL) != GOT_ALL) {
 		rc = 1;
 		goto error;
 	}
@@ -802,7 +802,11 @@ url2query(
 			goto error;
 		}
 
-		cq = add_query( op, qm, &query, qt, PC_POSITIVE, 0 );
+		if (BER_BVISNULL( &uuid )) {
+		  cq = add_query( op, qm, &query, qt, PC_NEGATIVE, 0 );
+		} else {
+		  cq = add_query( op, qm, &query, qt, PC_POSITIVE, 0 );
+		}
 		if ( cq != NULL ) {
 			cq->expiry_time = expiry_time;
 			cq->refresh_time = refresh_time;
@@ -1580,6 +1584,8 @@ add_query(
 
 	case PC_NEGATIVE:
 		ttl = templ->negttl;
+		if ( templ->ttr )
+			ttr = now + templ->ttr;
 		break;
 
 	case PC_SIZELIMIT:

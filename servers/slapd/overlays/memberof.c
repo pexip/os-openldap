@@ -1301,10 +1301,8 @@ done2:;
 	if ( save_member ) {
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_ndn = op->o_bd->be_rootndn;
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = backend_attribute( op, NULL, &op->o_req_ndn,
 				mo->mo_ad_member, &mci->member, ACL_READ );
-		op->o_bd->bd_info = (BackendInfo *)on;
 	}
 
 	sc->sc_next = op->o_callback;
@@ -1503,10 +1501,8 @@ memberof_res_modify( Operation *op, SlapReply *rs )
 
 		case LDAP_MOD_REPLACE:
 			/* delete all ... */
-			op->o_bd->bd_info = (BackendInfo *)on->on_info;
 			rc = backend_attribute( op, NULL, &op->o_req_ndn,
 					mo->mo_ad_memberof, &vals, ACL_READ );
-			op->o_bd->bd_info = (BackendInfo *)on;
 			if ( rc == LDAP_SUCCESS ) {
 				for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
 					memberof_value_modify( op,
@@ -1641,10 +1637,8 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	if ( mci->what & MEMBEROF_IS_GROUP ) {
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = backend_attribute( op, NULL, &op->orr_nnewDN,
 				mo->mo_ad_member, &vals, ACL_READ );
-		op->o_bd->bd_info = (BackendInfo *)on;
 
 		if ( rc == LDAP_SUCCESS ) {
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
@@ -1658,10 +1652,8 @@ memberof_res_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	if ( MEMBEROF_REFINT( mo ) && ( mci->what & MEMBEROF_IS_MEMBER ) ) {
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = backend_attribute( op, NULL, &op->orr_nnewDN,
 				mo->mo_ad_memberof, &vals, ACL_READ );
-		op->o_bd->bd_info = (BackendInfo *)on;
 
 		if ( rc == LDAP_SUCCESS ) {
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
@@ -2159,6 +2151,15 @@ mo_cf_gen( ConfigArgs *c )
 
 		case MO_ADDCHECK:
 			if ( c->value_int ) {
+				if ( SLAP_ISGLOBALOVERLAY( c->be ) ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
+						"addcheck functionality not supported "
+						"when memberof is a global overlay",
+						c->argv[ 1 ] );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+						c->log, c->cr_msg );
+					return 1;
+				}
 				mo->mo_flags |= MEMBEROF_FADDCHECK;
 
 			} else {
