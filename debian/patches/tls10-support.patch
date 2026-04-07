@@ -1,3 +1,6 @@
+Ensure that TLS 1.0-TLS 1.3 requirements are properly configured
+when using newer OpenSSL versions.
+
 --- a/libraries/libldap/tls_o.c
 +++ b/libraries/libldap/tls_o.c
 @@ -445,30 +445,48 @@

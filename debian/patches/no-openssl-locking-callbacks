@@ -1,3 +1,9 @@
+Conditionally install locking callbacks for OpenSSL.
+
+We are a library. The application must have already done so in
+its main thread (and, if it hasn't, it should be fixed to do so)
+so test to see if a callback exists and do nothing if so.
+
 diff --git a/libraries/libldap/tls_o.c b/libraries/libldap/tls_o.c
 index b0277df..092f20b 100644
 --- a/libraries/libldap/tls_o.c
